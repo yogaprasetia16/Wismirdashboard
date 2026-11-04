@@ -1,0 +1,88 @@
+# Panduan sambung Dashboard + POS ke Google Sheets
+
+Isi folder:
+
+- `index.html`: halaman pembuka (pilih Dashboard atau POS).
+- `dashboard.html`: dashboard owner (komputer, HP, tablet).
+- `pos.html`: kasir, stok, dan absen (tablet toko).
+- `Code.gs`: penghubung ke Google Sheets. Satu script dipakai bersama oleh dashboard dan POS.
+
+## 1. Buat Google Sheet + pasang Apps Script (sekali saja, ±10 menit)
+
+1. Buka https://sheets.new (login dengan akun Google bisnis Anda). Spreadsheet kosong baru langsung terbuat. Beri nama, misalnya **WISMIR Data**.
+2. Di menu atas: **Extensions → Apps Script**. Tab editor baru akan terbuka.
+3. Hapus semua tulisan yang ada di editor, lalu tempel seluruh isi `Code.gs`.
+4. Di baris `const PIN = 'GANTI-PIN-ANDA';`, ganti `GANTI-PIN-ANDA` dengan PIN pilihan Anda, misalnya `'wismir2580'`. Simpan (ikon disket atau Ctrl+S).
+5. Di toolbar, pilih fungsi **setup**, lalu klik **Run**.
+   - Google akan meminta izin: **Review permissions** → pilih akun Anda → **Advanced** → **Go to … (unsafe)** → **Allow**. Peringatan "unsafe" ini normal karena script buatan sendiri, bukan dari Google.
+   - Setelah selesai, kembali ke tab Sheet. Ada 14 tab: 8 untuk dashboard (`Keuangan`, `Stok`, `Tugas`, `Purchasing`, `Staff`, `Store`, `Production`, `Marketing`) dan 6 untuk POS (`POS Produk`, `POS Karyawan`, `POS Stok`, `POS Kasir`, `POS Shift`, `POS Absen`).
+6. Klik **Deploy → New deployment**. Klik ikon gerigi lalu pilih **Web app**.
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+   - Klik **Deploy**, lalu salin **Web app URL** (berakhiran `/exec`).
+
+Simpan URL dan PIN tersebut. Keduanya dipakai di dashboard dan di semua tablet.
+
+Kalau nanti `Code.gs` diperbarui: tempel kode baru, lalu **Deploy → Manage deployments → Edit (pensil) → Version: New version → Deploy**. URL tetap sama.
+
+Jangan mengubah nama tab atau urutan kolom di Sheet. Isi barisnya boleh dilihat, difilter, dan dibuat pivot. Kalau tab dihapus, tab itu akan dibuat ulang otomatis saat sinkron berikutnya.
+
+## 2. Sambungkan tablet POS
+
+Di setiap tablet: **Owner** → masukkan PIN owner → **Data** → bagian **Google Sheets**.
+Isi URL `/exec` dan PIN Sheets, lalu tekan **Simpan & sinkron sekarang**.
+
+- Tablet yang belum pernah dipakai berjualan akan otomatis membuang data contohnya, lalu mengambil produk, karyawan, dan stok dari Sheets.
+- Tablet yang sudah berisi data asli: tekan **Kirim semua data tablet ke Sheets** sekali saja (ketuk 2x). Lakukan ini di satu tablet dulu, baru sambungkan tablet lain.
+
+## 3. Cara kerja sinkron
+
+| Data | Kapan dikirim |
+|---|---|
+| Stok (masuk, keluar, transfer, rusak, opname) | Langsung. Kalau internet putus, masuk antrean dan dikirim otomatis saat online. |
+| Produk dan karyawan | Langsung, sama seperti stok. |
+| Kasir (struk), shift, dan absen | Sekali, saat **Tutup shift**. Kasir tidak pernah menunggu jaringan. |
+| Penjualan shift (mengurangi stok) | Saat tutup shift. |
+
+- Setiap 1 menit tablet mengambil perubahan dari tablet lain, misalnya stok Gudang yang dipindah dari tablet lain.
+- Bagian Owner → Data menampilkan berapa data yang masih menunggu dikirim.
+
+## 4. Dashboard
+
+Settings → isi URL dan PIN yang sama → **Save settings**. Data POS tampil di:
+
+- **Finance**: setiap shift yang ditutup muncul sebagai Income bertanda `POS` dan ikut dihitung di Net profit. Kalau sebelumnya Anda mencatat penjualan toko secara manual, hapus catatan manual itu supaya tidak terhitung dua kali.
+- **Operational → Store stock**: stok per lokasi (Gudang / Toko A / Toko B).
+- **Operational → Attendance**: jumlah shift per karyawan bulan ini dan daftar shift terakhir.
+- **Overview → Low stock**: produk POS dengan total stok 3 atau kurang.
+
+Data POS di dashboard hanya untuk dibaca. Mengubah data POS tetap dilakukan dari tablet.
+
+### Pengaman data dashboard
+
+- Perubahan yang belum terkirim (misalnya karena offline) dikirim lebih dulu sebelum dashboard memuat ulang dari Sheets, jadi tidak tertimpa.
+- Komputer baru wajib memuat data dari Sheets dulu sebelum boleh mengirim, jadi Sheets tidak bisa terhapus oleh browser yang masih kosong.
+- Tanggal sekarang disimpan sebagai teks di Sheets, jadi tidak bisa bergeser sehari karena perbedaan zona waktu.
+
+### Membuka dashboard dari beberapa perangkat
+
+Dashboard boleh dibuka di laptop, HP, dan tablet sekaligus.
+
+- Setiap kali tab dibuka kembali, dan setiap 5 menit, dashboard memuat ulang data dari Sheets.
+- Kalau perangkat lain sudah menyimpan duluan, perubahan digabung per baris, jadi tidak saling menimpa.
+- Batasannya: kalau baris yang sama diedit di dua perangkat dalam waktu hampir bersamaan, yang tersimpan adalah editan yang terakhir dikirim.
+
+## 5. Online-kan lewat GitHub Pages
+
+1. Repo `Wismirdashboard` harus **Public**: Settings → General → paling bawah → Change visibility. GitHub Pages gratis hanya untuk repo public.
+   - Aman, karena kode HTML tidak berisi data, URL, ataupun PIN. Semua itu tersimpan di browser masing-masing perangkat.
+   - **Jangan pernah** menyimpan `Code.gs` yang sudah berisi PIN asli ke repo. PIN asli cukup ada di Apps Script.
+2. Pastikan file `index.html`, `dashboard.html`, dan `pos.html` ada di branch `main`.
+3. Settings → **Pages** → Source: **Deploy from a branch** → Branch: **main**, folder **/ (root)** → Save.
+4. Tunggu 1–2 menit. Alamatnya:
+   - `https://yogaprasetia16.github.io/Wismirdashboard/`: halaman pembuka
+   - `https://yogaprasetia16.github.io/Wismirdashboard/dashboard.html`
+   - `https://yogaprasetia16.github.io/Wismirdashboard/pos.html`
+5. Di setiap perangkat, buka alamatnya, isi URL dan PIN Sheets sekali, lalu pilih **Add to Home Screen** supaya muncul seperti aplikasi.
+
+Setelah tablet mulai dipakai, jangan mengganti alamat POS (misalnya mengganti nama repo), karena data yang belum terkirim terikat pada alamat itu.
