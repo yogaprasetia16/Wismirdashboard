@@ -1,0 +1,16 @@
+// Builds preview copies with sample data so the owner can look at the design without Google Sheets.
+// Usage: node tests/make_preview.js <output-dir>   -> <out>/dashboard-preview.html, <out>/pos-preview.html
+// Send them with display "render". Never commit or publish the preview files.
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..'),out=process.argv[2];
+if(!out){console.error('usage: node tests/make_preview.js <output-dir>');process.exit(2)}
+fs.mkdirSync(out,{recursive:true});
+const demo=fs.readFileSync(path.join(__dirname,'preview-demo.js'),'utf8');
+let d=fs.readFileSync(path.join(root,'dashboard.html'),'utf8');
+const hook='S.pos=S.pos||{};';
+if(d.split(hook).length!==2)throw new Error('dashboard.html changed: hook "'+hook+'" not found once');
+d=d.replace(hook,hook+'\n'+demo).replace('<title>WISMIR Dashboard</title>','<title>WISMIR Dashboard (preview)</title>');
+fs.writeFileSync(path.join(out,'dashboard-preview.html'),d);
+// POS seeds its own sample data on first open (owner PIN 1234)
+fs.writeFileSync(path.join(out,'pos-preview.html'),fs.readFileSync(path.join(root,'pos.html'),'utf8').replace('<title>WISMIR POS</title>','<title>WISMIR POS (preview)</title>'));
+console.log('written to',out);

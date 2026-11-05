@@ -2,3 +2,5 @@
 *.log
 node_modules/
 .DS_Store
+# screenshots written by tests
+tests/*.png
