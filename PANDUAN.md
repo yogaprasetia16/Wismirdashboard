@@ -11,19 +11,29 @@ Isi folder:
 
 1. Buka https://sheets.new (login dengan akun Google bisnis Anda). Spreadsheet kosong baru langsung terbuat. Beri nama, misalnya **WISMIR Data**.
 2. Di menu atas: **Extensions → Apps Script**. Tab editor baru akan terbuka.
-3. Hapus semua tulisan yang ada di editor, lalu tempel seluruh isi `Code.gs`.
-4. Di baris `const PIN = 'GANTI-PIN-ANDA';`, ganti `GANTI-PIN-ANDA` dengan PIN pilihan Anda, misalnya `'wismir2580'`. Simpan (ikon disket atau Ctrl+S).
+3. Buka https://github.com/yogaprasetia16/Wismirdashboard/blob/main/Code.gs lalu klik ikon **Copy raw file** (dua kotak bertumpuk, kanan atas kode).
+4. Di editor Apps Script: hapus semua tulisan, tempel, lalu simpan (Ctrl+S). **Kode tidak perlu diedit.**
 5. Di toolbar, pilih fungsi **setup**, lalu klik **Run**.
    - Google akan meminta izin: **Review permissions** → pilih akun Anda → **Advanced** → **Go to … (unsafe)** → **Allow**. Peringatan "unsafe" ini normal karena script buatan sendiri, bukan dari Google.
-   - Setelah selesai, kembali ke tab Sheet. Ada 14 tab: 8 untuk dashboard (`Keuangan`, `Stok`, `Tugas`, `Purchasing`, `Staff`, `Store`, `Production`, `Marketing`) dan 6 untuk POS (`POS Produk`, `POS Karyawan`, `POS Stok`, `POS Kasir`, `POS Shift`, `POS Absen`).
-6. Klik **Deploy → New deployment**. Klik ikon gerigi lalu pilih **Web app**.
+   - Setelah selesai ada 14 tab: 8 untuk dashboard (`Keuangan`, `Stok`, `Tugas`, `Purchasing`, `Staff`, `Store`, `Production`, `Marketing`) dan 6 untuk POS (`POS Produk`, `POS Karyawan`, `POS Stok`, `POS Kasir`, `POS Shift`, `POS Absen`).
+6. Kembali ke tab Google Sheet, lalu **muat ulang halaman**. Menu **WISMIR** muncul di menu atas.
+7. Pilih **WISMIR → Atur PIN**, lalu isi PIN pilihan Anda. Lebih aman 6 karakter atau lebih, dan jangan pakai `1234` atau tanggal lahir.
+8. Kembali ke Apps Script, klik **Deploy → New deployment**. Klik ikon gerigi lalu pilih **Web app**.
    - Execute as: **Me**
    - Who has access: **Anyone**
    - Klik **Deploy**, lalu salin **Web app URL** (berakhiran `/exec`).
 
 Simpan URL dan PIN tersebut. Keduanya dipakai di dashboard dan di semua tablet.
 
-Kalau nanti `Code.gs` diperbarui: tempel kode baru, lalu **Deploy → Manage deployments → Edit (pensil) → Version: New version → Deploy**. URL tetap sama.
+**PIN tidak ditulis di kode**, jadi tetap aman walaupun `Code.gs` ada di GitHub publik. PIN tersimpan di Google Sheet Anda dan **tidak hilang** saat kode diperbarui. Untuk mengganti PIN: **WISMIR → Atur PIN**, lalu isi PIN baru di dashboard dan semua tablet.
+
+### Kalau `Code.gs` diperbarui
+
+1. Buka `Code.gs` di GitHub, lalu klik **Copy raw file**.
+2. Di Apps Script: hapus semua, tempel, lalu simpan (Ctrl+S).
+3. **Deploy → Manage deployments → Edit (pensil) → Version: New version → Deploy.** URL tetap sama.
+
+Jangan pilih "New deployment" saat update, karena itu membuat URL baru.
 
 Jangan mengubah nama tab atau urutan kolom di Sheet. Isi barisnya boleh dilihat, difilter, dan dibuat pivot. Kalau tab dihapus, tab itu akan dibuat ulang otomatis saat sinkron berikutnya.
 

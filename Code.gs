@@ -1,12 +1,14 @@
 // WISMIR: penghubung Dashboard + POS ke Google Sheets
-// Cara pakai:
-//  1. Buat Google Sheet kosong, lalu Extensions > Apps Script, tempel kode ini.
-//  2. Ganti PIN di bawah, simpan (Ctrl+S).
-//  3. Pilih fungsi "setup" di toolbar, klik Run, izinkan akses. Semua tab dibuat otomatis.
+// Kode ini TIDAK perlu diedit. PIN tidak ditulis di sini (file ini ada di GitHub publik).
+//
+// Pemasangan pertama:
+//  1. Google Sheet > Extensions > Apps Script, tempel kode ini, simpan (Ctrl+S).
+//  2. Pilih fungsi "setup" di toolbar, klik Run, izinkan akses. Semua tab dibuat otomatis.
+//  3. Kembali ke Google Sheet, muat ulang halaman. Menu "WISMIR" muncul > Atur PIN.
 //  4. Deploy > New deployment > Web app (Execute as: Me, Who has access: Anyone). Salin URL /exec.
-// Sudah pernah deploy? Deploy > Manage deployments > Edit > New version > Deploy (URL tetap sama).
-
-const PIN = 'GANTI-PIN-ANDA';
+//
+// Update kode: hapus semua, tempel kode baru, simpan, lalu
+//  Deploy > Manage deployments > Edit (pensil) > Version: New version > Deploy. URL tetap sama, PIN tetap tersimpan.
 
 // ---- Tab milik Dashboard (ditulis ulang penuh setiap sync dari dashboard) ----
 const HEADERS = {
@@ -44,12 +46,37 @@ const NUM = {
   'POS Shift': ['kasAwal', 'penjualanTunai', 'kasMasuk', 'kasKeluar', 'kasSeharusnya', 'tunai', 'transfer', 'edc', 'totalPenjualan', 'transaksi'],
 };
 
-const DEFAULT_PIN = 'GANTI-PIN-ANDA';
+// ---- PIN: disimpan di Script Properties, bukan di kode, jadi aman saat kode diganti ----
+function getPin() { return PropertiesService.getScriptProperties().getProperty('PIN') || ''; }
+const NO_PIN = 'PIN belum diatur. Buka Google Sheet > menu WISMIR > Atur PIN.';
 
-// Jalankan sekali dari editor Apps Script: membuat semua tab + judul kolom.
-// Aman dijalankan ulang: data yang sudah ada tidak dihapus.
+// Menu "WISMIR" di Google Sheet
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('WISMIR')
+    .addItem('Atur PIN', 'setPin')
+    .addItem('Siapkan tab', 'setup')
+    .addToUi();
+}
+
+function setPin() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Atur PIN WISMIR',
+    (getPin() ? 'PIN sudah ada. Isi PIN baru untuk menggantinya. ' : '') +
+    'PIN ini dipakai di Settings dashboard dan di Owner > Data tablet POS. Minimal 4 karakter; lebih aman 6 atau lebih.',
+    ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const p = r.getResponseText().trim();
+  if (p.length < 4) { ui.alert('PIN minimal 4 karakter. PIN tidak diubah.'); return; }
+  PropertiesService.getScriptProperties().setProperty('PIN', p);
+  ui.alert('PIN tersimpan. Kalau PIN diganti, isi PIN yang sama di dashboard dan semua tablet.');
+}
+
+function tell(msg) {
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); } // dari editor: lihat Execution log
+}
+
+// Membuat semua tab + judul kolom. Aman dijalankan ulang: data yang sudah ada tidak dihapus.
 function setup() {
-  if (PIN === DEFAULT_PIN) throw new Error('Ganti PIN di baris atas Code.gs dulu, simpan, lalu Run setup lagi.');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.setSpreadsheetTimeZone('Asia/Jakarta');
   Object.keys(HEADERS).concat(Object.keys(POS)).forEach(function (n) {
@@ -62,7 +89,7 @@ function setup() {
     const n = sh.getName();
     if (!HEADERS[n] && !POS[n] && sh.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(sh);
   });
-  Logger.log('Selesai: ' + ss.getSheets().length + ' tab siap. Lanjutkan ke Deploy > New deployment.');
+  tell('Selesai: ' + ss.getSheets().length + ' tab siap.' + (getPin() ? '' : ' Langkah berikutnya: muat ulang Google Sheet, lalu menu WISMIR > Atur PIN.'));
 }
 
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
@@ -137,8 +164,9 @@ function readSheet(name, since) {
 
 function doGet(e) {
   const p = e.parameter || {};
-  if (PIN === DEFAULT_PIN) return out({ ok: false, error: 'PIN di Code.gs belum diganti' });
-  if (p.pin !== PIN) return out({ ok: false, error: 'PIN salah' });
+  const pin = getPin();
+  if (!pin) return out({ ok: false, error: NO_PIN });
+  if (p.pin !== pin) return out({ ok: false, error: 'PIN salah' });
   try {
     const data = {};
     if (p.pos) {
@@ -163,8 +191,9 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     const body = JSON.parse(e.postData.contents);
-    if (PIN === DEFAULT_PIN) return out({ ok: false, error: 'PIN di Code.gs belum diganti' });
-    if (body.pin !== PIN) return out({ ok: false, error: 'PIN salah' });
+    const pin = getPin();
+    if (!pin) return out({ ok: false, error: NO_PIN });
+    if (body.pin !== pin) return out({ ok: false, error: 'PIN salah' });
 
     if (body.action === 'upsert') {
       // Dari POS: tambah baris baru / perbarui baris dengan id yang sama
