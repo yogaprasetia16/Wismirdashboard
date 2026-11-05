@@ -43,6 +43,7 @@ Hosting: GitHub Pages from `main` (repo is public): `https://yogaprasetia16.gith
    - **Merge without asking** when all tests pass and the change needs no manual step from the owner (dashboard / POS / docs changes).
    - **Ask first** when `Code.gs` changes in a way that must be installed in a specific order (e.g. new columns the apps start writing), or when the change could disrupt the cashier (checkout, sync, shift flow). Suggest merging outside store hours.
    - After merging, tell the owner what changed. Revert quickly if they are unhappy.
+   - **Current status (2026-11-05): the POS is still in trial, not yet used in the store.** Until the owner says it is live, cashier-flow changes may also be merged without asking (still say what changed). Once it is live, go back to asking first and suggest merging outside store hours.
 4. If `Code.gs` changed, tell the owner: open `Code.gs` on GitHub → **Copy raw file** → paste in Apps Script → Ctrl+S → **Deploy → Manage deployments → Edit → New version → Deploy** (never "New deployment": that changes the URL on every device).
 
 ## Testing notes
