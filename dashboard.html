@@ -277,6 +277,7 @@ async function pullSheets(){
     }
     for(const k in POSK){const d=j.data[POSK[k]];if(d)S.pos[k]=d}
     save(false);setStatus('Data loaded from Sheets '+hhmm());
+    if(!busy&&migratePos())save(); // sends the merged lists back to Sheets
     if(busy)pushSheets();
   }catch(e){setStatus('Could not connect to Google Sheets.')}
 }
@@ -294,15 +295,24 @@ const P=k=>(S.pos&&S.pos[k])||[];
 const PEXT=['Supplier','Konveksi','Sale','Rusak/Hilang','Koreksi opname'];
 function posLocs(){const s=new Set();P('stok').forEach(x=>[x.dari,x.ke].forEach(l=>{if(l&&!PEXT.includes(l))s.add(String(l))}));const l=[...s].sort((a,b)=>(a==='Gudang'?-1:b==='Gudang'?1:a.localeCompare(b)));return l.length?l:['Gudang','Toko A','Toko B']}
 function posStock(){const m={},L=posLocs();P('stok').forEach(x=>{if(x.status==='void')return;const q=+x.qty||0,o=m[x.pid]||(m[x.pid]={});if(L.includes(x.ke))o[x.ke]=(o[x.ke]||0)+q;if(L.includes(x.dari))o[x.dari]=(o[x.dari]||0)-q});return m}
-const posProducts=()=>P('produk').filter(p=>+p.aktif!==0).sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
 const posTotal=(m,id)=>Object.values(m[id]||{}).reduce((a,b)=>a+b,0);
-const posLow=()=>{const m=posStock();return posProducts().filter(p=>posTotal(m,p.id)<=3)};
+// One product list for Dashboard and POS: store/warehouse stock comes from POS moves, online stock is typed here
+const isOff=x=>x.aktif==='Inactive';
+const prodTotal=(p,m)=>posTotal(m,p.id)+(+p.stokOnline||0);
+const pname=p=>String(p.nama||'')+(p.varian?' · '+p.varian:'');
+// Products and staff made on a store tablet before they moved to the dashboard: copy them in once (same id, so history stays linked)
+function migratePos(){
+  let n=0;const st=v=>/^(0|inactive|nonaktif)$/i.test(String(v??'').trim())?'Inactive':'Active';
+  P('produk').forEach(r=>{const id=String(r.id||'');if(!id||S.products.some(p=>p.id===id))return;S.products.push({id,nama:String(r.nama||''),varian:'',stokOnline:0,min:3,harga:'',kategori:String(r.kategori||''),aktif:st(r.aktif)});n++});
+  P('karyawan').forEach(r=>{const id=String(r.id||'');if(!id||S.staff.some(p=>p.id===id))return;S.staff.push({id,joined:'',name:String(r.nama||''),aktif:st(r.aktif)});n++});
+  return n;
+}
 // Each closed store shift counts as one Income entry (read-only) in Finance
 const posTx=()=>P('shift').filter(s=>+s.totalPenjualan).map(s=>({id:'pos:'+s.id,pos:1,jenis:'Income',tanggal:nd(s.tanggal),kategori:'Sales',channel:'Store',jumlah:+s.totalPenjualan,catatan:'POS · '+s.toko+' · '+(s.buka||'')+'–'+(s.tutup||'')}));
 const allTx=()=>S.tx.concat(posTx());
 const openTasks=()=>S.tasks.filter(t=>!t.selesai);
 const dueTasks=()=>openTasks().filter(t=>!t.tempo||t.tempo<=today());
-const lowStock=()=>S.products.filter(p=>(+p.stokToko+ +p.stokOnline)<=+p.min);
+const lowStock=()=>{const m=posStock();return S.products.filter(p=>!isOff(p)&&prodTotal(p,m)<=+p.min)};
 const icons=()=>TABS.map(t=>`<button data-t="${t[0]}" title="${t[1]}" aria-label="${t[1]}"><svg viewBox="0 0 24 24">${IC[t[0]]}</svg></button>`).join('')+`<button data-t="theme" title="Light / dark mode" aria-label="Toggle light or dark mode"><svg viewBox="0 0 24 24"></svg></button>`;
 const MOON='<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',SUN='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
 let theme=S.cfg.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
@@ -311,7 +321,7 @@ function toggleTheme(){theme=theme==='dark'?'light':'dark';S.cfg.theme=theme;per
 function moveInd(){document.querySelectorAll('nav').forEach(n=>{const b=n.querySelector('button.on'),i=n.querySelector('.ind');if(!b||!i)return;i.style.width=b.offsetWidth+'px';i.style.height=b.offsetHeight+'px';i.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`})}
 addEventListener('resize',moveInd);
 function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind"></i>'+icons());applyTheme()}
-function topNav(){const b={task:dueTasks().length,ops:lowStock().length+posLow().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
+function topNav(){const b={task:dueTasks().length,ops:lowStock().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
 ['#side','#bot','#top'].forEach(id=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t==='theme')return toggleTheme();tab=b.dataset.t;render();scrollTo(0,0);const a=$('#app');a.classList.remove('sw');void a.offsetWidth;a.classList.add('sw')});
 $('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore}[ops]:({task:addTask,tx:addTx,prod:pt==='purch'?addPurch:addProd,mkt:addMkt}[tab]||addTx);if(f)f()};
 $('#sync').onclick=()=>pullSheets();
@@ -322,7 +332,7 @@ function render(){
   if(locked)return;
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='ops'&&(ops==='pos'||ops==='att'))?'none':'';
+  $('#cta').style.display=tab==='set'||(tab==='ops'&&ops==='att')?'none':'';
   $('#cta span').textContent={task:'New reminder',tx:'New transaction',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
@@ -334,7 +344,7 @@ function render(){
 }
 const empty=t=>`<div class="empty">${t}</div>`;
 function vHome(){
-  const {i,o}=sums(monthTx()),low=lowStock(),pm=posStock(),plow=posLow();
+  const {i,o}=sums(monthTx()),low=lowStock(),pm=posStock();
   const days=[...Array(7)].map((_,n)=>{const d=new Date();d.setDate(d.getDate()-6+n);const k=ymd(d);
     return{l:d.toLocaleDateString('en-GB',{weekday:'short'}),v:allTx().filter(t=>t.tanggal===k&&t.jenis==='Income').reduce((a,t)=>a+ +t.jumlah,0)}});
   const mx=Math.max(1,...days.map(d=>d.v));
@@ -343,7 +353,7 @@ function vHome(){
   return `<div class="cols"><section class="panel"><div class="ph"><h2>This week</h2><span class="live"><i></i>Income, last 7 days</span></div>
   <div class="hero"><div class="bars">${days.map(d=>`<div><i style="height:${d.v/mx*90}px"></i>${d.l}</div>`).join('')}</div>
   <div><span class="tag">This month</span><div class="hl">Net profit</div><div class="hbig">${rp(i-o)}</div><div class="hs">Income ${rp(i)}<br>Expenses ${rp(o)}</div></div></div>
-  <div class="sub">Low stock</div><div class="g2">${low.length||plow.length?low.slice(0,6).map(p=>`<div class="it" onclick="editProduct('${p.id}')"><span class="th">${esc((p.nama||'?')[0])}</span><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">${esc(p.varian)}</div></div><span class="pill warn">${+p.stokToko+ +p.stokOnline} left</span></div>`).join('')+plow.slice(0,6).map(p=>`<div class="it" onclick="tab='ops';ops='pos';render()"><span class="th">${esc(String(p.nama||'?')[0])}</span><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">Store (POS)</div></div><span class="pill warn">${posTotal(pm,p.id)} left</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">All stock levels are fine</div>'}</div>
+  <div class="sub">Low stock</div><div class="g2">${low.length?low.slice(0,6).map(p=>`<div class="it" onclick="editProduct('${p.id}')"><span class="th">${esc(String(p.nama||'?')[0])}</span><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">${esc(p.varian)}</div></div><span class="pill warn">${prodTotal(p,pm)} left</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">All stock levels are fine</div>'}</div>
   <div class="sub">Recent production</div><div class="g2">${run.length?run.map(p=>`<div class="it" onclick="editProd('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${p.qty} pcs${p.date?' · '+fmtD(p.date):''}</div></div><span class="pill">${rp(p.total)}</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">No production orders yet</div>'}</div></section>
   <section class="panel"><div class="ph"><h2>Needs attention</h2>${tasks.length?`<span class="cnt">${tasks.length}</span>`:''}</div>
   ${tasks.length?tasks.slice(0,5).map(t=>`<div class="it tk"><span class="th">✓</span><div class="grow"><div class="t">${esc(t.judul)}</div><div class="lbl">${esc(t.div||'Operational')} · ${t.tempo?(t.tempo===today()?'Today':fmtD(t.tempo)):'No date'}${t.repeat&&t.repeat!=='None'?' · ↻ '+repLbl(t):''}</div><div class="acts"><button class="ok" onclick="tog('${t.id}')">Done</button><button class="ol" onclick="editTask('${t.id}')">Edit</button></div></div></div>`).join(''):empty('Nothing due. Add one in the Reminders tab.')}</section></div>`;
@@ -421,15 +431,9 @@ function vMkt(){
 }
 
 function vOps(){
-  return `<h1>Operational</h1><div class="seg sc">${[['stock','Stock'],['pos','Store stock'],['staff','Staff'],['att','Attendance'],['store','Store']].map(s=>`<button class="${ops===s[0]?'on':''}" onclick="ops='${s[0]}';render()">${s[1]}</button>`).join('')}</div>`+{stock:vStock,pos:vPosStock,staff:vStaff,att:vAtt,store:vStore}[ops]();
+  return `<h1>Operational</h1><div class="seg sc">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store']].map(s=>`<button class="${ops===s[0]?'on':''}" onclick="ops='${s[0]}';render()">${s[1]}</button>`).join('')}</div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore}[ops]||vStock)();
 }
 const posEmpty=what=>`<div class="card">${empty(S.cfg.url?'No '+what+' yet. It appears here once the store tablet (POS) is connected to the same Google Sheet.':'Connect Google Sheets in Settings to see '+what+' from the store tablet (POS).')}</div>`;
-function vPosStock(){
-  const m=posStock(),L=posLocs(),ps=posProducts();
-  if(!ps.length)return posEmpty('store stock');
-  return `<div class="lbl" style="margin:0 4px 14px">From the store tablet (POS) · read-only · ${ps.length} products</div><div class="card">${ps.map(p=>{const s=m[p.id]||{},t=posTotal(m,p.id);return `<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">${L.map(l=>esc(l)+' '+(s[l]||0)).join(' · ')}</div></div><b class="${t<=3?'neg':''}">${t}</b></div>`}).join('')}</div>
-  <div class="lbl" style="padding:0 6px">Sales from a shift that is still open are deducted when the shift is closed.</div>`;
-}
 function vAtt(){
   const m=today().slice(0,7),by={};
   P('absen').forEach(a=>{const d=nd(a.tanggal);if(!d.startsWith(m))return;const k=String(a.nama||'?'),o=by[k]||(by[k]={n:0,last:''});o.n++;if(d>o.last)o.last=d});
@@ -450,9 +454,10 @@ function posShift(id){
 }
 function staffFields(p={}){return[
   {k:'joined',label:'Join date',type:'date',val:p.joined||today()},
-  {k:'name',label:'Name',type:'text',val:p.name||''}]}
+  {k:'name',label:'Name',type:'text',val:p.name||''},
+  {k:'aktif',label:'Status',type:'select',opts:['Active','Inactive'],val:p.aktif||'Active'}]}
 function addStaff(){form('New staff',staffFields(),v=>{S.staff.push({id:uid(),...v});save()})}
-function editStaff(id){const p=S.staff.find(x=>x.id===id);form('Edit staff',staffFields(p),v=>{Object.assign(p,v);save()},()=>{S.staff=S.staff.filter(x=>x.id!==id);save()})}
+function editStaff(id){const p=S.staff.find(x=>x.id===id);form('Edit staff',staffFields(p),v=>{Object.assign(p,v);save()},()=>{if(P('karyawan').some(x=>String(x.id)===id)){err('This staff member came from the store tablet (POS). Set Status to Inactive instead.');return false}S.staff=S.staff.filter(x=>x.id!==id);save()})}
 function tenure(d){
   const a=new Date(d+'T00:00'),b=new Date(today()+'T00:00');
   if(b<a)return 'Not started yet';
@@ -462,8 +467,8 @@ function tenure(d){
   return [y?y+(y===1?' year':' years'):'',r?r+(r===1?' month':' months'):''].filter(Boolean).join(' ');
 }
 function vStaff(){
-  const l=[...S.staff].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  return `<div class="lbl" style="margin:0 4px 14px">${S.staff.length} staff</div>`+(l.length?`<div class="sg">${l.map(p=>`<div class="sc2" onclick="editStaff('${p.id}')"><div class="sav">${esc((p.name||'?')[0].toUpperCase())}</div><div class="t">${esc(p.name)}</div><div class="lbl">${p.joined?'Joined '+new Date(p.joined+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>${p.joined?`<span class="pill">${tenure(p.joined)}</span>`:''}</div>`).join('')}</div>`:`<div class="card">${empty('No staff yet. Press the button above to add one.')}</div>`);
+  const l=[...S.staff].sort((a,b)=>(isOff(a)-isOff(b))||String(a.name||'').localeCompare(String(b.name||'')));
+  return `<div class="lbl" style="margin:0 4px 14px">${S.staff.length} staff</div>`+(l.length?`<div class="sg">${l.map(p=>`<div class="sc2${isOff(p)?' fut':''}" onclick="editStaff('${p.id}')"><div class="sav">${esc(String(p.name||'?')[0].toUpperCase())}</div><div class="t">${esc(p.name)}</div><div class="lbl">${p.joined?'Joined '+new Date(p.joined+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>${isOff(p)?'<span class="pill warn">Inactive</span>':p.joined?`<span class="pill">${tenure(p.joined)}</span>`:''}</div>`).join('')}</div><div class="lbl" style="padding:12px 6px 0">Active staff appear on the store tablet (POS) when a shift is opened.</div>`:`<div class="card">${empty('No staff yet. Press the button above to add one.')}</div>`);
 }
 function storeFields(p={}){return[
   {k:'name',label:'Store name',type:'text',val:p.name||''},
@@ -475,20 +480,24 @@ function vStore(){
   return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${esc(p.address)}</div></div><div style="text-align:right"><span class="pill">${esc(p.type)}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
 }
 function vStock(){
-  return `<div class="card">${S.products.length?S.products.map(p=>{const tot=+p.stokToko+ +p.stokOnline;return `<div class="row"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}</div><div class="lbl">${esc(p.varian)} · ${rp(p.harga)}</div><div class="lbl">Store ${p.stokToko} · Online ${p.stokOnline}</div></div>
-  <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease">−</button><b class="${tot<=+p.min?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
-  <div class="lbl" style="padding:0 6px">The − and + buttons change store stock.</div>`;
+  const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
+  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.harga?' · '+rp(p.harga):''}${off?' · Inactive':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
+  <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=+p.min?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
+  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Inactive products are hidden from the POS cashier.</div>`;
 }
-function adj(id,d){const p=S.products.find(x=>x.id===id);p.stokToko=Math.max(0,+p.stokToko+d);save()}
-function pFields(p={}){return[
+function adj(id,d){const p=S.products.find(x=>x.id===id);p.stokOnline=Math.max(0,(+p.stokOnline||0)+d);save()}
+const PCATS=['Gamis','Hijab','Abaya','Koko','Mukena','Sarung','Other'];
+function pFields(p={}){const cats=!p.kategori||PCATS.includes(p.kategori)?PCATS:[p.kategori,...PCATS];return[
   {k:'nama',label:'Product name',type:'text',val:p.nama||''},
   {k:'varian',label:'Variant (size / color)',type:'text',val:p.varian||''},
-  {k:'stokToko',label:'Store stock',type:'number',val:p.stokToko??0},
+  {k:'kategori',label:'Category (POS cashier filter)',type:'select',opts:cats,val:p.kategori||'Gamis'},
   {k:'stokOnline',label:'Online stock',type:'number',val:p.stokOnline??0},
   {k:'min',label:'Minimum stock alert',type:'number',val:p.min??3},
-  {k:'harga',label:'Selling price (Rp)',type:'number',val:p.harga||''}]}
+  {k:'harga',label:'Selling price (Rp)',type:'number',val:p.harga||''},
+  {k:'aktif',label:'Status',type:'select',opts:['Active','Inactive'],val:p.aktif||'Active'}]}
 function addProduct(){form('New product',pFields(),v=>{S.products.push({id:uid(),...v});save()})}
-function editProduct(id){const p=S.products.find(x=>x.id===id);form('Edit product',pFields(p),v=>{Object.assign(p,v);save()},()=>{S.products=S.products.filter(x=>x.id!==id);save()})}
+// A product with store history keeps its name in old receipts and stock moves: hide it (Inactive) instead of deleting
+function editProduct(id){const p=S.products.find(x=>x.id===id);form('Edit product',pFields(p),v=>{Object.assign(p,v);save()},()=>{if(P('stok').some(x=>String(x.pid)===id)||P('produk').some(x=>String(x.id)===id)){err('This product has store (POS) history. Set Status to Inactive to hide it from the cashier instead.');return false}S.products=S.products.filter(x=>x.id!==id);save()})}
 const DIVS=['Finance','Production','Marketing','Operational'],DICON={Finance:'tx',Production:'prod',Marketing:'mkt',Operational:'ops'};
 const REPS=['None','Daily','Weekly','Monthly','Custom'];
 const repLbl=t=>t.repeat==='Custom'?'Every '+(t.every||1)+' '+(t.unit||'days'):t.repeat;
@@ -566,7 +575,7 @@ function form(title,fields,onSave,onDel){
     if([v.nama,v.judul,v.name].some(x=>x!==undefined&&!x.trim()))return err('Please enter a name.');
     onSave(v);close()};
   $('#no').onclick=close;
-  if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}onDel();close()}}
+  if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}if(onDel()!==false)close()}}
 }
 const err=m=>{$('#err').textContent=m};
 function close(){closePop();$('#bg').classList.remove('open')}

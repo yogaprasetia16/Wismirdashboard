@@ -11,16 +11,19 @@ const PIN = 'GANTI-PIN-ANDA';
 // ---- Tab milik Dashboard (ditulis ulang penuh setiap sync dari dashboard) ----
 const HEADERS = {
   Keuangan: ['id', 'tanggal', 'jenis', 'kategori', 'jumlah', 'channel', 'catatan'],
-  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga'],
+  // Stok & Staff = daftar produk & karyawan untuk dashboard DAN POS (diatur dari dashboard).
+  // stokToko tidak dipakai lagi (stok toko dihitung dari POS); kolomnya dibiarkan supaya urutan tidak bergeser.
+  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif'],
   Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit'],
   Purchasing: ['id', 'date', 'name', 'category', 'qty', 'total'],
-  Staff: ['id', 'joined', 'name'],
+  Staff: ['id', 'joined', 'name', 'aktif'],
   Store: ['id', 'name', 'type', 'address'],
   Production: ['id', 'date', 'name', 'qty', 'material', 'matQty', 'unitCost', 'status', 'total'],
   Marketing: ['id', 'name', 'channel', 'status', 'start', 'end', 'budget', 'spent', 'revenue'],
 };
 
 // ---- Tab milik POS (baris ditambah / diperbarui per id, tidak pernah dihapus massal) ----
+// POS Produk & POS Karyawan hanya arsip dari versi lama POS; dashboard memindahkannya ke Stok & Staff.
 const POS = {
   'POS Produk': ['id', 'nama', 'kategori', 'aktif'],
   'POS Karyawan': ['id', 'nama', 'aktif'],
@@ -142,6 +145,8 @@ function doGet(e) {
       // POS: ambil perubahan sejak sync terakhir
       const since = Number(p.since) || 0;
       Object.keys(POS).forEach(function (n) { data[n] = readSheet(n, since); });
+      data.Stok = readSheet('Stok');   // daftar produk dari dashboard (selalu lengkap, ukurannya kecil)
+      data.Staff = readSheet('Staff'); // daftar karyawan dari dashboard
       return out({ ok: true, now: Date.now(), data: data });
     }
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
