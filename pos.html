@@ -16,8 +16,11 @@
 :root{--ink:#14171a;--dark:#16181b;--mute:#6f7780;--line:#e9edef;--green:#2e6b4f;--amber:#f1b84b;--red:#c8442f;--blue:#3a5e8c;--card:#fff;--panel:rgba(255,255,255,.66);--pborder:rgba(255,255,255,.9);--seg:#eaeff0;--sec:#eef2f3;--sheet:#f7f9f9;--thbg:#e5efeb;--warnbg:#e3eaf5;--bg1:#d9efe9;--bg2:#e6ebf6;--bg3:#f4f6f7;color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
-body{font:15px/1.45 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);min-height:100vh;background:radial-gradient(900px 500px at 0% 0%,var(--bg1),transparent 60%),radial-gradient(800px 500px at 100% 20%,var(--bg2),transparent 60%),var(--bg3);background-attachment:fixed;padding-top:env(safe-area-inset-top,0)}
+body{font:15px/1.45 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);min-height:100vh;background:var(--bg3);padding-top:env(safe-area-inset-top,0)}
+/* soft page gradient on its own fixed layer: cheaper on tablets than background-attachment:fixed */
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 500px at 0% 0%,var(--bg1),transparent 60%),radial-gradient(800px 500px at 100% 20%,var(--bg2),transparent 60%),var(--bg3)}
 button{font-family:inherit}
+button,[data-a]{touch-action:manipulation}
 svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .wrap{max-width:none;margin:0;padding:18px 18px calc(110px + env(safe-area-inset-bottom,0))}
 .hd{display:flex;align-items:center;gap:16px}
@@ -37,7 +40,7 @@ h1{font-size:38px;line-height:1.05;font-weight:700;letter-spacing:-.035em;margin
 .lbl{font-size:12.5px;color:var(--mute)}
 .eye{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;flex:none}.eye svg{width:19px;height:19px}
 .cols{display:grid;gap:16px;grid-template-columns:1fr}
-.panel{background:var(--panel);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--pborder);border-radius:30px;padding:20px;box-shadow:0 6px 28px rgba(30,60,60,.05);min-width:0}
+.panel{background:var(--panel);border:1px solid var(--pborder);border-radius:30px;padding:20px;box-shadow:0 6px 28px rgba(30,60,60,.05);min-width:0}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px}
 h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mute)}.live i{width:7px;height:7px;border-radius:50%;background:var(--green)}
@@ -146,7 +149,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .ownb{position:fixed;z-index:10;border-radius:50%;border:0;background:var(--dark);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.22);left:calc(50% + 114px);bottom:calc(14px + env(safe-area-inset-bottom,0));width:60px;height:60px}#rail{display:contents}.ownb svg{width:22px;height:22px}.ownb.act{color:var(--amber)}.ownb.on{color:#16181b}.ownb.on::before{content:'';position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--amber)}.ownb svg{position:relative}.ownb .bd2{top:2px;right:2px}
 #bot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0));background:var(--dark);border-radius:99px;padding:7px;display:flex;gap:2px;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 #bot button{width:46px;height:46px;border-radius:99px}
-#app.sw>*{animation:swp .32s ease-out}
+#app.sw>*{animation:swp .2s ease-out}
 @keyframes swp{from{opacity:0;transform:translateX(18px)}}
 @media (prefers-reduced-motion:reduce){#app.sw>*,.sheet{animation:none}nav.ready .ind{transition:none}}
 @media (min-width:700px){.hero{grid-template-columns:1.2fr 1fr;align-items:center}.posgrid{grid-template-columns:minmax(0,1fr) 270px;align-items:start}.cartp{position:sticky;top:14px}.cartbar{display:none!important}}
@@ -156,7 +159,8 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
  #bot{display:none}
  #rail{display:flex;flex-direction:column;align-items:center;gap:12px;position:fixed;left:16px;top:50%;transform:translateY(-50%);z-index:10}
  #side{display:flex;flex-direction:column;gap:8px;position:relative;background:var(--dark);border-radius:99px;padding:10px;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.2)}
- #side button{width:46px;height:46px;border-radius:50%}
+ #side button{width:54px;height:54px;border-radius:50%}
+ #side svg{width:23px;height:23px}
  .ownb{position:relative;width:66px;height:66px;left:auto;bottom:auto}
  .wrap{padding-left:100px;padding-right:24px;padding-bottom:40px}
  #toast{bottom:30px}
@@ -363,7 +367,26 @@ function syncUi(){const e=$('#syncst');if(e)e.innerHTML=syncText()}
 let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2300)}
 function openSheet(html,focus){delete $('#sheet').dataset.tone;$('#sheet').innerHTML='<button class="xbtn" data-a="x" aria-label="Tutup" title="Tutup">'+svg('x')+'</button>'+html;$('#bg').classList.add('open');$('#sheet').scrollTop=0;if(focus!==false)setTimeout(()=>{const f=$('#sheet [data-focus]');if(f)f.focus()},60)}
 function closeSheet(){$('#bg').classList.remove('open');$('#sheet').innerHTML='';MV=null;SC=null;PAY=null;if(needRender){needRender=false;setTimeout(render,0)}}
-function err(m){const e=$('#err');if(e)e.textContent=m||''}
+function err(m){const e=$('#err');if(e)e.textContent=m||'';if(m)snd('err')}
+/* ---------- suara tombol (Web Audio, tanpa file) ---------- */
+let AC=null,NOISE=null;
+function snd(kind){
+ if(S.cfg.sound===false)return;
+ try{
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
+  const t=AC.currentTime+0.005,out=AC.destination;
+  if(kind==='tap'){
+   // ketukan pendek: desis singkat yang disaring, seperti jari mengetuk kaca
+   if(!NOISE){NOISE=AC.createBuffer(1,Math.round(AC.sampleRate*0.03),AC.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4)}
+   const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+   src.buffer=NOISE;f.type='bandpass';f.frequency.value=2400;f.Q.value=1.2;g.gain.value=0.9;
+   src.connect(f).connect(g).connect(out);src.start(t);return;
+  }
+  const tone=(fr,at,dur,type,vol)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(fr,t+at);g.gain.setValueAtTime(0.0001,t+at);g.gain.exponentialRampToValueAtTime(vol,t+at+0.006);g.gain.exponentialRampToValueAtTime(0.0001,t+at+dur);o.connect(g).connect(out);o.start(t+at);o.stop(t+at+dur+0.03)};
+  if(kind==='ok'){tone(1047,0,.14,'sine',.22);tone(1568,.1,.26,'sine',.2)}       // transaksi / tutup shift berhasil
+  else if(kind==='err'){tone(196,0,.13,'triangle',.25);tone(165,.11,.16,'triangle',.25)} // ada yang salah
+ }catch(e){}
+}
 function twoTap(el,msg,fn){if(el.dataset.arm){clearTimeout(el._t);delete el.dataset.arm;fn();return}const old=el.innerHTML;el.textContent=msg;el.dataset.arm='1';el._t=setTimeout(()=>{el.innerHTML=old;delete el.dataset.arm},3000)}
 function selHtml(id,opts,cur,attr){return '<select id="'+id+'" '+(attr||'')+'>'+opts.map(o=>'<option value="'+esc(o[0])+'"'+(o[0]===cur?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select>'}
 function download(name,text,type){try{const b=new Blob([text],{type:type||'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}catch(e){toast('Unduhan tidak didukung di sini')}}
@@ -625,6 +648,7 @@ function ownerData(){
   '<div class="f"><label>PIN Google Sheets</label><input id="gsp" type="password" value="'+esc(S.cfg.spin||'')+'" autocomplete="off"></div>'+
   '<div class="note" id="syncst">'+syncText()+'</div><button class="btn" data-a="gsSave">Simpan &amp; sinkron sekarang</button><button class="btn sec" data-a="gsAll">Kirim semua data tablet ke Sheets</button>'+
   '<div class="sub">Ganti PIN owner</div><div class="f"><input id="np" type="password" inputmode="none" data-np data-max="12" placeholder="PIN baru (minimal 4 angka)"></div>'+npHtml(false)+'<div class="err" id="err"></div><button class="btn" data-a="pinSave">Simpan PIN</button>'+
+  '<div class="sub">Suara tombol</div><div class="seg">'+[['1','Nyala'],['0','Mati']].map(x=>'<button class="'+((S.cfg.sound!==false)===(x[0]==='1')?'on':'')+'" data-a="sound" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+
   '<div class="sub">Teks struk</div><div class="f"><label>Judul</label><input id="rch" value="'+esc(rcCfg().head)+'"></div><div class="f"><label>Alamat / info (opsional)</label><input id="rca" value="'+esc(rcCfg().addr)+'"></div><div class="f"><label>Pesan bawah</label><input id="rcf" value="'+esc(rcCfg().foot)+'"></div><button class="btn" data-a="rcSave">Simpan teks struk</button>'+
   '<div class="sub">Ekspor</div>'+ex+'<div class="sub">Cadangan data tablet</div><button class="btn sec" data-a="backup">Unduh cadangan (JSON)</button><button class="btn sec" data-a="restore">Pulihkan dari cadangan</button>'+
   '<div class="sub">Zona hati-hati</div><button class="btn del" data-a="reset">Reset semua data</button>';
@@ -679,7 +703,7 @@ A.doClose=()=>{
  S.attendance.filter(a=>a.shiftId===sh.id).forEach(a=>enqueue('POS Absen',a));
  const agg={};ss.tx.forEach(t=>t.items.forEach(i=>agg[i.pid]=(agg[i.pid]||0)+i.qty));
  Object.keys(agg).forEach(pid=>{const mv={id:uid('M'),t:now,pid:pid,from:sh.store,to:'Sale',qty:agg[pid],by:'Sistem',note:'Penjualan shift '+sh.id,status:'ok',kind:'sale',ref:sh.id};S.moves.push(mv);enqueue('POS Stok',mv)});
- S.shift=null;S.cart=[];save();closeSheet();toast(syncOn()?'Shift ditutup · data dikirim ke Google Sheets':'Shift ditutup');render(true);kick(0);
+ S.shift=null;S.cart=[];save();closeSheet();snd('ok');toast(syncOn()?'Shift ditutup · data dikirim ke Google Sheets':'Shift ditutup');render(true);kick(0);
 };
 function rcSheet(id){const t=S.txs.find(x=>x.id===id);if(!t)return;openSheet('<h3>Struk</h3>'+(t.void?'<div class="pill red" style="display:inline-block;margin-bottom:10px">Dibatalkan (void)</div>':'')+receipt(t)+'<div class="row2"><button class="btn sec" data-a="print">Cetak</button>'+(t.void||!ownerOK?'':'<button class="btn" data-a="rcEdit" data-id="'+id+'">Ubah struk</button>')+'</div>',false)}
 A.viewTx=el=>rcSheet(el.dataset.id);
@@ -783,6 +807,7 @@ A.confirmPay=()=>{
  S.txs.push(t);
  S.cart.forEach(c=>{const h=S.prices[c.pid]||(S.prices[c.pid]={});const e=h[c.price]||(h[c.price]={n:0,t:0});e.n++;e.t=now});
  S.cart=[];save();
+ snd('ok');
  openSheet('<h3>Transaksi berhasil</h3>'+(t.change?'<div class="tot" style="padding-top:0"><span>Kembalian</span><b class="pos">'+rp(t.change)+'</b></div>':'')+receipt(t)+'<div class="row2"><button class="btn sec" data-a="print">Cetak struk</button><button class="btn go" data-a="x">Selesai</button></div>',false);
  PAY=null;renderGrid();renderCart();renderChrome();
 };
@@ -799,7 +824,7 @@ I.mvq=()=>mvHint();
 A.mvBack=()=>{MV.step='form';mvRender()};
 A.mvNext=()=>{
  mvRead();const m=MV;m.err='';
- const fail=msg=>{m.err=msg;mvRender()};
+ const fail=msg=>{m.err=msg;mvRender();snd('err')};
  if(!m.pid)return fail('Pilih produk dulu.');
  const q=num(m.qty);
  if(m.mode==='opname'){if(m.qty==='')return fail('Isi hasil hitung fisik.');const sys=availMap(m.from)[m.pid]||0;if(q===sys)return fail('Tidak ada selisih. Stok sistem sudah sama dengan hasil hitung.')}
@@ -841,6 +866,7 @@ A.gsSave=()=>{const u=$('#gsu').value.trim(),p=$('#gsp').value;if(u&&!/^https?:\
  const first=!S.cfg.url;if(u!==S.cfg.url||p!==S.cfg.spin)S.since=0;S.cfg.url=u;S.cfg.spin=p;tries=0;syncErr='';
  const dropped=u&&first&&dropDemo();save();render();toast(!u?'Sinkron dimatikan':dropped?'Data contoh dihapus · mengambil data dari Google Sheets…':'Menyinkronkan…');kick(0)};
 A.gsAll=el=>twoTap(el,'Ketuk lagi untuk kirim semua data',()=>{if(!syncOn())return toast('Isi URL dan PIN Google Sheets dulu');const cur=S.shift&&S.shift.id;S.products.forEach(p=>enqueue('POS Produk',p));S.staff.forEach(k=>enqueue('POS Karyawan',k));S.moves.forEach(m=>enqueue('POS Stok',m));S.shifts.forEach(h=>enqueue('POS Shift',h));S.txs.filter(t=>t.shiftId!==cur).forEach(t=>enqueue('POS Kasir',t));S.attendance.filter(a=>a.shiftId!==cur).forEach(a=>enqueue('POS Absen',a));save();syncUi();toast(S.outbox.length+' data diantrekan');kick(0)});
+A.sound=el=>{S.cfg.sound=el.dataset.v==='1';save();render();if(S.cfg.sound)snd('ok')};
 A.rcSave=()=>{S.cfg.rc={head:$('#rch').value.trim()||'WISMIR',addr:$('#rca').value.trim(),foot:$('#rcf').value.trim()};save();toast('Teks struk disimpan')};
 A.pinSave=()=>{const v=$('#np').value.trim();if(!/^\d{4,}$/.test(v))return err('PIN minimal 4 angka.');S.cfg.pin=v;save();$('#np').value='';err('');toast('PIN diganti')};
 A.exp=el=>{
@@ -856,7 +882,23 @@ A.restore=()=>$('#rst').click();
 A.reset=el=>twoTap(el,'Ketuk lagi untuk HAPUS SEMUA data',()=>{S=blank();seed();stLoc=S.cfg.store;ownerOK=false;sel.clear();render();toast('Data direset ke contoh')});
 
 /* ---------- events ---------- */
+// Navigation reacts the moment the finger touches (not on release): the button lights up first, the page redraws right after.
+// The click that follows that touch is swallowed, so a sheet opened by it (owner PIN) is not closed by the same tap.
+let navTap=null;
+document.addEventListener('pointerdown',e=>{
+ navTap=null;
+ if(e.button>0)return;
+ const t=e.target.closest&&e.target.closest('button,[data-a]');
+ if(t&&!t.disabled)snd('tap');
+ const nb=e.target.closest&&e.target.closest('#side button[data-t],#bot button[data-t],#own');
+ if(!nb)return;
+ navTap=Date.now();
+ if(nb.dataset.t!=='owner'||ownerOK){$$('#side button[data-t],#bot button[data-t],#own').forEach(b=>b.classList.toggle('on',b.dataset.t===nb.dataset.t));placeInd()}
+ requestAnimationFrame(()=>setTimeout(()=>A.tab(nb),0));
+},true);
 document.addEventListener('click',e=>{
+ if(navTap&&Date.now()-navTap<900){navTap=null;return}
+ navTap=null;
  if(e.target.id==='bg'){closeSheet();return}
  const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f)f(el,e);
 });
