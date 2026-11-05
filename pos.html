@@ -278,7 +278,8 @@ const cartQty=()=>sum(S.cart,c=>c.qty);
    Stok, produk & karyawan: dikirim langsung (antre bila internet lambat/putus).
    Kasir (struk), shift & absen: dikirim sekali saat tutup shift, supaya kasir tidak pernah menunggu jaringan.
    Semua pengiriman berjalan di belakang layar; data tetap aman di tablet sampai terkirim. */
-const COL={'POS Produk':'products','POS Karyawan':'staff','POS Stok':'moves','POS Kasir':'txs','POS Shift':'shifts','POS Absen':'attendance'};
+// Data yang ditarik dari tablet lain. Produk & karyawan TIDAK di sini: keduanya diatur di dashboard (tab Stok & Staff).
+const COL={'POS Stok':'moves','POS Kasir':'txs','POS Shift':'shifts','POS Absen':'attendance'};
 const J=(v,d)=>{try{return v===''||v==null?d:JSON.parse(v)}catch(e){return d}};
 const s0=v=>v==null?'':String(v);
 const SER={
@@ -329,11 +330,29 @@ async function pull(){
     if(i==null){idx[o.id]=arr.push(o)-1;ch=true}else if(JSON.stringify(arr[i])!==JSON.stringify(o)){arr[i]=o;ch=true}
    });
   });
+  if(applyMaster(j.data||{}))ch=true;
   if(ch){S.shifts.sort((a,b)=>a.closedAt-b.closedAt);S.txs.sort((a,b)=>a.t-b.t)}
   S.since=Math.max(0,(+j.now||0)-5000);S.lastSync=Date.now();syncErr='';save();
   if(ch)softRender();
  }catch(e){syncErr=(e&&e.message)||'Tidak ada koneksi'}
  finally{pulling=false;syncUi()}
+}
+// Produk & karyawan dari dashboard. Item lama buatan tablet yang belum pernah dikenal dashboard tetap disimpan
+// (dashboard akan mengambilnya otomatis); item yang dulu ada lalu dihapus di dashboard ikut hilang dari tablet.
+const OFF=v=>/^(inactive|nonaktif|0)$/i.test(s0(v).trim());
+function applyMaster(d){
+ let ch=false;const seen=S.mastered||(S.mastered={p:[],k:[]});
+ const sync=(rows,arr,key,map)=>{
+  if(!Array.isArray(rows))return arr; // Code.gs lama: biarkan
+  const out=rows.filter(r=>s0(r.id)).map(map),ids=new Set(out.map(x=>x.id)),prev=new Set(seen[key]);
+  arr.forEach(x=>{if(!ids.has(x.id)&&!prev.has(x.id))out.push(x)});
+  seen[key]=Array.from(ids);
+  if(JSON.stringify(out)!==JSON.stringify(arr))ch=true;
+  return out;
+ };
+ S.products=sync(d.Stok,S.products,'p',r=>({id:s0(r.id),name:s0(r.nama)+(s0(r.varian)?' · '+s0(r.varian):''),category:s0(r.kategori),active:!OFF(r.aktif)}));
+ S.staff=sync(d.Staff,S.staff,'k',r=>({id:s0(r.id),name:s0(r.name),active:!OFF(r.aktif)}));
+ return ch;
 }
 // Jangan ganggu kasir: kalau ada form terbuka atau sedang mengetik, tampilan diperbarui setelahnya
 function softRender(){const ae=document.activeElement;if($('#bg').classList.contains('open')||(ae&&ae.tagName==='INPUT'&&$('#app').contains(ae))){needRender=true;return}render()}
@@ -404,7 +423,7 @@ function viewHome(){
  const recent=S.shifts.filter(x=>x.store===S.cfg.store).slice().reverse().slice(0,6).map(shiftRow).join('')||'<div class="empty">Belum ada shift yang ditutup di '+esc(S.cfg.store)+'.</div>';
  if(!S.shift){
   const list=S.staff.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
-  const rows=list.length?'<div class="stg">'+list.map(s=>{const on=sel.has(s.id);return '<button class="stc'+(on?' on':'')+'" data-a="tgStaff" data-id="'+s.id+'"><span class="chk'+(on?' on':'')+'">'+(on?'✓':'')+'</span><span class="th">'+esc(s.name.slice(0,1).toUpperCase())+'</span><span class="t">'+esc(s.name)+'</span></button>'}).join('')+'</div>':'<div class="empty">Belum ada karyawan.<br>Tambahkan di Owner → Karyawan.</div>';
+  const rows=list.length?'<div class="stg">'+list.map(s=>{const on=sel.has(s.id);return '<button class="stc'+(on?' on':'')+'" data-a="tgStaff" data-id="'+s.id+'"><span class="chk'+(on?' on':'')+'">'+(on?'✓':'')+'</span><span class="th">'+esc(s.name.slice(0,1).toUpperCase())+'</span><span class="t">'+esc(s.name)+'</span></button>'}).join('')+'</div>':'<div class="empty">Belum ada karyawan.<br>Tambahkan di dashboard: Operational → Staff.</div>';
   return '<div class="cols"><section class="panel"><div class="ph"><h2>Buka shift · '+esc(S.cfg.store)+'</h2><span class="live"><i style="background:var(--amber)"></i>Belum dibuka</span></div>'+
    '<div class="sub" style="margin-top:0">Karyawan yang hadir <span style="text-transform:none;letter-spacing:0;font-weight:500">(opsional, kosongkan jika owner yang jaga)</span></div>'+rows+
    '<div class="f" style="margin-top:8px"><label>Kas awal (uang di laci)</label><input id="cashStart" class="big" inputmode="none" data-np placeholder="0" data-in="money" value="'+esc(draft.cash)+'"></div>'+npHtml(true)+
@@ -432,7 +451,7 @@ function renderGrid(){
  const av=availMap(S.cfg.store);
  const inCart={};S.cart.forEach(c=>inCart[c.pid]=(inCart[c.pid]||0)+c.qty);
  const list=activeProducts().filter(p=>(posCat==='Semua'||(p.category||'Lainnya')===posCat));
- $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';return '<button class="pc" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span><span class="pm"><span class="pill">'+esc(p.category||'Lainnya')+'</span></span></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">Produk tidak ditemukan.</div>';
+ $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';return '<button class="pc" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span><span class="pm"><span class="pill">'+esc(p.category||'Lainnya')+'</span></span></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">'+(activeProducts().length?'Produk tidak ditemukan.':'Belum ada produk.<br>Tambahkan di dashboard: Operational → Stock.')+'</div>';
 }
 function renderCart(){
  const c=S.cart;const rows=c.map(l=>'<div class="cl"><div class="grow" data-a="editLine" data-k="'+l.k+'" style="cursor:pointer"><div class="t">'+esc(l.name)+'</div><div class="lbl">'+rp(l.price)+' / pcs</div></div><div class="stk"><button data-a="qm" data-k="'+l.k+'" aria-label="Kurangi">−</button><b>'+l.qty+'</b><button data-a="qp" data-k="'+l.k+'" aria-label="Tambah">+</button></div><div class="lv">'+rp(l.price*l.qty)+'</div></div>').join('');
@@ -539,7 +558,7 @@ function mvRender(){
  const modes=[['in','Masuk'],['tf','Transfer'],['loss','Rusak/Hilang'],['opname','Opname']];
  let h='<h3>'+({in:'Stok masuk',out:'Stok keluar (retur)',tf:'Transfer stok',loss:'Rusak / hilang',opname:'Opname stok'}[m.mode]||'Pergerakan stok')+'</h3>';
  if(m.step==='confirm')return mvConfirm();
-  h+='<div class="f"><label>Produk</label>'+selHtml('mvP',[['','Pilih produk…']].concat(ps.map(p=>[p.id,p.name])),m.pid,'data-ch="mv"')+'</div><button class="lnk" data-a="mvNew" style="margin:-6px 0 4px">+ Produk baru</button>';
+  h+='<div class="f"><label>Produk</label>'+selHtml('mvP',[['','Pilih produk…']].concat(ps.map(p=>[p.id,p.name])),m.pid,'data-ch="mv"')+'</div>';
  if(m.mode==='opname'){
   h+='<div class="f"><label>Lokasi</label>'+selHtml('mvF',MYLOCS().map(l=>[l,l]),m.from,'data-ch="mv"')+'</div>';
  }else{
@@ -571,20 +590,14 @@ function mvConfirm(){
  else s='<b>'+esc(pname(m.pid))+'</b><br>'+num(m.qty)+' pcs · '+esc(m.from)+' → '+esc(m.to)+(m.note?'<br>Catatan: '+esc(m.note):'');
  openSheet('<h3>Cek sebelum simpan</h3><div class="card" style="padding:16px;line-height:1.7">'+s+'</div><div class="err" id="err"></div><div class="row2"><button class="btn sec" data-a="mvBack">Kembali</button><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvSave" data-enter>Simpan</button></div>',false);mvTone(m);
 }
-function productSheet(id,after){
- const p=id?prod(id):null;const cats=Array.from(new Set(S.products.map(x=>x.category).filter(Boolean))).sort();
- SC={prodId:id||null,after:after||null};
- openSheet('<h3>'+(p?'Ubah produk':'Produk baru')+'</h3><div class="f"><label>Nama produk</label><input id="pn" value="'+esc(p?p.name:'')+'" data-focus></div><div class="f"><label>Kategori</label><input id="pc" list="cl" value="'+esc(p?p.category:'')+'" placeholder="Gamis, Hijab, Koko…"><datalist id="cl">'+cats.map(c=>'<option value="'+esc(c)+'">').join('')+'</datalist></div>'+
-  (p?'<div class="f"><label>Status</label>'+selHtml('pa',[['1','Aktif'],['0','Nonaktif (disembunyikan dari kasir)']],p.active===false?'0':'1')+'</div>':'')+
-  '<div class="err" id="err"></div><button class="btn go" data-a="prodSave" data-enter>Simpan</button>');
-}
 
 /* --- Owner --- */
 function viewOwner(){
- if(!ownerOK)return '<section class="panel" style="max-width:420px;margin:0 auto"><div class="ph"><h2>Area owner</h2></div><div class="note">Laporan, produk, karyawan, dan data hanya untuk owner.</div><div class="f"><label>PIN owner</label><input id="pin" type="password" inputmode="none" data-np data-max="12" placeholder="••••" data-focus></div>'+npHtml(false)+'<div class="err" id="err"></div><button class="btn" data-a="unlock" data-enter>Buka</button>'+(S.cfg.pin==='1234'?'<div class="note" style="margin-top:12px">PIN awal: 1234. Ganti di Owner → Data.</div>':'')+'</section>';
- const subs=[['report','Laporan'],['prod','Produk'],['staff','Karyawan'],['data','Data']];
+ if(!ownerOK)return '<section class="panel" style="max-width:420px;margin:0 auto"><div class="ph"><h2>Area owner</h2></div><div class="note">Laporan dan data hanya untuk owner. Produk dan karyawan diatur di dashboard.</div><div class="f"><label>PIN owner</label><input id="pin" type="password" inputmode="none" data-np data-max="12" placeholder="••••" data-focus></div>'+npHtml(false)+'<div class="err" id="err"></div><button class="btn" data-a="unlock" data-enter>Buka</button>'+(S.cfg.pin==='1234'?'<div class="note" style="margin-top:12px">PIN awal: 1234. Ganti di Owner → Data.</div>':'')+'</section>';
+ const subs=[['report','Laporan'],['data','Data']];
  const seg='<div class="seg sc">'+subs.map(s=>'<button class="'+(osub===s[0]?'on':'')+'" data-a="osub" data-s="'+s[0]+'">'+s[1]+'</button>').join('')+'</div>';
- const body={report:ownerReport,prod:ownerProd,staff:ownerStaff,data:ownerData}[osub]();
+ if(!{report:1,data:1}[osub])osub='report';
+ const body={report:ownerReport,data:ownerData}[osub]();
  return '<section class="panel"><div class="ph"><h2>Owner</h2><button class="lnk" data-a="ownerOff">Keluar mode owner</button></div>'+seg+body+'</section>';
 }
 function inPer(t){return perOk(t,rPer)}
@@ -604,15 +617,6 @@ function ownerReport(){
  return '<div style="display:flex;flex-wrap:wrap;gap:8px"><div class="seg">'+[['today','Hari ini'],['7d','7 hari'],['month','Bulan ini']].map(x=>'<button class="'+(rPer===x[0]?'on':'')+'" data-a="per" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><div class="seg">'+['all'].concat(STORES).map(x=>'<button class="'+(rStore===x?'on':'')+'" data-a="rst" data-s="'+x+'">'+(x==='all'?'Semua toko':x)+'</button>').join('')+'</div></div>'+
   '<div class="hero"><div><span class="tag">'+pl+'</span><div class="hbig">'+rp(total)+'</div><div class="hs">'+tx.length+' transaksi · rata-rata '+rp(tx.length?total/tx.length:0)+'</div><div class="hl">'+perStore+'</div></div><div class="bars">'+bars+'</div></div>'+
   '<div class="sub" style="margin-top:0">Produk terlaris</div><div class="card">'+top+'</div><div class="sub">Stok saat ini</div><div class="g3">'+stock+'</div><div class="sub">Riwayat shift</div><div class="card">'+shifts+'</div>';
-}
-function ownerProd(){
- const rows=S.products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{const q=sum(LOCS,l=>stockMap(l)[p.id]||0);return '<div class="row'+(p.active===false?' void':'')+'" data-a="prodEdit" data-id="'+p.id+'"><div class="th">'+esc(p.name.slice(0,1))+'</div><div class="grow"><div class="t">'+esc(p.name)+'</div><div class="lbl">'+esc(p.category||'Lainnya')+(p.active===false?' · nonaktif':'')+'</div></div><div class="v">'+q+' pcs</div></div>'}).join('')||'<div class="empty">Belum ada produk.</div>';
- return '<div class="ph"><div class="note" style="margin:0">Harga jual tidak disimpan di produk. Harga diinput saat transaksi.</div><button class="addd" data-a="prodEdit" aria-label="Produk baru">'+svg('plus')+'</button></div><div class="card">'+rows+'</div>';
-}
-function ownerStaff(){
- const now=new Date();const cnt={};S.attendance.forEach(a=>{const d=new Date(a.t);if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear())cnt[a.staffId]=(cnt[a.staffId]||0)+1});
- const rows='<div class="stg">'+S.staff.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<button class="stc'+(s.active===false?' off':'')+'" data-a="staffEdit" data-id="'+s.id+'"><span class="th">'+esc(s.name.slice(0,1).toUpperCase())+'</span><span class="t">'+esc(s.name)+'</span><span class="lbl">'+(cnt[s.id]||0)+' shift bulan ini'+(s.active===false?' · nonaktif':'')+'</span></button>').join('')+'</div>';
- return '<div class="ph"><div class="note" style="margin:0">Karyawan fleksibel, bisa bertugas di toko mana saja. Hadir dicatat lewat centang saat buka shift.</div><button class="addd" data-a="staffEdit" aria-label="Karyawan baru">'+svg('plus')+'</button></div><div class="card">'+rows+'</div>';
 }
 function ownerData(){
  const ex=[['tx','Transaksi'],['moves','Pergerakan stok'],['shifts','Shift'],['att','Absen']].map(x=>'<button class="btn sec" data-a="exp" data-w="'+x[0]+'">Ekspor CSV · '+x[1]+'</button>').join('');
@@ -792,7 +796,6 @@ A.mvStart=el=>mvOpen('',el.dataset.m);
 A.mvMode=el=>{mvRead();const keep=MV.pid;mvOpen(keep,el.dataset.m)};
 C.mv=()=>{mvRead();mvHint()};
 I.mvq=()=>mvHint();
-A.mvNew=()=>{mvRead();const keep=MV;productSheet(null,pid=>{MV=keep;MV.pid=pid;MV.step='form';mvRender()})};
 A.mvBack=()=>{MV.step='form';mvRender()};
 A.mvNext=()=>{
  mvRead();const m=MV;m.err='';
@@ -822,28 +825,6 @@ A.lock=()=>{ownerOK=false;render()};
 A.osub=el=>{osub=el.dataset.s;render()};
 A.per=el=>{rPer=el.dataset.p;render()};
 A.rst=el=>{rStore=el.dataset.s;render()};
-A.prodEdit=el=>productSheet(el&&el.dataset.id?el.dataset.id:null);
-A.prodSave=()=>{
- const n=$('#pn').value.trim(),c=$('#pc').value.trim();if(!n)return err('Isi nama produk.');
- if(S.products.some(p=>p.name.toLowerCase()===n.toLowerCase()&&p.id!==SC.prodId))return err('Nama produk sudah ada.');
- let id=SC.prodId;
- if(id){const p=prod(id);p.name=n;p.category=c;const a=$('#pa');if(a)p.active=a.value==='1'}
- else{id=uid('P');S.products.push({id:id,name:n,category:c,active:true})}
- enqueue('POS Produk',prod(id));kick();
- const after=SC.after;save();closeSheet();if(after){after(id)}else render();
-};
-function staffSheet(id){
- const s=id?S.staff.find(x=>x.id===id):null;SC={staffId:id||null};
- openSheet('<h3>'+(s?'Ubah karyawan':'Karyawan baru')+'</h3><div class="f"><label>Nama</label><input id="sn" value="'+esc(s?s.name:'')+'" data-focus></div>'+
-  (s?'<div class="f"><label>Status</label>'+selHtml('sa',[['1','Aktif'],['0','Nonaktif']],s.active===false?'0':'1')+'</div>':'')+'<div class="err" id="err"></div><button class="btn go" data-a="staffSave" data-enter>Simpan</button>');
-}
-A.staffEdit=el=>staffSheet(el&&el.dataset.id?el.dataset.id:null);
-A.staffSave=()=>{
- const n=$('#sn').value.trim();if(!n)return err('Isi nama karyawan.');
- let k;if(SC.staffId){k=S.staff.find(x=>x.id===SC.staffId);k.name=n;k.active=$('#sa').value==='1'}
- else{k={id:uid('K'),name:n,active:true};S.staff.push(k)}
- enqueue('POS Karyawan',k);save();closeSheet();render();kick();
-};
 // Tablet yang belum pernah dipakai jualan: buang data contoh supaya tidak tercampur dengan data asli di Sheets
 function dropDemo(){
  if(S.txs.length||S.shifts.length||S.shift||!S.moves.some(m=>m.by==='Contoh'))return false;
