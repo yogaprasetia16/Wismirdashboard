@@ -32,6 +32,10 @@ Hosting: GitHub Pages from `main` (repo is public): `https://yogaprasetia16.gith
 - POS prices are typed per sale (bargaining in store) with "frequently used price" chips. No fixed price list in the POS.
 - POS Owner menu has only **Laporan** and **Data**. Products/staff are not editable on the tablet.
 - Attendance = who was ticked when the shift opened (no clock-in/out yet).
+- POS navigation is a menu under the top-left logo (no side rail / bottom bar: the owner found the rail laggy). Menu items act on touch-down; the following click is swallowed.
+- POS price sheet on tablets: keypad left, quantity + "Tambah ke keranjang" right (button must never drop below the fold).
+- POS sounds (Web Audio, no files): tap on every button, chime on sale / shift close, low tone on errors; switch in Owner > Data.
+- Printer: store tablet uses a **Kassen BT-P3200** (80 mm, Bluetooth + USB) with the cash drawer on the printer's drawer port. POS prints ESC/POS via Web Serial over Bluetooth (Chrome Android 138+, SPP UUID 00001101-...), with RawBT intent as fallback and the system print dialog as the default mode. Drawer pulse `ESC p 0 25 250` on cash sales and cash in/out. Printing never blocks or undoes a sale. Not yet verified on the real printer.
 - Dashboard design rules come from the `wismir-dashboard` skill: icon-only navigation, round green "+" add buttons, no colored backgrounds behind text labels, in-app two-tap delete (never `alert`/`confirm`/`prompt`), forms contain exactly the fields the owner asked for (if a new field is technically required, say so).
 - New Sheet columns are appended **at the end** of a tab's header list in `Code.gs`.
 

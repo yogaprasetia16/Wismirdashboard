@@ -12,6 +12,6 @@ start; run "POS + dashboard sync (e2e)" node e2e.js
 start; run "dashboard multi-device conflict" node conflict.js
 start; run "dashboard PIN lock" node lock.js
 start; run "install as app / offline" node pwa.js
-start; run "POS tablet taps + sounds" node pos_ui.js
+start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 stop
 echo; [ $fails -eq 0 ] && echo "EVERYTHING PASSED" || echo "$fails SUITE(S) FAILED"; exit $fails

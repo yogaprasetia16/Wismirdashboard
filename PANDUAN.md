@@ -118,3 +118,32 @@ Setelah tablet mulai dipakai, jangan mengganti alamat POS (misalnya mengganti na
 **Tanpa install:** di POS ada tombol **layar penuh** (ikon kotak sudut) di kanan atas. Tombol ini hilang otomatis kalau POS sudah dibuka sebagai aplikasi.
 
 **Bonus:** setelah POS pernah dibuka sekali, POS tetap bisa dibuka walaupun internet toko mati. Transaksi tetap tersimpan di tablet dan dikirim saat internet kembali. Saat online, POS selalu mengambil versi terbaru.
+
+## 7. Menu POS
+
+Pindah halaman (Shift, Kasir, Struk, Stok, Owner) dilakukan lewat **logo "wismir" di kiri atas**. Ketuk logo untuk membuka menu, lalu pilih halamannya. Di bawah logo tertulis halaman yang sedang dibuka. Kalau keranjang berisi barang dan Anda sedang di halaman lain, logo menampilkan angka jumlah barangnya.
+
+## 8. Printer struk + laci uang (Kassen BT-P3200 atau printer Bluetooth lain)
+
+**Sebelum mulai:**
+- Cek bagian belakang printer. Harus ada colokan kecil seperti colokan telepon, berlabel **DK** atau **Cash Drawer**. Laci uang dicolok ke sana, dan printerlah yang membuka laci.
+- Pastikan Chrome di tablet sudah versi terbaru: Play Store → Chrome → **Update**.
+
+**Langkah:**
+1. Nyalakan printer. Di tablet: **Pengaturan → Bluetooth** → pilih printer (misalnya "BT-P3200" atau "Printer") → **Pair**. Kalau diminta PIN pairing, coba `0000` atau `1234`.
+2. Buka POS → logo → **Owner** → masukkan PIN owner → **Data** → bagian **Printer struk & laci uang**.
+3. Pilih **Bluetooth langsung**, lalu ketuk **Sambungkan printer** dan pilih printernya dari daftar.
+4. Atur pilihan berikut:
+   - **Lebar kertas:** 80 mm (BT-P3200).
+   - **Buka laci otomatis:** Ya. Laci terbuka saat pembayaran tunai, Tambah kas, dan Kurangi kas.
+   - **Cetak struk otomatis setelah bayar:** Ya atau Tidak, sesuai kebutuhan.
+5. Tekan **Tes cetak**, lalu **Tes buka laci**.
+
+**Kalau "Bluetooth langsung" tidak bisa di tablet Anda** (misalnya muncul pesan Chrome belum mendukung):
+1. Install aplikasi **RawBT** dari Play Store.
+2. Sambungkan printer di dalam aplikasi RawBT.
+3. Di POS → Owner → Data, pilih **Aplikasi RawBT**, lalu tekan **Tes cetak** dan **Tes buka laci**.
+
+**Catatan:**
+- Mode **Cetak biasa** memakai dialog cetak Android seperti sebelumnya. Mode ini **tidak bisa** membuka laci.
+- Kalau printer mati atau di luar jangkauan, transaksi **tetap tersimpan**. Yang muncul hanya pesan "Printer: …", dan struk bisa dicetak ulang dari menu **Struk**.

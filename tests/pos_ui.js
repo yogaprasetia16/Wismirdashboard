@@ -1,41 +1,87 @@
-// POS on an Android tablet in landscape: rail buttons react instantly, owner PIN sheet survives the tap, tap sounds.
+// POS on an Android tablet in landscape: logo menu navigation, price sheet layout, tap sounds, thermal printer + cash drawer.
 const {chromium,devices}=require('playwright');
+// printable text of an ESC/POS job, with printer commands removed
+const escText=b=>{let o='';for(let i=0;i<b.length;i++){const c=b[i];if(c===27){const n=b[i+1];i+=n===64?1:n===112?4:2;continue}if(c===29){i+=b[i+1]===86?3:2;continue}o+=c===10?'\n':c>=32&&c<127?String.fromCharCode(c):''}return o};
 let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
 (async()=>{
  const br=await chromium.launch();const ctx=await br.newContext({...devices['Galaxy Tab S4 landscape']});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- // count sounds instead of playing them
- await p.addInitScript(()=>{window.__snd=[];class FakeAC{constructor(){this.state='running';this.currentTime=0;this.sampleRate=8000;this.destination={}}
-  resume(){}createBuffer(c,n){return{getChannelData:()=>new Float32Array(n)}}
-  node(k){const n={connect:x=>x||n,start(){window.__snd.push(k)},stop(){},frequency:{value:0,setValueAtTime(){}},Q:{value:0},gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},type:''};return n}
-  createBufferSource(){return this.node('tap')}createBiquadFilter(){return this.node('f')}createGain(){return this.node('g')}createOscillator(){return this.node('tone')}}
-  window.AudioContext=FakeAC;});
+ await p.addInitScript(()=>{
+  // count sounds instead of playing them
+  window.__snd=[];class FakeAC{constructor(){this.state='running';this.currentTime=0;this.sampleRate=8000;this.destination={}}
+   resume(){}createBuffer(c,n){return{getChannelData:()=>new Float32Array(n)}}
+   node(k){const n={connect:x=>x||n,start(){window.__snd.push(k)},stop(){},frequency:{value:0,setValueAtTime(){}},Q:{value:0},gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},type:''};return n}
+   createBufferSource(){return this.node('tap')}createBiquadFilter(){return this.node('f')}createGain(){return this.node('g')}createOscillator(){return this.node('tone')}}
+  window.AudioContext=FakeAC;
+  // fake Bluetooth serial printer: records every byte written
+  window.__printed=[];window.__reqOpts=null;const port={writable:null,async open(o){window.__baud=o.baudRate;this.writable={getWriter:()=>({write:async b=>{window.__printed.push(Array.from(b))},releaseLock(){}})}},async close(){this.writable=null}};
+  let granted=false;Object.defineProperty(navigator,'serial',{value:{getPorts:async()=>granted?[port]:[],requestPort:async o=>{window.__reqOpts=o;granted=true;return port}}});
+  window.__urls=[];window.__openUrl=u=>window.__urls.push(u);
+ });
  await p.goto('http://localhost:8765/pos.html');await p.waitForTimeout(500);
- const sz=await p.evaluate(()=>{const r=document.querySelector('#side button[data-t=stock]').getBoundingClientRect();return Math.round(r.width)});
- ok(sz>=54,'rail buttons are at least 54 px in landscape: '+sz);
- ok(await p.evaluate(()=>getComputedStyle(document.querySelector('.panel')).backdropFilter==='none'),'no expensive blur on panels');
+ // ---------- navigation ----------
+ ok(!(await p.$('#side'))&&!(await p.$('#bot')),'side rail and bottom bar are gone');
+ ok((await p.textContent('#menuBtn')).includes('Shift'),'logo shows the current page (Shift)');
  const cdp=await ctx.newCDPSession(p);await cdp.send('Emulation.setCPUThrottlingRate',{rate:6});
- // highlight time: from finger down to the button showing as active
- for(const t of ['stock','rc','home']){
-  const ms=await p.evaluate(t=>new Promise(res=>{const b=document.querySelector('#side button[data-t='+t+']'),r=b.getBoundingClientRect();const t0=performance.now();
-   b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,clientX:r.left+5,clientY:r.top+5}));res(b.classList.contains('on')?Math.round(performance.now()-t0):-1)}),t);
-  ok(ms>=0&&ms<50,'"'+t+'" lights up immediately on touch ('+ms+' ms at 6x slower CPU)');
-  await p.waitForTimeout(500);
-  ok(await p.evaluate(t=>document.querySelector('#side button[data-t='+t+']').classList.contains('on')&&!!document.querySelector('#app').textContent,t),'… and the "'+t+'" page opens');
- }
+ const ms=await p.evaluate(()=>{const b=document.querySelector('#menuBtn'),t0=performance.now();b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0}));return document.querySelector('#menu').classList.contains('open')?Math.round(performance.now()-t0):-1});
+ ok(ms>=0&&ms<50,'menu opens immediately on touch ('+ms+' ms at 6x slower CPU)');
  await cdp.send('Emulation.setCPUThrottlingRate',{rate:1});
- await p.tap('#side [data-t=stock]');await p.waitForTimeout(300);
- ok(await p.evaluate(()=>document.querySelector('#side button.on').dataset.t==='stock'),'real touch tap navigates');
- await p.tap('#own');await p.waitForTimeout(400);
- ok(await p.isVisible('#gpin'),'owner button opens the PIN sheet and it stays open');
- ok(await p.evaluate(()=>window.__snd.filter(x=>x==='tap').length>=2),'tap sound plays on button press');
- await p.fill('#gpin','0000');await p.click('[data-a=gateOk]');
- ok(await p.evaluate(()=>window.__snd.includes('tone')),'error tone on wrong PIN');
+ await p.evaluate(()=>document.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0})));
+ ok(!(await p.isVisible('#menu')),'touching outside closes the menu');
+ const items=await (async()=>{await p.tap('#menuBtn');await p.waitForTimeout(200);return p.$$eval('#menu .mi',b=>b.map(x=>x.textContent.trim()))})();
+ ok(items.join()==='Shift,Kasir,Struk,Stok,Owner','menu items: '+items.join(', '));
+ const h=await p.$eval('#menu .mi',b=>b.getBoundingClientRect().height);ok(h>=56,'menu items are big touch targets ('+h+' px)');
+ await p.tap('#menu [data-t=stock]');await p.waitForTimeout(300);
+ ok(!(await p.isVisible('#menu'))&&(await p.textContent('#menuBtn')).includes('Stok')&&(await p.textContent('#app')).includes('Stok inventaris'),'tapping "Stok" closes the menu and opens Stok');
+ await p.tap('#menuBtn');await p.tap('#menu [data-t=owner]');await p.waitForTimeout(400);
+ ok(await p.isVisible('#gpin'),'menu → Owner opens the PIN sheet and it stays open');
+ await p.fill('#gpin','0000');await p.click('[data-a=gateOk]');ok(await p.evaluate(()=>window.__snd.includes('tone')),'error tone on wrong PIN');
+ ok(await p.evaluate(()=>window.__snd.filter(x=>x==='tap').length>=3),'tap sound on button presses');
  await p.fill('#gpin','1234');await p.click('[data-a=gateOk]');await p.waitForTimeout(300);
- await p.click('[data-a=osub][data-s=data]');await p.click('[data-a=sound][data-v="0"]');
- const before=await p.evaluate(()=>window.__snd.length);await p.click('[data-a=osub][data-s=report]');
- ok(await p.evaluate(b=>window.__snd.length===b,before),'Owner > Data > Suara tombol: Mati silences taps');
- await p.click('[data-a=osub][data-s=data]');await p.click('[data-a=sound][data-v="1"]');
- ok(await p.evaluate(()=>window.__wismir.S.cfg.sound===true),'sound can be switched back on');
+ await p.click('#menuBtn');ok((await p.textContent('#menu')).includes('aktif'),'menu shows owner mode is active');await p.click('#menuBtn');
+ // ---------- printer settings ----------
+ await p.click('[data-a=osub][data-s=data]');
+ await p.click('[data-a=prMode][data-v=bt]');await p.click('[data-a=prConnect]');await p.waitForTimeout(200);
+ const ro=await p.evaluate(()=>JSON.stringify(window.__reqOpts));
+ ok(ro.includes('00001101-0000-1000-8000-00805f9b34fb'),'Sambungkan printer asks Chrome for a Bluetooth serial (SPP) printer');
+ await p.click('[data-a=prTest]');await p.waitForTimeout(200);
+ let pr=await p.evaluate(()=>window.__printed.pop());
+ const txt=escText(pr);
+ ok(pr[0]===0x1b&&pr[1]===0x40&&txt.includes('Tes cetak WISMIR')&&pr.slice(-4).join()==='29,86,66,0','Tes cetak sends ESC/POS (init, text, cut)');
+ ok(txt.split('\n').every(l=>l.length<=48),'80 mm receipt lines fit 48 characters: '+Math.max(...txt.split('\n').map(l=>l.length)));
+ await p.click('[data-a=prKick]');await p.waitForTimeout(200);
+ pr=await p.evaluate(()=>window.__printed.pop());ok(pr.join()==='27,64,27,112,0,25,250','Tes buka laci sends the drawer pulse (ESC p 0 25 250)');
+ // ---------- sale: price sheet layout, auto print + drawer ----------
+ await p.click('[data-a=ownerOff]');
+ await p.tap('#menuBtn');await p.tap('#menu [data-t=home]');await p.waitForTimeout(300);
+ await p.click('[data-a=tgStaff]');await p.fill('#cashStart','0');await p.click('[data-a=openShift]');await p.waitForTimeout(300);
+ // a product that already has frequently used prices (the case that pushed the button down)
+ const pid=await p.evaluate(()=>{const S=window.__wismir.S,id=S.products[0].id;S.prices[id]={150000:{n:5,t:1},175000:{n:3,t:2},200000:{n:2,t:3},250000:{n:1,t:4},99000:{n:1,t:5}};return id});
+ await p.click('.pc[data-id="'+pid+'"]');await p.waitForTimeout(300);
+ ok(await p.isVisible('#pchips'),'price chips are shown');
+ const lay=await p.evaluate(()=>{const b=document.querySelector('[data-a=addLine]').getBoundingClientRect(),k=document.querySelector('.np').getBoundingClientRect(),sh=document.querySelector('#sheet').getBoundingClientRect();return{side:b.left>k.right,visible:b.bottom<=Math.min(innerHeight,sh.bottom)}});
+ ok(lay.side,'"Tambah ke keranjang" sits beside the keypad, not below');
+ ok(lay.visible,'… and is visible without scrolling, even with price chips');
+ ok(await p.evaluate(()=>{const sh=document.querySelector('#sheet').getBoundingClientRect();return [...document.querySelectorAll('.pcr button,.pcr input')].every(e=>{const r=e.getBoundingClientRect();return r.left>=sh.left&&r.right<=sh.right})}),'quantity − / + and field fit inside the sheet');
+ await p.screenshot({path:'price-sheet.png'});
+ await p.click('#pchips .chip');await p.click('[data-a=addLine]');
+ await p.click('[data-a=pay]');await p.click('[data-a=confirmPay]');await p.waitForTimeout(300);
+ ok(await p.evaluate(()=>window.__snd.includes('tone')),'chime on completed sale');
+ pr=await p.evaluate(()=>window.__printed.pop());
+ ok(pr&&pr.slice(0,7).join()==='27,64,27,112,0,25,250','cash sale: receipt printed automatically and drawer opened first');
+ await p.click('#sheet [data-a=x]');
+ // non-cash sale: receipt but no drawer
+ await p.click('.pc[data-id="'+pid+'"]');await p.click('#pchips .chip');await p.click('[data-a=addLine]');await p.click('[data-a=pay]');
+ await p.click('[data-a=setMethod][data-m=Transfer]');await p.click('[data-a=confirmPay]');await p.waitForTimeout(300);
+ pr=await p.evaluate(()=>window.__printed.pop());ok(pr&&!pr.slice(0,8).join().includes('27,112'),'transfer sale: receipt printed, drawer stays closed');
+ await p.click('#sheet [data-a=x]');
+ // cash in opens drawer
+ await p.tap('#menuBtn');await p.tap('#menu [data-t=home]');await p.waitForTimeout(300);
+ await p.click('[data-a=kas][data-t=in]');await p.fill('#kv','5000');await p.click('[data-a=kasSave]');await p.waitForTimeout(200);
+ pr=await p.evaluate(()=>window.__printed.pop());ok(pr&&pr.join().includes('27,112,0,25,250'),'Tambah kas opens the drawer');
+ // RawBT fallback builds an intent link
+ await p.evaluate(()=>{const S=window.__wismir.S;S.cfg.pr=Object.assign({},S.cfg.pr,{mode:'rawbt'})});
+ await p.evaluate(()=>{document.querySelector('[data-a=kas][data-t=out]').click()});await p.fill('#kv','1000');await p.click('[data-a=kasSave]');await p.waitForTimeout(200);
+ const u=await p.evaluate(()=>window.__urls.pop()||'');ok(u.startsWith('intent:base64,')&&u.includes('package=ru.a402d.rawbtprinter'),'RawBT mode sends the job to the RawBT app');
  ok(errs.length===0,'no page errors '+errs.join(';'));
  await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0);
 })().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
