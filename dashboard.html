@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WISMIR Dashboard</title>
+<meta name="theme-color" content="#16181b">
+<link rel="manifest" href="dashboard.webmanifest">
+<link rel="icon" type="image/png" href="icons/dash-192.png">
+<link rel="apple-touch-icon" href="icons/dash-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -588,6 +594,7 @@ function start(){
   if(S.cfg.url)pullSheets();
 }
 if(S.cfg.pin&&!isUnlocked())showLock();else start();
+if(typeof navigator!=='undefined'&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>

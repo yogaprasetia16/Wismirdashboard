@@ -86,3 +86,20 @@ Dashboard boleh dibuka di laptop, HP, dan tablet sekaligus.
 5. Di setiap perangkat, buka alamatnya, isi URL dan PIN Sheets sekali, lalu pilih **Add to Home Screen** supaya muncul seperti aplikasi.
 
 Setelah tablet mulai dipakai, jangan mengganti alamat POS (misalnya mengganti nama repo), karena data yang belum terkirim terikat pada alamat itu.
+
+## 6. Pasang sebagai aplikasi (layar penuh, tanpa search bar)
+
+**Tablet Android (Chrome):**
+1. Buka `https://yogaprasetia16.github.io/Wismirdashboard/pos.html`.
+2. Ketuk menu **⋮** (kanan atas), lalu pilih **Install app** atau **Tambahkan ke layar utama → Install**.
+3. Buka POS dari ikon **WISMIR POS** di layar utama. POS akan terbuka layar penuh tanpa search bar.
+   - Kalau sebelumnya sudah pernah dibuat shortcut, hapus dulu shortcut lama, lalu install ulang.
+   - Pakai Chrome yang sama dengan yang sudah berisi data POS, supaya data tablet tetap terbaca.
+
+**iPad (Safari):** tombol Bagikan → **Add to Home Screen**.
+
+**Dashboard** bisa dipasang dengan cara yang sama di HP atau laptop (Chrome: ikon install di address bar, atau menu → Install).
+
+**Tanpa install:** di POS ada tombol **layar penuh** (ikon kotak sudut) di kanan atas. Tombol ini hilang otomatis kalau POS sudah dibuka sebagai aplikasi.
+
+**Bonus:** setelah POS pernah dibuka sekali, POS tetap bisa dibuka walaupun internet toko mati. Transaksi tetap tersimpan di tablet dan dikirim saat internet kembali. Saat online, POS selalu mengambil versi terbaru.
