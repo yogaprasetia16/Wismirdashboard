@@ -15,7 +15,7 @@ const HEADERS = {
   Keuangan: ['id', 'tanggal', 'jenis', 'kategori', 'jumlah', 'channel', 'catatan'],
   // Stok & Staff = daftar produk & karyawan untuk dashboard DAN POS (diatur dari dashboard).
   // stokToko tidak dipakai lagi (stok toko dihitung dari POS); kolomnya dibiarkan supaya urutan tidak bergeser.
-  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif'],
+  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs'],
   Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit'],
   Purchasing: ['id', 'date', 'name', 'category', 'qty', 'total'],
   Staff: ['id', 'joined', 'name', 'aktif'],
@@ -39,7 +39,7 @@ const UPD = '_upd'; // waktu server saat baris terakhir diubah (untuk sync berta
 // Kolom angka. Kolom lain disimpan sebagai TEKS supaya Sheets tidak mengubah
 // "2026-11-04" menjadi tanggal (yang bisa bergeser sehari karena zona waktu).
 const NUM = {
-  Keuangan: ['jumlah'], Stok: ['stokToko', 'stokOnline', 'min', 'harga'], Tugas: ['every'],
+  Keuangan: ['jumlah'], Stok: ['stokToko', 'stokOnline', 'min', 'harga', 'cogs'], Tugas: ['every'],
   Purchasing: ['qty', 'total'], Production: ['qty', 'matQty', 'unitCost', 'total'],
   Marketing: ['budget', 'spent', 'revenue'],
   'POS Stok': ['qty'], 'POS Kasir': ['total', 'dibayar', 'kembalian'],

@@ -313,7 +313,8 @@ const posTx=()=>P('shift').filter(s=>+s.totalPenjualan).map(s=>({id:'pos:'+s.id,
 const allTx=()=>S.tx.concat(posTx());
 const openTasks=()=>S.tasks.filter(t=>!t.selesai);
 const dueTasks=()=>openTasks().filter(t=>!t.tempo||t.tempo<=today());
-const lowStock=()=>{const m=posStock();return S.products.filter(p=>!isOff(p)&&prodTotal(p,m)<=+p.min)};
+const minOf=p=>p.min===''||p.min==null||isNaN(+p.min)?3:+p.min;
+const lowStock=()=>{const m=posStock();return S.products.filter(p=>!isOff(p)&&prodTotal(p,m)<=minOf(p))};
 const icons=()=>TABS.map(t=>`<button data-t="${t[0]}" title="${t[1]}" aria-label="${t[1]}"><svg viewBox="0 0 24 24">${IC[t[0]]}</svg></button>`).join('')+`<button data-t="theme" title="Light / dark mode" aria-label="Toggle light or dark mode"><svg viewBox="0 0 24 24"></svg></button>`;
 const MOON='<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',SUN='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
 let theme=S.cfg.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
@@ -482,23 +483,26 @@ function vStore(){
 }
 function vStock(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.harga?' · '+rp(p.harga):''}${off?' · Inactive':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
-  <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=+p.min?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
-  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Inactive products are hidden from the POS cashier.</div>`;
+  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
+  <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
+  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Products hidden from the cashier stay here, dimmed.</div>`;
 }
 function adj(id,d){const p=S.products.find(x=>x.id===id);p.stokOnline=Math.max(0,(+p.stokOnline||0)+d);save()}
 const PCATS=['Gamis','Hijab','Abaya','Koko','Mukena','Sarung','Other'];
 function pFields(p={}){const cats=!p.kategori||PCATS.includes(p.kategori)?PCATS:[p.kategori,...PCATS];return[
   {k:'nama',label:'Product name',type:'text',val:p.nama||''},
-  {k:'varian',label:'Variant (size / color)',type:'text',val:p.varian||''},
-  {k:'kategori',label:'Category (POS cashier filter)',type:'select',opts:cats,val:p.kategori||'Gamis'},
-  {k:'stokOnline',label:'Online stock',type:'number',val:p.stokOnline??0},
-  {k:'min',label:'Minimum stock alert',type:'number',val:p.min??3},
-  {k:'harga',label:'Selling price (Rp)',type:'number',val:p.harga||''},
-  {k:'aktif',label:'Status',type:'select',opts:['Active','Inactive'],val:p.aktif||'Active'}]}
-function addProduct(){form('New product',pFields(),v=>{S.products.push({id:uid(),...v});save()})}
-// A product with store history keeps its name in old receipts and stock moves: hide it (Inactive) instead of deleting
-function editProduct(id){const p=S.products.find(x=>x.id===id);form('Edit product',pFields(p),v=>{Object.assign(p,v);save()},()=>{if(P('stok').some(x=>String(x.pid)===id)||P('produk').some(x=>String(x.id)===id)){err('This product has store (POS) history. Set Status to Inactive to hide it from the cashier instead.');return false}S.products=S.products.filter(x=>x.id!==id);save()})}
+  {k:'kategori',label:'Category',type:'select',opts:cats,val:p.kategori||'Gamis'},
+  {k:'sku',label:'SKU',type:'text',val:p.sku||''},
+  {k:'cogs',label:'COGS (Rp)',type:'number',val:p.cogs??''}]}
+// same SKU on two products is almost always a typo
+const skuTaken=(v,id)=>{const k=String(v.sku||'').trim().toLowerCase();return k&&S.products.some(x=>x.id!==id&&String(x.sku||'').trim().toLowerCase()===k)};
+const cleanP=v=>({...v,sku:String(v.sku||'').trim()});
+// low-stock alert: products keep their old minimum if they had one, new products use 3
+function addProduct(){form('New product',pFields(),v=>{if(skuTaken(v))return err('This SKU is already used by another product.'),false;S.products.push({id:uid(),min:3,...cleanP(v)});save()})}
+// The bottom button: Delete for a product without store history; otherwise hide it from the POS cashier (history keeps its name), or show it again
+function editProduct(id){const p=S.products.find(x=>x.id===id),hist=P('stok').some(x=>String(x.pid)===id)||P('produk').some(x=>String(x.id)===id);
+  const del=isOff(p)?()=>{p.aktif='Active';save()}:hist?()=>{p.aktif='Inactive';save()}:()=>{S.products=S.products.filter(x=>x.id!==id);save()};
+  form('Edit product',pFields(p),v=>{if(skuTaken(v,id))return err('This SKU is already used by another product.'),false;Object.assign(p,cleanP(v));save()},del,isOff(p)?'Show in cashier again':hist?'Hide from cashier':'')}
 const DIVS=['Finance','Production','Marketing','Operational'],DICON={Finance:'tx',Production:'prod',Marketing:'mkt',Operational:'ops'};
 const REPS=['None','Daily','Weekly','Monthly','Custom'];
 const repLbl=t=>t.repeat==='Custom'?'Every '+(t.every||1)+' '+(t.unit||'days'):t.repeat;
@@ -563,10 +567,10 @@ function closePop(){pop=null;$('#pp').classList.remove('open')}
 $('#kpis').onclick=e=>{const d=e.target.closest('[data-k]');if(d)pop===d.dataset.k?closePop():showKpi(d.dataset.k)};
 addEventListener('click',e=>{if(pop&&!e.composedPath().some(n=>n.id==='pp'||n.id==='kpis'))closePop()});
 addEventListener('resize',()=>{if(pop)closePop()});
-function form(title,fields,onSave,onDel){
+function form(title,fields,onSave,onDel,delLabel){
   closePop();
   $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}>`}</div>`).join('')+
-  `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?'<button class="btn del" id="rm">Delete</button>':''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?`<button class="btn del" id="rm">${delLabel||'Delete'}</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
   const sync=()=>$('#sheet').querySelectorAll('[data-showif]').forEach(w=>{const [k,v]=w.dataset.showif.split('=');const e=$('#sheet [data-k="'+k+'"]');w.style.display=e&&e.value===v?'':'none'});
   sync();
   $('#sheet').oninput=()=>{sync();const g=k=>+(($('#sheet [data-k="'+k+'"]')||{}).value)||0;if($('#calc'))$('#calc').value=rp(g('qty')*g('unitCost'))};
@@ -574,9 +578,9 @@ function form(title,fields,onSave,onDel){
   $('#ok').onclick=()=>{const v={};$('#sheet').querySelectorAll('[data-k]').forEach(e=>v[e.dataset.k]=e.value);
     if((v.jumlah!==undefined&&!+v.jumlah)||(v.total!==undefined&&!+v.total)||(v.qty!==undefined&&!+v.qty&&!fields.find(f=>f.k==='qty').opt))return err('Please enter an amount or quantity.');
     if([v.nama,v.judul,v.name].some(x=>x!==undefined&&!x.trim()))return err('Please enter a name.');
-    onSave(v);close()};
+    if(onSave(v)===false)return;close()};
   $('#no').onclick=close;
-  if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}if(onDel()!==false)close()}}
+  if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm'+(delLabel?'':' delete');return}if(onDel()!==false)close()}}
 }
 const err=m=>{$('#err').textContent=m};
 function close(){closePop();$('#bg').classList.remove('open')}

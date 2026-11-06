@@ -19,14 +19,17 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await until(async()=>(await rows('Stok')).some(r=>r[0]==='PLEG')&&(await rows('Staff')).some(r=>r[0]==='KLEG'),10000,'migration');
  ok(true,'old tablet product + staff copied into the dashboard lists (same id)');
  // add product + staff in dashboard
- await D.evaluate(()=>{tab='ops';ops='stock';addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Gamis Navy';q('varian').value='L';q('kategori').value='Gamis';document.querySelector('#ok').click()});
+ await D.evaluate(()=>{tab='ops';ops='stock';addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Gamis Navy';q('kategori').value='Gamis';q('sku').value='GMS-NVY-L';q('cogs').value='120000';document.querySelector('#ok').click()});
  await D.evaluate(()=>{ops='staff';addStaff();document.querySelector('#sheet [data-k=name]').value='Rina';document.querySelector('#ok').click()});
  await until(async()=>(await rows('Stok')).length===2&&(await rows('Staff')).length===2,10000,'dash push');
  // stores: physical store + warehouse appear on the tablet, marketplace does not
  for(const [n,t] of [['Toko A','Physical store'],['Gudang','Warehouse'],['Shopee WISMIR','Marketplace']])
   await D.evaluate(([n,t])=>{tab='ops';ops='store';addStore();document.querySelector('#sheet [data-k=name]').value=n;document.querySelector('#sheet [data-k=type]').value=t;document.querySelector('#ok').click()},[n,t]);
  await until(async()=>(await rows('Store')).length===3,10000,'stores pushed');
- const st=(await dump()).Stok;ok(st.v[0].join()==='id,nama,varian,stokToko,stokOnline,min,harga,kategori,aktif','Stok sheet has kategori + aktif columns');
+ const st=(await dump()).Stok;ok(st.v[0].join()==='id,nama,varian,stokToko,stokOnline,min,harga,kategori,aktif,sku,cogs','Stok sheet has sku + cogs columns at the end');
+ const gr=st.v.find(r=>r[1]==='Gamis Navy');ok(gr[9]==='GMS-NVY-L'&&gr[10]===120000,'SKU stored as text, COGS as a number: '+gr[9]+' / '+gr[10]);
+ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sheet [data-k]')].map(e=>e.dataset.k).join();close();return k==='nama,kategori,sku,cogs'}),'product form fields: Product name, Category, SKU, COGS');
+ ok(await D.evaluate(()=>{addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Dup';q('sku').value='gms-nvy-l ';document.querySelector('#ok').click();const r=document.querySelector('#err').textContent.includes('SKU')&&document.querySelector('#bg').classList.contains('open');close();return r&&!S.products.some(p=>p.nama==='Dup')}),'duplicate SKU is refused');
  // ---- tablet A ----
  const ctxA=await br.newContext({viewport:{width:1024,height:768}});const A=await ctxA.newPage();A.on('pageerror',e=>errs.push('A: '+e.message));
  // tablet A is like the owner's trial tablet: old sample data (products, staff Rina/Budi/Sari/Andi, "Stok awal contoh") AND a trial sale
@@ -40,7 +43,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await A.click('[data-a=osub][data-s=data]');await A.fill('#gsu',URL_);await A.fill('#gsp','9999');await A.click('[data-a=gsSave]');
  await until(()=>A.evaluate(()=>window.__wismir.S.products.length===2&&window.__wismir.S.staff.length===2),10000,'tablet gets lists');
  const names=await A.evaluate(()=>window.__wismir.S.products.map(p=>p.name+'|'+p.category).sort().join(', '));
- ok(names==='Gamis Navy · L|Gamis, Khimar Lama|Hijab','tablet shows dashboard products incl. variant & category: '+names);
+ ok(names==='Gamis Navy|Gamis, Khimar Lama|Hijab','tablet shows dashboard products with category: '+names);
  const cl=await A.evaluate(()=>{const S=window.__wismir.S;return JSON.stringify({staff:S.staff.map(k=>k.name).sort(),contoh:S.moves.filter(m=>m.by==='Contoh').length,locs:S.locs,store:S.cfg.store})});
  ok(cl==='{"staff":["Budi","Rina"],"contoh":0,"locs":{"stores":["Toko A"],"wh":["Gudang"]},"store":"Toko A"}','old sample products, staff and stock are gone; stores come from the dashboard: '+cl);
  // stock in + transfer + shift + sale
@@ -59,14 +62,15 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await D.evaluate(()=>{tab='ops';ops='stock';render()});
  const row=await D.textContent('#app');ok(row.includes('Toko A 9')&&row.includes('Online 0'),'dashboard Stock row: Toko A 9 · Online 0');
  await D.screenshot({path:'dash-stock2.png'});
- const delMsg=await D.evaluate(id=>{editProduct(id);document.querySelector('#rm').click();document.querySelector('#rm').click();return document.querySelector('#err').textContent+'|'+document.querySelector('#bg').className},pid);
- ok(delMsg.includes('Inactive')&&delMsg.includes('open'),'cannot delete a product with POS history (asks to set Inactive)');
- await D.evaluate(id=>{document.querySelector('#sheet [data-k=aktif]').value='Inactive';document.querySelector('#ok').click()},pid);
+ const hid=await D.evaluate(id=>{editProduct(id);const b=document.querySelector('#rm'),lab=b.textContent;b.click();b.click();return lab+'|'+document.querySelector('#bg').className+'|'+S.products.find(p=>p.id===id).aktif},pid);
+ ok(hid.startsWith('Hide from cashier|')&&!hid.includes('open')&&hid.endsWith('|Inactive'),'product with POS history: bottom button hides it from the cashier instead of deleting: '+hid);
+
  await until(async()=>(await rows('Stok')).some(r=>r[0]===pid&&r[8]==='Inactive'),10000,'inactive pushed');
  await nav(A,'stock');
  await until(()=>A.evaluate(id=>window.__wismir.S.products.find(p=>p.id===id).active===false,pid),10000,'tablet sees inactive');
  await nav(A,'pos');
  ok(true,'product set Inactive in dashboard → hidden from POS cashier');
+ ok(await D.evaluate(id=>{editProduct(id);const b=document.querySelector('#rm'),lab=b.textContent;b.click();b.click();return lab==='Show in cashier again'&&S.products.find(p=>p.id===id).aktif==='Active'},pid),'hidden product can be shown in the cashier again');
  // delete a product without history → disappears from tablet
  await D.evaluate(()=>{addProduct();document.querySelector('#sheet [data-k=nama]').value='Tes Hapus';document.querySelector('#ok').click()});
  await until(async()=>(await rows('Stok')).some(r=>r[1]==='Tes Hapus'),10000,'new product pushed');
