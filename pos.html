@@ -627,7 +627,8 @@ function viewStock(){
    '<div class="note">Total di '+esc(loc)+': <b>'+tot+' pcs</b> dari '+list.length+' produk'+(S.shift&&S.shift.store===loc?' · sudah dikurangi penjualan shift berjalan':'')+'</div>'+
    '<div class="card">'+(list.map(p=>{const n=av[p.id]||0;const cl=n<0?'neg':n===0?'zero':'pos';return '<div class="row" data-a="mvRow" data-id="'+p.id+'"><div class="th">'+esc(p.name.slice(0,1))+'</div><div class="grow"><div class="t">'+esc(p.name)+'</div><div class="lbl">'+esc(p.category||'Lainnya')+'</div></div>'+(n>0&&n<=3?'<span class="pill warn">Menipis</span>':'')+'<div class="v '+cl+'">'+n+'</div></div>'}).join('')||'<div class="empty">Produk tidak ditemukan.</div>')+'</div>';
  }else{
-  const m=S.moves.filter(x=>x.from===loc||x.to===loc).slice().sort((a,b)=>b.t-a.t).slice(0,120);
+  // sales are left out here on purpose (staff only see in / out / transfer / damaged / opname); the dashboard history still shows them
+  const m=S.moves.filter(x=>(x.from===loc||x.to===loc)&&!isSaleMv(x)).slice().sort((a,b)=>b.t-a.t).slice(0,120);
   const EXT=['Supplier','Konveksi'];
   const kind=x=>x.kind==='sale'||x.to==='Sale'?'sale':x.to==='Rusak/Hilang'?'loss':(x.from==='Koreksi opname'||x.to==='Koreksi opname')?'opname':EXT.indexOf(x.from)>=0?'in':EXT.indexOf(x.to)>=0?'out':'tf';
   const KI={sale:['cart','Penjualan','k-sale'],loss:['mvloss','Rusak/hilang','k-loss'],opname:['mvop','Opname','k-op'],in:['mvin','Masuk','k-in'],out:['mvout','Keluar','k-out'],tf:['swap','Transfer','k-tf']};
@@ -635,7 +636,7 @@ function viewStock(){
   let last=null,html='';
   m.forEach(x=>{const dk=startDay(x.t);if(dk!==last){last=dk;const cnt=m.filter(y=>startDay(y.t)===dk).length;html+='<div class="dsep"><span>'+dlabel(x.t)+'</span><i></i><em>'+cnt+' pergerakan</em></div>'}
    const inn=x.to===loc,v=x.status==='void',k=KI[kind(x)];
-   html+='<div class="row'+(v?' void':'')+'" style="cursor:default"><div class="th kic '+k[2]+'" title="'+k[1]+'">'+svg(k[0])+'</div><div class="grow"><div class="t">'+esc(pname(x.pid))+'</div><div class="lbl"><b class="ktag '+k[2]+'">'+k[1]+'</b> '+esc(x.from)+' → '+esc(x.to)+' · '+hm(x.t)+' · '+esc(x.by)+(x.note?' · '+esc(x.note):'')+'</div>'+(x.kind==='manual'&&!v?'<button class="lnk" style="padding:4px 0" data-a="void" data-id="'+x.id+'">Batalkan (void)</button>':'')+'</div><div class="v '+(inn?'pos':'neg')+'">'+(inn?'+':'-')+x.qty+'</div></div>'});
+   html+='<div class="row'+(v?' void':'')+'" style="cursor:default"><div class="th kic '+k[2]+'" title="'+k[1]+'">'+svg(k[0])+'</div><div class="grow"><div class="t">'+esc(pname(x.pid))+'</div><div class="lbl"><b class="ktag '+k[2]+'">'+k[1]+'</b> '+esc(x.from)+' → '+esc(x.to)+' · '+hm(x.t)+' · '+esc(x.by)+(x.note?' · '+esc(x.note):'')+'</div>'+(x.kind==='manual'&&!v?'<div style="display:flex;gap:14px"><button class="lnk" style="padding:4px 0" data-a="mvEdit" data-id="'+x.id+'">Ubah</button><button class="lnk" style="padding:4px 0" data-a="void" data-id="'+x.id+'">Batalkan (void)</button></div>':'')+'</div><div class="v '+(inn?'pos':'neg')+'">'+(inn?'+':'-')+x.qty+'</div></div>'});
   body='<div class="card">'+(html||'<div class="empty">Belum ada pergerakan.</div>')+'</div>';
  }
  return '<section class="panel"><div class="ph"><h2>Stok inventaris</h2></div><div class="mvb">'+[['in','Masuk','mvin'],['out','Keluar','mvout'],['tf','Transfer','swap'],['loss','Rusak','mvloss'],['opname','Opname','mvop']].map(x=>'<button data-a="mvStart" data-m="'+x[0]+'">'+svg(x[2])+'<span>'+x[1]+'</span></button>').join('')+'</div><div style="display:flex;flex-wrap:wrap">'+locs+views+'</div>'+body+'</section>';
@@ -926,6 +927,43 @@ A.mvSave=()=>{
  if(m.mode==='opname'){const sys=availMap(m.from)[m.pid]||0,d=q-sys,note='Opname: sistem '+sys+', fisik '+q+(m.note?' · '+m.note:'');if(d>0)push('Koreksi opname',m.from,d,note);else push(m.from,'Koreksi opname',-d,note)}
  else push(m.from,m.to,q,m.note);
  save();closeSheet();toast('Pergerakan stok disimpan');render();kick(0);
+};
+const isSaleMv=x=>x.kind==='sale'||x.to==='Sale'||x.from==='Sale';
+// ---- edit a stock move (owner mode): product and quantity; for opname the physical count, difference recomputed ----
+const OPN='Koreksi opname';
+const isOpn=x=>x.from===OPN||x.to===OPN;
+const opLoc=x=>x.from===OPN?x.to:x.from;
+// stock of pid at loc as if move x did not exist
+function sysWithout(x,pid,loc){const n=availMap(loc)[pid]||0;if(x.pid!==pid||x.status==='void')return n;return n-((x.to===loc?x.qty:0)-(x.from===loc?x.qty:0))}
+function mvEditSheet(id){
+ const x=S.moves.find(m=>m.id===id);if(!x)return;SC={emv:id};
+ const ps=activeProducts();if(!ps.some(p=>p.id===x.pid)&&prod(x.pid))ps.unshift(prod(x.pid));
+ const op=isOpn(x),loc=op?opLoc(x):'';
+ const cur=op?(sysWithout(x,x.pid,loc)+(x.to===loc?x.qty:-x.qty)):x.qty;
+ openSheet('<h3>Ubah riwayat stok</h3><div class="note">'+esc(x.from)+' → '+esc(x.to)+' · '+dm(x.t)+' '+hm(x.t)+'</div>'+
+  '<div class="f"><label>Produk</label>'+selHtml('emP',ps.map(p=>[p.id,p.name]),x.pid,'data-ch="emv"')+'</div>'+
+  '<div class="f"><label>'+(op?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="emQ" class="big" inputmode="none" data-np data-max="5" data-in="emq" value="'+cur+'" data-focus></div><div class="note" id="emHint"></div>'+npHtml(false)+
+  '<div class="err" id="err"></div><button class="btn go" data-a="mvEditSave" data-enter>Simpan perubahan</button>',false);
+ emHint();
+}
+function emHint(){const e=$('#emHint'),x=SC&&S.moves.find(m=>m.id===SC.emv);if(!e||!x||!isOpn(x))return;const loc=opLoc(x),pid=$('#emP').value,sys=sysWithout(x,pid,loc),q=num($('#emQ').value),d=q-sys;e.innerHTML='Stok sistem di '+esc(loc)+' (tanpa catatan ini): <b>'+sys+'</b> · Selisih: <b class="'+(d<0?'neg':d>0?'pos':'')+'">'+(d>0?'+':'')+d+'</b>'}
+C.emv=()=>emHint();I.emq=()=>emHint();
+A.mvEdit=el=>{const id=el.dataset.id;gate(()=>mvEditSheet(id))};
+A.mvEditSave=()=>{
+ const x=S.moves.find(m=>m.id===SC.emv);if(!x)return closeSheet();
+ const pid=$('#emP').value,q=num($('#emQ').value),stamp=' · diubah '+dm(Date.now())+' '+hm(Date.now());
+ if(!pid)return err('Pilih produk.');
+ if(isOpn(x)){
+  if($('#emQ').value==='')return err('Isi hasil hitung fisik.');
+  const loc=opLoc(x),sys=sysWithout(x,pid,loc),d=q-sys;
+  x.pid=pid;x.note='Opname: sistem '+sys+', fisik '+q+stamp;
+  if(d===0)x.status='void'; // nothing to correct any more
+  else{x.qty=Math.abs(d);x.from=d>0?OPN:loc;x.to=d>0?loc:OPN}
+ }else{
+  if(q<=0)return err('Isi jumlah lebih dari 0.');
+  x.pid=pid;x.qty=q;x.note=String(x.note||'').replace(/ · diubah .*$/,'')+stamp;
+ }
+ x.edited=true;enqueue('POS Stok',x);save();closeSheet();render();toast('Riwayat stok diubah');kick(0);
 };
 A.void=el=>twoTap(el,'Ketuk lagi untuk batalkan',()=>{const x=S.moves.find(m=>m.id===el.dataset.id);if(x){x.status='void';enqueue('POS Stok',x);save();render();toast('Dibatalkan (void)');kick(0)}});
 /* Owner */
