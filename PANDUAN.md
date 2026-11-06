@@ -173,7 +173,8 @@ Setelah itu, masukkan stok awal yang sebenarnya di tablet: **Stok → Masuk**. K
 ## 10. Riwayat stok di tablet
 
 - **Stok → Riwayat** di tablet hanya menampilkan **Masuk, Keluar, Transfer, Rusak, dan Opname**, supaya tidak membingungkan karyawan. Penjualan tetap mengurangi stok, dan tetap terlihat di **dashboard → Operational → Stock → History**.
-- **Mengubah catatan stok** yang salah ketik (hanya dalam **mode owner**): ketuk **Ubah** di baris riwayat, lalu ganti **produk** dan/atau **jumlah**, lalu **Simpan perubahan**.
+- **Mengubah catatan stok** yang salah ketik (bisa oleh siapa saja, tanpa mode owner): ketuk **Ubah** di baris riwayat, lalu ganti **produk** dan/atau **jumlah**, lalu **Simpan perubahan**.
   - Untuk **Opname**, yang diubah adalah **hasil hitung fisik**. Selisihnya dihitung ulang otomatis.
   - Catatan yang diubah ditandai "diubah" beserta tanggal dan jamnya, jadi terlihat juga di dashboard.
 - Kalau catatan memang tidak seharusnya ada, pakai **Batalkan (void)**.
+- Stok keluar, transfer, atau rusak yang membuat stok **minus** tetap bisa disimpan tanpa PIN owner. Layar "Cek sebelum simpan" hanya mengingatkan bahwa stok akan menjadi minus.

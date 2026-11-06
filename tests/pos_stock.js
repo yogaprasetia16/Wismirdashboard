@@ -35,12 +35,8 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const hist=await A.textContent('#app');
  ok(hist.includes('Masuk')&&!hist.includes('Penjualan'),'POS stock history shows the stock-in but not the sale');
  ok(await stock(ids['Gamis A'])===8,'stock still counts the sale (10 in − 2 sold = 8)');
- // staff cannot edit
- await A.click('[data-a=mvEdit]');await sleep(200);
- ok(!(await A.isVisible('#emQ'))&&(await A.textContent('#toast')).includes('owner'),'editing needs owner mode');
- // owner edits quantity 10 -> 7
- await nav(A,'owner');await A.fill('#gpin','1234');await A.click('[data-a=gateOk]');await nav(A,'stock');
- await A.click('[data-a=mvEdit]');await A.fill('#emQ','7');await A.click('[data-a=mvEditSave]');
+ // staff (no owner mode) can edit; quantity 10 -> 7
+ await A.click('[data-a=mvEdit]');ok(await A.isVisible('#emQ'),'staff can open the edit sheet without owner mode');await A.fill('#emQ','7');await A.click('[data-a=mvEditSave]');
  ok(await stock(ids['Gamis A'])===5,'quantity edited: 7 in − 2 sold = 5');
  // owner edits product: the stock-in was really Hijab B
  await A.click('[data-a=mvEdit]');await A.selectOption('#emP',ids['Hijab B']);await A.click('[data-a=mvEditSave]');
@@ -52,6 +48,10 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  ok((await A.textContent('#emHint')).includes('7'),'opname edit shows system stock without this record (7)');
  await A.fill('#emQ','9');await A.click('[data-a=mvEditSave]');
  ok(await stock(ids['Hijab B'])===9,'opname edited to a count of 9: stock is 9');
+ // stock out of more than there is: no owner PIN, only a warning
+ await A.click('[data-a=mvStart][data-m=out]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','12');await A.click('[data-a=mvNext]');
+ ok(!(await A.$('#mvPin'))&&(await A.textContent('#sheet')).includes('akan menjadi -3'),'stock out below zero: no PIN asked, warning "akan menjadi -3" shown');
+ await A.click('[data-a=mvSave]');ok(await stock(ids['Hijab B'])===-3,'saved: stock is -3');
  // edits reach the Sheet and the dashboard history
  await until(async()=>{const r=(await dump())['POS Stok'].v;const h=r[0];return r.slice(1).some(x=>x[h.indexOf('catatan')].includes('diubah')&&x[h.indexOf('produk')]==='Hijab B'&&x[h.indexOf('qty')]===7)},10000,'edit synced');
  ok(true,'edited move is updated in the POS Stok sheet (same row, marked "diubah")');
