@@ -423,9 +423,16 @@ function receiptBytes(t,bill,kick){
  p.ln(hr).al(1);wrapTxt(R.foot,w).forEach(x=>p.ln(x));
  return p.raw(10,10,10,0x1d,0x56,0x42,0x00).bytes(); // feed + cut
 }
+// "Bluetooth langsung" has two ways in, picked automatically:
+//  1. Web Serial (classic Bluetooth / SPP): only some Chrome-for-Android versions and devices have it
+//  2. Web Bluetooth (Bluetooth LE): available in Chrome for Android for years, works when the printer also speaks BLE
+const hasSerial=()=>typeof navigator!=='undefined'&&!!navigator.serial;
+const hasBle=()=>typeof navigator!=='undefined'&&!!navigator.bluetooth;
+const btWay=()=>hasSerial()?'serial':hasBle()?'ble':'';
+const NO_BT='Chrome di tablet ini belum bisa Bluetooth dari web. Pilih mode Aplikasi RawBT (Owner → Data → Printer).';
 let PORT=null;
 async function btPort(ask){
- if(!(typeof navigator!=='undefined'&&'serial' in navigator))throw new Error('Chrome di tablet ini belum bisa Bluetooth langsung. Perbarui Chrome, atau pilih RawBT.');
+ if(!hasSerial())throw new Error(NO_BT);
  if(PORT&&PORT.writable)return PORT;
  let pt=(await navigator.serial.getPorts())[0];
  if(!pt&&ask)pt=await navigator.serial.requestPort({filters:[{bluetoothServiceClassId:SPP}],allowedBluetoothServiceClassIds:[SPP]});
@@ -433,13 +440,44 @@ async function btPort(ask){
  if(!pt.writable)await pt.open({baudRate:9600});
  PORT=pt;return pt;
 }
+// GATT services that receipt printers commonly use to receive ESC/POS data
+const BLE_SVC=['000018f0-0000-1000-8000-00805f9b34fb','000018f1-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2','49535343-fe7d-4ae5-8fa9-9fafd205e455','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb'];
+let BLE=null;
+async function bleChar(ask){
+ if(!hasBle())throw new Error(NO_BT);
+ if(BLE&&BLE.ch&&BLE.dev.gatt&&BLE.dev.gatt.connected)return BLE.ch;
+ let dev=BLE&&BLE.dev;
+ if(!dev&&navigator.bluetooth.getDevices){try{dev=(await navigator.bluetooth.getDevices()).find(d=>d.id===S.cfg.prBle)||null}catch(e){}}
+ if(!dev&&ask)dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BLE_SVC});
+ if(!dev)throw new Error('Printer belum disambungkan. Owner → Data → Printer → Sambungkan printer.');
+ const g=await dev.gatt.connect();let ch=null;
+ for(const u of BLE_SVC){try{const sv=await g.getPrimaryService(u);ch=(await sv.getCharacteristics()).find(c=>c.properties.writeWithoutResponse||c.properties.write);if(ch)break}catch(e){}}
+ if(!ch){try{dev.gatt.disconnect()}catch(e){}throw new Error('Printer ini tidak menerima data lewat Bluetooth LE. Pilih mode Aplikasi RawBT.')}
+ BLE={dev,ch};if(S.cfg.prBle!==dev.id){S.cfg.prBle=dev.id;save()}
+ return ch;
+}
+async function bleWrite(bytes){
+ const ch=await bleChar(false);
+ for(let i=0;i<bytes.length;i+=180){const part=bytes.slice(i,i+180);
+  if(ch.properties.writeWithoutResponse&&ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);
+  await new Promise(r=>setTimeout(r,15))} // small pause: cheap printers drop data that arrives too fast
+}
 const openUrl=u=>{(window.__openUrl||(x=>{location.href=x}))(u)};
-async function prSend(bytes){
+let PQ=Promise.resolve(); // one print job at a time
+function prSend(bytes){const job=PQ.then(()=>prSend1(bytes));PQ=job.catch(()=>{});return job}
+async function prSend1(bytes){
  const c=PRC();
  if(c.mode==='rawbt'){let t='';bytes.forEach(x=>t+=String.fromCharCode(x));openUrl('intent:base64,'+btoa(t)+'#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;');return}
+ const way=btWay();if(!way)throw new Error(NO_BT);
  for(let a=0;a<2;a++){ // second try after reopening the Bluetooth link (printer was off / out of range)
-  try{const pt=await btPort(false),wr=pt.writable.getWriter();try{await wr.write(bytes)}finally{wr.releaseLock()}return}
-  catch(e){try{if(PORT)await PORT.close()}catch(x){}PORT=null;if(a)throw e}
+  try{
+   if(way==='serial'){const pt=await btPort(false),wr=pt.writable.getWriter();try{await wr.write(bytes)}finally{wr.releaseLock()}}
+   else await bleWrite(bytes);
+   return;
+  }catch(e){
+   if(way==='serial'){try{if(PORT)await PORT.close()}catch(x){}PORT=null}else{try{if(BLE)BLE.dev.gatt.disconnect()}catch(x){}if(BLE)BLE={dev:BLE.dev,ch:null}}
+   if(a)throw e;
+  }
  }
 }
 const hasCash=t=>t.method==='Tunai'||(t.pays||[]).some(x=>x.method==='Tunai'&&x.amount>0);
@@ -989,8 +1027,10 @@ A.gsSave=()=>{const u=$('#gsu').value.trim(),p=$('#gsp').value;if(u&&!/^https?:\
  const dropped=u&&first&&dropDemo();save();render();toast(!u?'Sinkron dimatikan':dropped?'Data contoh dihapus · mengambil data dari Google Sheets…':'Menyinkronkan…');kick(0)};
 A.gsAll=el=>twoTap(el,'Ketuk lagi untuk kirim semua data',()=>{if(!syncOn())return toast('Isi URL dan PIN Google Sheets dulu');const cur=S.shift&&S.shift.id;S.products.forEach(p=>enqueue('POS Produk',p));S.staff.forEach(k=>enqueue('POS Karyawan',k));S.moves.forEach(m=>enqueue('POS Stok',m));S.shifts.forEach(h=>enqueue('POS Shift',h));S.txs.filter(t=>t.shiftId!==cur).forEach(t=>enqueue('POS Kasir',t));S.attendance.filter(a=>a.shiftId!==cur).forEach(a=>enqueue('POS Absen',a));save();syncUi();toast(S.outbox.length+' data diantrekan');kick(0)});
 function printerHtml(){const c=PRC(),seg=(a,opts,cur)=>'<div class="seg sc">'+opts.map(x=>'<button class="'+(String(cur)===String(x[0])?'on':'')+'" data-a="'+a+'" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
- const note={system:'Memakai dialog cetak Android. Laci uang tidak bisa dibuka dari mode ini.',bt:'Pair printer dulu di Pengaturan Bluetooth tablet (PIN pairing biasanya 0000 atau 1234), lalu tekan Sambungkan printer. Butuh Chrome versi 138 atau lebih baru.',rawbt:'Install aplikasi RawBT dari Play Store, sambungkan printer di RawBT, lalu tes di sini. Setiap cetak akan membuka RawBT sebentar.'}[c.mode];
- return '<div class="sub">Printer struk &amp; laci uang</div>'+seg('prMode',[['system','Cetak biasa'],['bt','Bluetooth langsung'],['rawbt','Aplikasi RawBT']],c.mode)+'<div class="note">'+note+'</div>'+
+ const note={system:'Memakai dialog cetak Android. Laci uang tidak bisa dibuka dari mode ini.',bt:'Nyalakan printer dan Bluetooth tablet, lalu tekan Sambungkan printer dan pilih printernya. Kalau printer tidak muncul atau gagal, pakai mode Aplikasi RawBT.',rawbt:'Install aplikasi RawBT dari Play Store, sambungkan printer di RawBT, lalu tes di sini. Setiap cetak akan membuka RawBT sebentar.'}[c.mode];
+ const cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1]||'?';
+ const diag=c.mode==='bt'?'<div class="note">Chrome '+esc(cv)+' · Bluetooth klasik (Web Serial): <b>'+(hasSerial()?'ada':'tidak ada')+'</b> · Bluetooth LE: <b>'+(hasBle()?'ada':'tidak ada')+'</b>'+(btWay()?' · dipakai: <b>'+(btWay()==='serial'?'Bluetooth klasik':'Bluetooth LE')+'</b>':' · <span class="neg">tidak bisa di tablet ini, pakai RawBT</span>')+'</div>':'';
+ return '<div class="sub">Printer struk &amp; laci uang</div>'+seg('prMode',[['system','Cetak biasa'],['bt','Bluetooth langsung'],['rawbt','Aplikasi RawBT']],c.mode)+'<div class="note">'+note+'</div>'+diag+
   (c.mode==='system'?'':'<div class="f"><label>Lebar kertas</label></div>'+seg('prW',[[80,'80 mm'],[58,'58 mm']],c.width)+
   '<div class="f"><label>Buka laci otomatis (bayar tunai, tambah/kurangi kas)</label></div>'+seg('prDr',[['1','Ya'],['0','Tidak']],c.drawer?'1':'0')+
   '<div class="f"><label>Cetak struk otomatis setelah bayar</label></div>'+seg('prAuto',[['1','Ya'],['0','Tidak']],c.auto?'1':'0')+
@@ -1002,7 +1042,7 @@ A.prMode=el=>prSet('mode',el.dataset.v);
 A.prW=el=>prSet('width',+el.dataset.v);
 A.prDr=el=>prSet('drawer',el.dataset.v==='1');
 A.prAuto=el=>prSet('auto',el.dataset.v==='1');
-A.prConnect=async()=>{try{PORT=null;await btPort(true);snd('ok');toast('Printer tersambung')}catch(e){if(e&&e.name==='NotFoundError')return;snd('err');toast('Printer: '+(e.message||e))}};
+A.prConnect=async()=>{try{const way=btWay();if(!way)throw new Error(NO_BT);if(way==='serial'){PORT=null;await btPort(true)}else{BLE=null;await bleChar(true)}snd('ok');toast('Printer tersambung')}catch(e){if(e&&e.name==='NotFoundError')return;snd('err');toast('Printer: '+(e.message||e))}};
 A.prTest=()=>printTx({id:'TES',store:S.cfg.store,t:Date.now(),items:[{name:'Tes cetak WISMIR',qty:1,price:10000}],total:10000,method:'Tunai',paid:10000,change:0});
 A.prKick=()=>{if(!PRC().drawer)return toast('Buka laci otomatis sedang Tidak');kickDrawer()};
 A.sound=el=>{S.cfg.sound=el.dataset.v==='1';save();render();if(S.cfg.sound)snd('ok')};
