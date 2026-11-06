@@ -669,7 +669,6 @@ function mvRender(){
   h+='<div class="row2" style="margin-bottom:10px"><div class="f" style="flex:1;margin:0"><label>Dari</label>'+selHtml('mvF',fo,m.from,'data-ch="mv"')+'</div><div class="f" style="flex:1;margin:0"><label>Ke</label>'+selHtml('mvT',to,m.to,'data-ch="mv"')+'</div></div>';
  }
  h+='<div class="f"><label>'+(m.mode==='opname'?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="mvQ" class="big" inputmode="none" data-np data-max="5" placeholder="0" data-in="mvq" value="'+esc(m.qty)+'" data-focus></div><div class="note" id="mvHint"></div>'+npHtml(false);
-  if(m.needPin)h+='<div class="f"><label>PIN owner</label><input id="mvPin" type="password" inputmode="none" data-np data-max="12" value="'+esc(m.pin)+'" placeholder="••••"></div>';
  h+='<div class="err" id="err">'+esc(m.err)+'</div><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvNext" data-enter>Lanjut</button>';
  openSheet(h,false);mvTone(m);mvHint();
 }
@@ -689,7 +688,9 @@ function mvHint(){
 function mvConfirm(){
  const m=MV;let s;
  if(m.mode==='opname'){const sys=availMap(m.from)[m.pid]||0,c=num(m.qty),d=c-sys;s='<b>'+esc(pname(m.pid))+'</b><br>Opname di '+esc(m.from)+': sistem '+sys+' → fisik '+c+' (selisih '+(d>0?'+':'')+d+')'}
- else s='<b>'+esc(pname(m.pid))+'</b><br>'+num(m.qty)+' pcs · '+esc(m.from)+' → '+esc(m.to)+(m.note?'<br>Catatan: '+esc(m.note):'');
+ else{s='<b>'+esc(pname(m.pid))+'</b><br>'+num(m.qty)+' pcs · '+esc(m.from)+' → '+esc(m.to)+(m.note?'<br>Catatan: '+esc(m.note):'');
+  // stock may go below zero (allowed, no PIN): say so, so a typo is still noticed
+  if(REAL(m.from)){const av=availMap(m.from)[m.pid]||0,after=av-num(m.qty);if(after<0)s+='<div class="neg" style="margin-top:8px;font-weight:600">Stok '+esc(m.from)+' akan menjadi '+after+' (sekarang '+av+'). Pastikan jumlahnya benar.</div>'}}
  openSheet('<h3>Cek sebelum simpan</h3><div class="card" style="padding:16px;line-height:1.7">'+s+'</div><div class="err" id="err"></div><div class="row2"><button class="btn sec" data-a="mvBack">Kembali</button><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvSave" data-enter>Simpan</button></div>',false);mvTone(m);
 }
 
@@ -917,7 +918,6 @@ A.mvNext=()=>{
   if(q<=0)return fail('Isi jumlah lebih dari 0.');
   if(m.from===m.to)return fail('Asal dan tujuan tidak boleh sama.');
   if(!ownerOK&&m.mode==='tf'&&m.from!==S.cfg.store&&m.to!==S.cfg.store)return fail('Transfer harus melibatkan '+S.cfg.store+'. Untuk lokasi lain, gunakan mode owner.');
-  if(REAL(m.from)){const av=availMap(m.from)[m.pid]||0;if(q>av&&!ownerOK){m.needPin=true;if(m.pin!==S.cfg.pin)return fail('Stok '+m.from+' hanya '+av+'. Masukkan PIN owner untuk tetap melanjutkan.')}}
  }
  m.step='confirm';mvRender();
 };
@@ -948,7 +948,7 @@ function mvEditSheet(id){
 }
 function emHint(){const e=$('#emHint'),x=SC&&S.moves.find(m=>m.id===SC.emv);if(!e||!x||!isOpn(x))return;const loc=opLoc(x),pid=$('#emP').value,sys=sysWithout(x,pid,loc),q=num($('#emQ').value),d=q-sys;e.innerHTML='Stok sistem di '+esc(loc)+' (tanpa catatan ini): <b>'+sys+'</b> · Selisih: <b class="'+(d<0?'neg':d>0?'pos':'')+'">'+(d>0?'+':'')+d+'</b>'}
 C.emv=()=>emHint();I.emq=()=>emHint();
-A.mvEdit=el=>{const id=el.dataset.id;gate(()=>mvEditSheet(id))};
+A.mvEdit=el=>mvEditSheet(el.dataset.id);
 A.mvEditSave=()=>{
  const x=S.moves.find(m=>m.id===SC.emv);if(!x)return closeSheet();
  const pid=$('#emP').value,q=num($('#emQ').value),stamp=' · diubah '+dm(Date.now())+' '+hm(Date.now());
