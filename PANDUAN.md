@@ -137,6 +137,8 @@ Pindah halaman (Shift, Kasir, Struk, Stok, Owner) dilakukan lewat **logo "wismir
 1. Nyalakan printer. Di tablet: **Pengaturan → Bluetooth** → pilih printer (misalnya "BT-P3200" atau "Printer") → **Pair**. Kalau diminta PIN pairing, coba `0000` atau `1234`.
 2. Buka POS → logo → **Owner** → masukkan PIN owner → **Data** → bagian **Printer struk & laci uang**.
 3. Pilih **Bluetooth langsung**, lalu ketuk **Sambungkan printer** dan pilih printernya dari daftar.
+   - Di bawah pilihan mode ada info **Bluetooth klasik / Bluetooth LE: ada / tidak ada**. POS otomatis memakai jalur yang tersedia di tablet. Kalau tertulis "tidak bisa di tablet ini", langsung pakai **RawBT** (lihat di bawah).
+   - Bluetooth LE hanya berhasil kalau printernya juga mendukung Bluetooth LE. Kalau printer tidak muncul di daftar, atau muncul pesan "tidak menerima data lewat Bluetooth LE", pakai **RawBT**.
 4. Atur pilihan berikut:
    - **Lebar kertas:** 80 mm (BT-P3200).
    - **Buka laci otomatis:** Ya. Laci terbuka saat pembayaran tunai, Tambah kas, dan Kurangi kas.
