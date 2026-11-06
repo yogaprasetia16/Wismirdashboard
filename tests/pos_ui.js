@@ -1,7 +1,7 @@
 // POS on an Android tablet in landscape: logo menu navigation, price sheet layout, tap sounds, thermal printer + cash drawer.
 const {chromium,devices}=require('playwright');
 // printable text of an ESC/POS job, with printer commands removed
-const escText=b=>{let o='';for(let i=0;i<b.length;i++){const c=b[i];if(c===27){const n=b[i+1];i+=n===64?1:n===112?4:2;continue}if(c===29){i+=b[i+1]===86?3:2;continue}o+=c===10?'\n':c>=32&&c<127?String.fromCharCode(c):''}return o};
+const escText=b=>{let o='';for(let i=0;i<b.length;i++){const c=b[i];if(c===27){const n=b[i+1];i+=n===64?1:n===112?4:2;continue}if(c===29){i+=b[i+1]===86?(b[i+2]<2?2:3):2;continue}o+=c===10?'\n':c>=32&&c<127?String.fromCharCode(c):''}return o};
 let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
 (async()=>{
  const br=await chromium.launch();const ctx=await br.newContext({...devices['Galaxy Tab S4 landscape']});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
@@ -48,7 +48,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await p.click('[data-a=prTest]');await p.waitForTimeout(200);
  let pr=await p.evaluate(()=>window.__printed.pop());
  const txt=escText(pr);
- ok(pr[0]===0x1b&&pr[1]===0x40&&txt.includes('Tes cetak WISMIR')&&pr.slice(-4).join()==='29,86,66,0','Tes cetak sends ESC/POS (init, text, cut)');
+ ok(pr[0]===0x1b&&pr[1]===0x40&&txt.includes('Tes cetak WISMIR')&&pr.slice(-6).join()==='27,100,5,29,86,1','Tes cetak sends ESC/POS (init, text, feed + cut GS V 1)');
  ok(txt.split('\n').every(l=>l.length<=48),'80 mm receipt lines fit 48 characters: '+Math.max(...txt.split('\n').map(l=>l.length)));
  await p.click('[data-a=prKick]');await p.waitForTimeout(200);
  pr=await p.evaluate(()=>window.__printed.pop());ok(pr.join()==='27,64,27,112,0,25,250','Tes buka laci sends the drawer pulse (ESC p 0 25 250)');
