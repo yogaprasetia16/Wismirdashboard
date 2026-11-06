@@ -66,8 +66,9 @@ Settings → isi URL dan PIN yang sama → **Save settings**. Data POS tampil di
 - **Finance**: setiap shift yang ditutup muncul sebagai Income bertanda `POS` dan ikut dihitung di Net profit. Kalau sebelumnya Anda mencatat penjualan toko secara manual, hapus catatan manual itu supaya tidak terhitung dua kali.
 - **Operational → Stock**: satu daftar produk untuk dashboard **dan** POS. Setiap produk menampilkan stok per lokasi dari POS (Gudang / Toko A / Toko B) ditambah stok online.
   - Tombol − / + mengubah **stok online**. Stok toko dan gudang dicatat dari tablet (tab Stok).
-  - **Category** dipakai untuk tombol filter di kasir.
-  - **Status Inactive** menyembunyikan produk dari kasir tanpa menghapus riwayatnya. Produk yang sudah punya riwayat di POS tidak bisa dihapus, hanya bisa di-Inactive-kan.
+  - Form produk berisi **Product name**, **Category** (tombol filter di kasir), **SKU** (kode produk, tidak boleh sama antar produk), dan **COGS** (harga pokok per pcs).
+  - Produk yang sudah punya riwayat di POS tidak bisa dihapus. Tombol bawahnya menjadi **Hide from cashier**: produk hilang dari kasir, tapi riwayatnya tetap ada. Produk itu bisa dimunculkan lagi lewat **Show in cashier again**.
+  - Peringatan stok menipis muncul kalau total stok tinggal **3 atau kurang**.
 - **Operational → Staff**: satu daftar karyawan untuk dashboard **dan** POS. Karyawan **Active** muncul di tablet saat buka shift.
 - **Operational → Attendance**: jumlah shift per karyawan bulan ini dan daftar shift terakhir.
 - **Operational → Store**: daftar toko. Physical store dan Warehouse muncul di tablet; Online store dan Marketplace tidak.
