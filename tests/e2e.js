@@ -19,16 +19,18 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await until(async()=>(await rows('Stok')).some(r=>r[0]==='PLEG')&&(await rows('Staff')).some(r=>r[0]==='KLEG'),10000,'migration');
  ok(true,'old tablet product + staff copied into the dashboard lists (same id)');
  // add product + staff in dashboard
- await D.evaluate(()=>{tab='ops';ops='stock';addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Gamis Navy';q('kategori').value='Gamis';q('sku').value='GMS-NVY-L';q('cogs').value='120000';document.querySelector('#ok').click()});
+ await D.evaluate(()=>{tab='ops';ops='stock';addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Gamis Navy';q('kategori').value='Gamis';q('brand').value='WISMIR';q('sku').value='GMS-NVY-L';q('cogs').value='120000';document.querySelector('#ok').click()});
  await D.evaluate(()=>{ops='staff';addStaff();document.querySelector('#sheet [data-k=name]').value='Rina';document.querySelector('#ok').click()});
  await until(async()=>(await rows('Stok')).length===2&&(await rows('Staff')).length===2,10000,'dash push');
  // stores: physical store + warehouse appear on the tablet, marketplace does not
  for(const [n,t] of [['Toko A','Physical store'],['Gudang','Warehouse'],['Shopee WISMIR','Marketplace']])
   await D.evaluate(([n,t])=>{tab='ops';ops='store';addStore();document.querySelector('#sheet [data-k=name]').value=n;document.querySelector('#sheet [data-k=type]').value=t;document.querySelector('#ok').click()},[n,t]);
  await until(async()=>(await rows('Store')).length===3,10000,'stores pushed');
- const st=(await dump()).Stok;ok(st.v[0].join()==='id,nama,varian,stokToko,stokOnline,min,harga,kategori,aktif,sku,cogs','Stok sheet has sku + cogs columns at the end');
+ const st=(await dump()).Stok;ok(st.v[0].join()==='id,nama,varian,stokToko,stokOnline,min,harga,kategori,aktif,sku,cogs,brand','Stok sheet has sku, cogs, brand columns at the end');
  const gr=st.v.find(r=>r[1]==='Gamis Navy');ok(gr[9]==='GMS-NVY-L'&&gr[10]===120000,'SKU stored as text, COGS as a number: '+gr[9]+' / '+gr[10]);
-ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sheet [data-k]')].map(e=>e.dataset.k).join();close();return k==='nama,kategori,sku,cogs'}),'product form fields: Product name, Category, SKU, COGS');
+ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sheet [data-k]')].map(e=>e.dataset.k).join();close();return k==='nama,kategori,brand,sku,cogs'}),'product form fields: Product name, Category, Brand, SKU, COGS');
+ ok(await D.evaluate(()=>{addProduct();const c=[...document.querySelectorAll('#dl-kategori option')].map(o=>o.value),b=[...document.querySelectorAll('#dl-brand option')].map(o=>o.value),inp=document.querySelector('#sheet [data-k=kategori]');close();return inp.tagName==='INPUT'&&inp.value===''&&c.includes('Gamis')&&c.includes('Hijab')&&b.join()==='WISMIR'}),'category is free text (empty by default) with suggestions from earlier categories; brand suggestions too');
+ ok((await dump()).Stok.v.find(r=>r[1]==='Gamis Navy')[11]==='WISMIR','brand stored in the Stok sheet');
  ok(await D.evaluate(()=>{addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Dup';q('sku').value='gms-nvy-l ';document.querySelector('#ok').click();const r=document.querySelector('#err').textContent.includes('SKU')&&document.querySelector('#bg').classList.contains('open');close();return r&&!S.products.some(p=>p.nama==='Dup')}),'duplicate SKU is refused');
  // ---- tablet A ----
  const ctxA=await br.newContext({viewport:{width:1024,height:768}});const A=await ctxA.newPage();A.on('pageerror',e=>errs.push('A: '+e.message));
@@ -61,6 +63,18 @@ ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sh
  await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>(S.pos.stok||[]).length===2),10000,'dash sees moves');
  await D.evaluate(()=>{tab='ops';ops='stock';render()});
  const row=await D.textContent('#app');ok(row.includes('Toko A 9')&&row.includes('Online 0'),'dashboard Stock row: Toko A 9 · Online 0');
+ // stock history with filters
+ await D.evaluate(()=>{stv='hist';HF.per='today';render()});
+ const h1=await D.textContent('#hlist');ok(h1.includes('Gamis Navy')&&h1.includes('Stock in')&&h1.includes('Sale'),'Stock › History lists today\'s moves (stock in + sale)');
+ await D.selectOption('.hfil select >> nth=1','Toko A');await D.selectOption('.hfil select >> nth=2','sale');
+ const h2=await D.textContent('#hlist');ok(h2.startsWith('1 move ·')&&h2.includes('out 1 pcs')&&!h2.includes('Stock in'),'filter by location + type: '+h2.slice(0,40));
+ await D.selectOption('.hfil select >> nth=2','all');await D.selectOption('.hfil select >> nth=3','Hijab');
+ ok((await D.textContent('#hlist')).includes('No stock moves match'),'filter by category');
+ await D.selectOption('.hfil select >> nth=3','all');await D.fill('.hfil input[type=search]','gms-nvy');
+ ok((await D.textContent('#hlist')).startsWith('2 moves'),'search by SKU');
+ await D.selectOption('.hfil select >> nth=0','last');ok((await D.textContent('#hlist')).includes('No stock moves match'),'period filter (last month: nothing)');
+ await D.screenshot({path:'history.png'});
+ await D.evaluate(()=>{stv='list';HF.per='30d';HF.q='';HF.loc='all';render()});
  await D.screenshot({path:'dash-stock2.png'});
  const hid=await D.evaluate(id=>{editProduct(id);const b=document.querySelector('#rm'),lab=b.textContent;b.click();b.click();return lab+'|'+document.querySelector('#bg').className+'|'+S.products.find(p=>p.id===id).aktif},pid);
  ok(hid.startsWith('Hide from cashier|')&&!hid.includes('open')&&hid.endsWith('|Inactive'),'product with POS history: bottom button hides it from the cashier instead of deleting: '+hid);

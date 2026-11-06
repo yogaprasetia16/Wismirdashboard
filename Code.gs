@@ -15,7 +15,7 @@ const HEADERS = {
   Keuangan: ['id', 'tanggal', 'jenis', 'kategori', 'jumlah', 'channel', 'catatan'],
   // Stok & Staff = daftar produk & karyawan untuk dashboard DAN POS (diatur dari dashboard).
   // stokToko tidak dipakai lagi (stok toko dihitung dari POS); kolomnya dibiarkan supaya urutan tidak bergeser.
-  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs'],
+  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs', 'brand'],
   Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit'],
   Purchasing: ['id', 'date', 'name', 'category', 'qty', 'total'],
   Staff: ['id', 'joined', 'name', 'aktif'],

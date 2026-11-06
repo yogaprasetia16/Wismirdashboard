@@ -55,6 +55,7 @@ run("tog('t2');tog('t3');tab='task';render()",'complete reminders');
 run("addTask('Finance');tab='home';render()",'add reminder + home');
 run("['late','today','nod'].forEach(showKpi)",'KPI popovers');
 run("tab='tx';render();posShift('SH1');close()",'finance with POS + shift sheet');
+run("tab='ops';ops='stock';stv='hist';HF.per='all';render();HF.loc='Toko A';if(histRows().length!==2)throw Error('loc '+histRows().length);HF.type='sale';if(histRows().length!==1)throw Error('type');HF.loc='all';HF.type='all';hList();stv='list'",'stock history + filters');
 run("if(nd('2026-11-03T17:00:00.000Z')!==ymd(new Date('2026-11-03T17:00:00.000Z')))throw Error('nd');if(nd('2026-11-04')!=='2026-11-04')throw Error('nd2')",'date normalisation');
 run("const m=posStock();if(m.P1.Gudang!==6||m.P1['Toko A']!==3)throw Error(JSON.stringify(m));S.products.push({id:'P2',nama:'Hijab',stokOnline:1,min:3});if(!lowStock().some(p=>p.id==='P2'))throw Error('low');tab='ops';ops='stock';render();adj('P2',1);if(S.products.find(p=>p.id==='P2').stokOnline!==2)throw Error('adj')",'POS stock math + online adj + low stock');
 run("S.cfg.url='x';S.cfg.pulled=0;pushSheets()",'push blocked before first pull');
