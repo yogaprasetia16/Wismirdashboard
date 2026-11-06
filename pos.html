@@ -421,7 +421,7 @@ function receiptBytes(t,bill,kick){
  else if(t.pays&&t.pays.length>1){t.pays.forEach(x=>p.ln(lr(x.method,dot(x.amount),w)));if(t.change)p.ln(lr('Kembali',dot(t.change),w))}
  else{p.ln(lr(t.method,dot(t.paid),w));if(t.method==='Tunai')p.ln(lr('Kembali',dot(t.change||0),w))}
  p.ln(hr).al(1);wrapTxt(R.foot,w).forEach(x=>p.ln(x));
- return p.raw(10,10,10,0x1d,0x56,0x42,0x00).bytes(); // feed + cut
+ return p.raw(0x1b,0x64,5,0x1d,0x56,0x01).bytes(); // feed 5 lines (ESC d 5) + cut (GS V 1)
 }
 // "Bluetooth langsung" has two ways in, picked automatically:
 //  1. Web Serial (classic Bluetooth / SPP): only some Chrome-for-Android versions and devices have it
@@ -456,11 +456,15 @@ async function bleChar(ask){
  BLE={dev,ch};if(S.cfg.prBle!==dev.id){S.cfg.prBle=dev.id;save()}
  return ch;
 }
+// Cheap BLE printers take only 20 bytes per write (default BLE packet size) and drop anything beyond it,
+// which garbles long receipts while the short drawer command still works. So: 20-byte pieces, and a write
+// that waits for the printer's acknowledgement when it offers one, otherwise a short pause between pieces.
 async function bleWrite(bytes){
- const ch=await bleChar(false);
- for(let i=0;i<bytes.length;i+=180){const part=bytes.slice(i,i+180);
-  if(ch.properties.writeWithoutResponse&&ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);
-  await new Promise(r=>setTimeout(r,15))} // small pause: cheap printers drop data that arrives too fast
+ const ch=await bleChar(false),ack=!!(ch.properties.write&&ch.writeValueWithResponse);
+ for(let i=0;i<bytes.length;i+=20){const part=bytes.slice(i,i+20);
+  if(ack)await ch.writeValueWithResponse(part);
+  else{if(ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);await new Promise(r=>setTimeout(r,25))}
+ }
 }
 const openUrl=u=>{(window.__openUrl||(x=>{location.href=x}))(u)};
 let PQ=Promise.resolve(); // one print job at a time
@@ -1026,10 +1030,19 @@ A.gsSave=()=>{const u=$('#gsu').value.trim(),p=$('#gsp').value;if(u&&!/^https?:\
  const first=!S.cfg.url;if(u!==S.cfg.url||p!==S.cfg.spin)S.since=0;S.cfg.url=u;S.cfg.spin=p;tries=0;syncErr='';
  const dropped=u&&first&&dropDemo();save();render();toast(!u?'Sinkron dimatikan':dropped?'Data contoh dihapus · mengambil data dari Google Sheets…':'Menyinkronkan…');kick(0)};
 A.gsAll=el=>twoTap(el,'Ketuk lagi untuk kirim semua data',()=>{if(!syncOn())return toast('Isi URL dan PIN Google Sheets dulu');const cur=S.shift&&S.shift.id;S.products.forEach(p=>enqueue('POS Produk',p));S.staff.forEach(k=>enqueue('POS Karyawan',k));S.moves.forEach(m=>enqueue('POS Stok',m));S.shifts.forEach(h=>enqueue('POS Shift',h));S.txs.filter(t=>t.shiftId!==cur).forEach(t=>enqueue('POS Kasir',t));S.attendance.filter(a=>a.shiftId!==cur).forEach(a=>enqueue('POS Absen',a));save();syncUi();toast(S.outbox.length+' data diantrekan');kick(0)});
+// Which browser is this page really running in? (Bluetooth from the web needs Google Chrome itself)
+function browserName(){const u=navigator.userAgent||'',v=r=>(u.match(r)||[])[1];
+ if(/SamsungBrowser/.test(u))return 'Samsung Internet '+v(/SamsungBrowser\/(\d+)/)+' (bukan Chrome)';
+ if(/; wv\)/.test(u))return 'browser di dalam aplikasi lain (bukan Chrome)';
+ if(/EdgA\//.test(u))return 'Microsoft Edge (bukan Chrome)';
+ if(/OPR\/|OPT\//.test(u))return 'Opera (bukan Chrome)';
+ if(/Firefox\//.test(u))return 'Firefox (bukan Chrome)';
+ if(/Chrome\/\d+/.test(u))return 'Chrome '+v(/Chrome\/(\d+)/);
+ return 'tidak dikenal';}
 function printerHtml(){const c=PRC(),seg=(a,opts,cur)=>'<div class="seg sc">'+opts.map(x=>'<button class="'+(String(cur)===String(x[0])?'on':'')+'" data-a="'+a+'" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
  const note={system:'Memakai dialog cetak Android. Laci uang tidak bisa dibuka dari mode ini.',bt:'Nyalakan printer dan Bluetooth tablet, lalu tekan Sambungkan printer dan pilih printernya. Kalau printer tidak muncul atau gagal, pakai mode Aplikasi RawBT.',rawbt:'Install aplikasi RawBT dari Play Store, sambungkan printer di RawBT, lalu tes di sini. Setiap cetak akan membuka RawBT sebentar.'}[c.mode];
- const cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1]||'?';
- const diag=c.mode==='bt'?'<div class="note">Chrome '+esc(cv)+' · Bluetooth klasik (Web Serial): <b>'+(hasSerial()?'ada':'tidak ada')+'</b> · Bluetooth LE: <b>'+(hasBle()?'ada':'tidak ada')+'</b>'+(btWay()?' · dipakai: <b>'+(btWay()==='serial'?'Bluetooth klasik':'Bluetooth LE')+'</b>':' · <span class="neg">tidak bisa di tablet ini, pakai RawBT</span>')+'</div>':'';
+ const bn=browserName();
+ const diag=c.mode==='bt'?'<div class="note">Browser: <b>'+esc(bn)+'</b> · Bluetooth klasik (Web Serial): <b>'+(hasSerial()?'ada':'tidak ada')+'</b> · Bluetooth LE: <b>'+(hasBle()?'ada':'tidak ada')+'</b>'+(btWay()?' · dipakai: <b>'+(btWay()==='serial'?'Bluetooth klasik':'Bluetooth LE')+'</b>':' · <span class="neg">'+(/bukan Chrome/.test(bn)?'buka POS lewat aplikasi Chrome, atau pakai RawBT':'tidak bisa di tablet ini, pakai RawBT')+'</span>')+'</div>':'';
  return '<div class="sub">Printer struk &amp; laci uang</div>'+seg('prMode',[['system','Cetak biasa'],['bt','Bluetooth langsung'],['rawbt','Aplikasi RawBT']],c.mode)+'<div class="note">'+note+'</div>'+diag+
   (c.mode==='system'?'':'<div class="f"><label>Lebar kertas</label></div>'+seg('prW',[[80,'80 mm'],[58,'58 mm']],c.width)+
   '<div class="f"><label>Buka laci otomatis (bayar tunai, tambah/kurangi kas)</label></div>'+seg('prDr',[['1','Ya'],['0','Tidak']],c.drawer?'1':'0')+
