@@ -95,6 +95,8 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
+// Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
+function posEpoch() { return PropertiesService.getScriptProperties().getProperty('posEpoch') || '0'; }
 
 function out(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
@@ -175,7 +177,8 @@ function doGet(e) {
       Object.keys(POS).forEach(function (n) { data[n] = readSheet(n, since); });
       data.Stok = readSheet('Stok');   // daftar produk dari dashboard (selalu lengkap, ukurannya kecil)
       data.Staff = readSheet('Staff'); // daftar karyawan dari dashboard
-      return out({ ok: true, now: Date.now(), data: data });
+      data.Store = readSheet('Store'); // daftar toko & gudang dari dashboard
+      return out({ ok: true, now: Date.now(), epoch: posEpoch(), data: data });
     }
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
     Object.keys(HEADERS).forEach(function (n) { data[n] = readSheet(n); });
@@ -194,6 +197,17 @@ function doPost(e) {
     const pin = getPin();
     if (!pin) return out({ ok: false, error: NO_PIN });
     if (body.pin !== pin) return out({ ok: false, error: 'PIN salah' });
+
+    if (body.action === 'resetPos') {
+      // "Mulai baru" dari POS: kosongkan semua tab POS (riwayat uji coba). Tab dashboard tidak disentuh.
+      Object.keys(POS).forEach(function (n) {
+        const sh = sheetFor(n);
+        if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, colsFor(n).length).clearContent();
+      });
+      const ep = String(Date.now());
+      PropertiesService.getScriptProperties().setProperty('posEpoch', ep);
+      return out({ ok: true, reset: true, epoch: ep });
+    }
 
     if (body.action === 'upsert') {
       // Dari POS: tambah baris baru / perbarui baris dengan id yang sama

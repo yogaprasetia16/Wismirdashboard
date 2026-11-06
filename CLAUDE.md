@@ -32,6 +32,9 @@ Hosting: GitHub Pages from `main` (repo is public): `https://yogaprasetia16.gith
 - POS prices are typed per sale (bargaining in store) with "frequently used price" chips. No fixed price list in the POS.
 - POS Owner menu has only **Laporan** and **Data**. Products/staff are not editable on the tablet.
 - Attendance = who was ticked when the shift opened (no clock-in/out yet).
+- The POS has **no sample data**. Products, staff and store locations come only from the dashboard; local items unknown to the dashboard are dropped on sync (except ones still queued for upload from an old tablet). Sample data for previews/tests lives in `tests/pos-sample.js`.
+- Store locations = dashboard `Store` tab: type `Physical store` = POS stores (tablet picks one), type `Warehouse` = warehouses. History is keyed by store **name**: renaming a store splits its history.
+- "Mulai baru" (Owner > Data): `Code.gs` action `resetPos` clears all POS tabs and bumps `posEpoch`; every tablet that sees a new epoch wipes its local history (keeping an open shift). It waits for a running sync first and ignores answers to requests started before the reset.
 - POS navigation is a menu under the top-left logo (no side rail / bottom bar: the owner found the rail laggy). Menu items act on touch-down; the following click is swallowed.
 - POS price sheet on tablets: keypad left, quantity + "Tambah ke keranjang" right (button must never drop below the fold).
 - POS sounds (Web Audio, no files): tap on every button, chime on sale / shift close, low tone on errors; switch in Owner > Data.

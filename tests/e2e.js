@@ -22,9 +22,18 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await D.evaluate(()=>{tab='ops';ops='stock';addProduct();const q=k=>document.querySelector('#sheet [data-k='+k+']');q('nama').value='Gamis Navy';q('varian').value='L';q('kategori').value='Gamis';document.querySelector('#ok').click()});
  await D.evaluate(()=>{ops='staff';addStaff();document.querySelector('#sheet [data-k=name]').value='Rina';document.querySelector('#ok').click()});
  await until(async()=>(await rows('Stok')).length===2&&(await rows('Staff')).length===2,10000,'dash push');
+ // stores: physical store + warehouse appear on the tablet, marketplace does not
+ for(const [n,t] of [['Toko A','Physical store'],['Gudang','Warehouse'],['Shopee WISMIR','Marketplace']])
+  await D.evaluate(([n,t])=>{tab='ops';ops='store';addStore();document.querySelector('#sheet [data-k=name]').value=n;document.querySelector('#sheet [data-k=type]').value=t;document.querySelector('#ok').click()},[n,t]);
+ await until(async()=>(await rows('Store')).length===3,10000,'stores pushed');
  const st=(await dump()).Stok;ok(st.v[0].join()==='id,nama,varian,stokToko,stokOnline,min,harga,kategori,aktif','Stok sheet has kategori + aktif columns');
  // ---- tablet A ----
  const ctxA=await br.newContext({viewport:{width:1024,height:768}});const A=await ctxA.newPage();A.on('pageerror',e=>errs.push('A: '+e.message));
+ // tablet A is like the owner's trial tablet: old sample data (products, staff Rina/Budi/Sari/Andi, "Stok awal contoh") AND a trial sale
+ const OLD=require('./pos-sample')();delete OLD.locs;OLD.moves.forEach(m=>{m.by='Contoh';m.note='Stok awal contoh'});
+ OLD.shifts=[{id:'SHT',store:'Toko A',openedAt:Date.now()-7e6,closedAt:Date.now()-6e6,staff:['Rina'],cashStart:0,cashSales:1,expected:1,cashIn:0,cashOut:0,cashMoves:[],total:1,by:{Tunai:1},n:1}];
+ OLD.txs=[{id:'TT',shiftId:'SHT',store:'Toko A',t:Date.now()-6.5e6,method:'Tunai',pays:[{method:'Tunai',amount:1}],total:1,paid:1,change:0,items:[{pid:'PS0',name:'x',qty:1,price:1}]}];
+ await A.addInitScript(st=>{try{if(!localStorage.getItem('wismir_pos_v1'))localStorage.setItem('wismir_pos_v1',JSON.stringify(st))}catch(e){}},OLD);
  await A.goto(B+'/pos.html');
  await nav(A,'owner');await A.fill('#gpin','1234');await A.click('[data-a=gateOk]');
  const subs=await A.$$eval('[data-a=osub]',b=>b.map(x=>x.textContent));ok(subs.join()==='Laporan,Data','POS owner sub-tabs are only Laporan + Data: '+subs);
@@ -32,6 +41,8 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await until(()=>A.evaluate(()=>window.__wismir.S.products.length===2&&window.__wismir.S.staff.length===2),10000,'tablet gets lists');
  const names=await A.evaluate(()=>window.__wismir.S.products.map(p=>p.name+'|'+p.category).sort().join(', '));
  ok(names==='Gamis Navy · L|Gamis, Khimar Lama|Hijab','tablet shows dashboard products incl. variant & category: '+names);
+ const cl=await A.evaluate(()=>{const S=window.__wismir.S;return JSON.stringify({staff:S.staff.map(k=>k.name).sort(),contoh:S.moves.filter(m=>m.by==='Contoh').length,locs:S.locs,store:S.cfg.store})});
+ ok(cl==='{"staff":["Budi","Rina"],"contoh":0,"locs":{"stores":["Toko A"],"wh":["Gudang"]},"store":"Toko A"}','old sample products, staff and stock are gone; stores come from the dashboard: '+cl);
  // stock in + transfer + shift + sale
  await A.click('[data-a=ownerOff]');await nav(A,'stock');
  ok(!(await A.$('[data-a=mvNew]')),'no "+ Produk baru" shortcut in the stock form');
@@ -66,6 +77,23 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await nav(A,'home');await nav(A,'stock');
  await until(()=>A.evaluate(()=>!window.__wismir.S.products.some(p=>p.name==='Tes Hapus')),10000,'tablet removes deleted');
  ok(true,'product deleted in dashboard (no history) → removed from tablet');
+ // ---- "Mulai baru": tablet B has history too; A wipes everything ----
+ const Bt=await (await br.newContext({viewport:{width:1024,height:768}})).newPage();Bt.on('pageerror',e=>errs.push('B: '+e.message));
+ await Bt.goto(B+'/pos.html');await nav(Bt,'owner');await Bt.fill('#gpin','1234');await Bt.click('[data-a=gateOk]');await Bt.click('[data-a=osub][data-s=data]');
+ await Bt.fill('#gsu',URL_);await Bt.fill('#gsp','9999');await Bt.click('[data-a=gsSave]');
+ await until(()=>Bt.evaluate(()=>window.__wismir.S.shifts.length>0&&window.__wismir.S.moves.length>0),10000,'tablet B has history');
+ ok((await rows('POS Kasir')).length>0,'before: POS tabs in the Sheet have trial rows');
+ await nav(A,'owner');await A.fill('#gpin','1234').catch(()=>{});await A.click('[data-a=gateOk]').catch(()=>{});await A.click('[data-a=osub][data-s=data]');
+ await A.click('[data-a=reset]');await A.click('[data-a=reset]');
+ await until(async()=>(await rows('POS Kasir')).length===0&&(await rows('POS Stok')).length===0&&(await rows('POS Shift')).length===0,10000,'sheet cleared');
+ ok(true,'Mulai baru empties the POS tabs in the Sheet');
+ await until(()=>A.evaluate(()=>window.__wismir.S.epoch!=='0'),15000,'tablet A reset done');ok(await A.evaluate(()=>{const S=window.__wismir.S;return !S.moves.length&&!S.txs.length&&!S.shifts.length&&!S.attendance.length&&S.products.length===2}),'tablet A history wiped, dashboard products kept');
+ ok((await rows('Stok')).length===2&&(await rows('Staff')).length===2&&(await rows('Store')).length===3,'dashboard tabs (products, staff, stores) untouched');
+ await nav(Bt,'stock');
+ await until(()=>Bt.evaluate(()=>{const S=window.__wismir.S;return !S.moves.length&&!S.shifts.length&&!S.txs.length}),15000,'tablet B wiped');
+ ok(true,'tablet B cleans itself on its next sync');
+ await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>!(S.pos.shift||[]).length&&!(S.pos.stok||[]).length),10000,'dash pos cleared');
+ ok(await D.evaluate(()=>!posTx().length),'dashboard no longer counts trial sales');
  ok(errs.length===0,'no page errors '+errs.join(';'));
  await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0);
 })().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

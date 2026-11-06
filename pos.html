@@ -246,23 +246,19 @@ const svg=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';
 
 /* ---------- state & storage ---------- */
 const KEY='wismir_pos_v1';
-const LOCS=['Gudang','Toko A','Toko B'], STORES=['Toko A','Toko B'];
-const REAL=l=>LOCS.indexOf(l)>=0;
+// Toko (tipe Physical store) dan gudang (tipe Warehouse) diambil dari dashboard: Operational > Store.
+// S.locs belum ada = Code.gs lama belum mengirim daftar toko: pakai nama lama supaya tablet tetap jalan.
+const LEGACY_LOCS=['Gudang','Toko A','Toko B'];
+const STORES=()=>S.locs?S.locs.stores:['Toko A','Toko B'];
+const LOCS=()=>S.locs?S.locs.wh.concat(S.locs.stores):LEGACY_LOCS;
+const REAL=l=>LOCS().indexOf(l)>=0;
 const METHODS=['Tunai','Transfer','EDC'];
 const blank=()=>({v:1,cfg:{store:'Toko A',pin:'1234'},products:[],staff:[],moves:[],txs:[],shifts:[],attendance:[],prices:{},shift:null,cart:[],holds:[],seeded:false});
 function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&Array.isArray(o.products))return o}}catch(e){}return null}
 let S=load()||blank();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Gagal menyimpan di tablet. Penyimpanan penuh?')}}
-function seed(){
- const P=[["Gamis Syar'i Navy",'Gamis'],['Gamis Polos Hitam','Gamis'],['Gamis Brokat Maroon','Gamis'],['Khimar Instan Cream','Hijab'],['Pashmina Ceruty Sage','Hijab'],['Hijab Segi Empat Voal','Hijab'],['Abaya Dubai Mocha','Abaya'],['Koko Pria Putih','Koko'],['Mukena Katun Jepang','Mukena'],['Sarung Tenun Premium','Sarung']];
- P.forEach(p=>S.products.push({id:uid('P'),name:p[0],category:p[1],active:true}));
- [['Rina','Toko A'],['Budi','Toko A'],['Sari','Toko B'],['Andi','Toko B']].forEach(s=>S.staff.push({id:uid('K'),name:s[0],store:s[1],active:true}));
- const t=Date.now()-86400000;
- S.products.forEach((p,i)=>{[['Gudang',40+i],['Toko A',8+i%4],['Toko B',6+i%3]].forEach(x=>S.moves.push({id:uid('M'),t:t,pid:p.id,from:'Supplier',to:x[0],qty:x[1],by:'Contoh',note:'Stok awal contoh',status:'ok',kind:'manual'}))});
- S.seeded=true;save();
-}
-if(!S.seeded&&!S.products.length)seed();
-S.cfg=S.cfg||{store:'Toko A',pin:'1234'};S.holds=S.holds||[];S.outbox=S.outbox||[];S.since=S.since||0;
+// Tidak ada data contoh lagi: produk, karyawan dan toko datang dari dashboard lewat Google Sheets.
+S.cfg=S.cfg||{store:'Toko A',pin:'1234'};S.holds=S.holds||[];S.outbox=S.outbox||[];S.since=S.since||0;S.epoch=S.epoch||'0';
 
 /* ---------- ui state ---------- */
 let showKpi=false,tab='home',ownerOK=false,osub='report',rPer='today',rStore='all';
@@ -306,11 +302,11 @@ const DES={
  'POS Absen':r=>({id:s0(r.id),shiftId:s0(r.shiftId),t:+r.t||0,date:s0(r.tanggal),store:s0(r.toko),staffId:s0(r.staffId),name:s0(r.nama)})
 };
 const syncOn=()=>!!(S.cfg.url&&S.cfg.spin);
-let syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false;
+let syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false,resetting=false,gen=0; // gen changes on 'Mulai baru': answers to older requests are thrown away
 function enqueue(sheet,rec){if(!rec||!rec.id)return;S.outbox=S.outbox.filter(x=>!(x.s===sheet&&x.id===rec.id));S.outbox.push({s:sheet,id:rec.id,r:SER[sheet](rec)})}
 function kick(ms){if(!syncOn())return;clearTimeout(ft);ft=setTimeout(flush,ms==null?400:ms)}
 async function flush(){
- if(!syncOn()||flushing)return;
+ if(!syncOn()||flushing||resetting)return;
  if(!S.outbox.length)return pull();
  flushing=true;const batch=S.outbox.slice(0,200),rows={};batch.forEach(x=>(rows[x.s]=rows[x.s]||[]).push(x.r));
  try{
@@ -321,10 +317,13 @@ async function flush(){
  }catch(e){flushing=false;tries++;syncErr=(e&&e.message)||'Tidak ada koneksi';kick(Math.min(60000,2000*Math.pow(2,tries-1)));syncUi()}
 }
 async function pull(){
- if(!syncOn()||pulling)return;pulling=true;
+ if(!syncOn()||pulling||resetting)return;pulling=true;const g=gen;
  try{
   const r=await fetch(S.cfg.url+'?pos=1&pin='+encodeURIComponent(S.cfg.spin)+'&since='+(S.since||0));
   const j=await r.json();if(!j.ok)throw new Error(j.error||'Ditolak server');
+  if(g!==gen)return; // started before 'Mulai baru': stale
+  // another device pressed "Mulai baru": drop this tablet's history too, then pull again from zero
+  if(j.epoch&&String(j.epoch)!==S.epoch){gen++;wipeHistory(true);S.epoch=String(j.epoch);S.since=0;save();pulling=false;softRender();toast('Riwayat uji coba dibersihkan (Mulai baru)');kick(0);return}
   let ch=false;
   Object.keys(COL).forEach(sh=>{
    const rows=(j.data&&j.data[sh])||[];if(!rows.length)return;
@@ -348,18 +347,36 @@ async function pull(){
 // (dashboard akan mengambilnya otomatis); item yang dulu ada lalu dihapus di dashboard ikut hilang dari tablet.
 const OFF=v=>/^(inactive|nonaktif|0)$/i.test(s0(v).trim());
 function applyMaster(d){
- let ch=false;const seen=S.mastered||(S.mastered={p:[],k:[]});
- const sync=(rows,arr,key,map)=>{
+ let ch=false;
+ // pending uploads from an old tablet (POS Produk / POS Karyawan) are kept until the dashboard has copied them
+ const pend=sh=>new Set(S.outbox.filter(x=>x.s===sh).map(x=>x.id));
+ const sync=(rows,arr,sh,map)=>{
   if(!Array.isArray(rows))return arr; // Code.gs lama: biarkan
-  const out=rows.filter(r=>s0(r.id)).map(map),ids=new Set(out.map(x=>x.id)),prev=new Set(seen[key]);
-  arr.forEach(x=>{if(!ids.has(x.id)&&!prev.has(x.id))out.push(x)});
-  seen[key]=Array.from(ids);
+  const out=rows.filter(r=>s0(r.id)).map(map),ids=new Set(out.map(x=>x.id)),keep=pend(sh);
+  arr.forEach(x=>{if(!ids.has(x.id)&&keep.has(x.id))out.push(x)});
   if(JSON.stringify(out)!==JSON.stringify(arr))ch=true;
   return out;
  };
- S.products=sync(d.Stok,S.products,'p',r=>({id:s0(r.id),name:s0(r.nama)+(s0(r.varian)?' · '+s0(r.varian):''),category:s0(r.kategori),active:!OFF(r.aktif)}));
- S.staff=sync(d.Staff,S.staff,'k',r=>({id:s0(r.id),name:s0(r.name),active:!OFF(r.aktif)}));
+ S.products=sync(d.Stok,S.products,'POS Produk',r=>({id:s0(r.id),name:s0(r.nama)+(s0(r.varian)?' · '+s0(r.varian):''),category:s0(r.kategori),active:!OFF(r.aktif)}));
+ S.staff=sync(d.Staff,S.staff,'POS Karyawan',r=>({id:s0(r.id),name:s0(r.name),active:!OFF(r.aktif)}));
+ if(Array.isArray(d.Store)){
+  const nm=t=>Array.from(new Set(d.Store.filter(r=>s0(r.type)===t).map(r=>s0(r.name).trim()).filter(Boolean)));
+  const L={stores:nm('Physical store'),wh:nm('Warehouse')};
+  if(JSON.stringify(L)!==JSON.stringify(S.locs)){S.locs=L;ch=true}
+  if(!S.shift&&L.stores.length&&L.stores.indexOf(S.cfg.store)<0){S.cfg.store=L.stores[0];stLoc=S.cfg.store;ch=true}
+ }
+ // old sample stock ("Stok awal contoh") is never real
+ const n=S.moves.length;S.moves=S.moves.filter(m=>m.by!=='Contoh');if(S.moves.length!==n)ch=true;
  return ch;
+}
+// keepOpen: a shift that is still open on this tablet keeps its own sales and attendance
+function wipeHistory(keepOpen){
+ const sh=keepOpen&&S.shift?S.shift.id:null;
+ S.moves=[];S.shifts=[];S.prices={};S.holds=[];
+ S.txs=sh?S.txs.filter(t=>t.shiftId===sh):[];
+ S.attendance=sh?S.attendance.filter(a=>a.shiftId===sh):[];
+ if(!sh){S.shift=null;S.cart=[]}
+ S.outbox=[];
 }
 // Jangan ganggu kasir: kalau ada form terbuka atau sedang mengetik, tampilan diperbarui setelahnya
 function softRender(){const ae=document.activeElement;if($('#bg').classList.contains('open')||(ae&&ae.tagName==='INPUT'&&$('#app').contains(ae))){needRender=true;return}render()}
@@ -599,7 +616,7 @@ function viewRc(){
  return '<section class="panel"><div class="ph"><h2>Struk · '+esc(stl)+'</h2><span class="live">'+live.length+' transaksi · '+rp(sum(live,t=>t.total))+'</span></div><div class="seg">'+[['today','Hari ini'],['7d','7 hari'],['all','Semua']].map(x=>'<button class="'+(rcPer===x[0]?'on':'')+'" data-a="rper" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><div class="card">'+rows+'</div></section>';
 }
 function viewStock(){
- const loc=curLoc();const locs=!ownerOK?'<div class="seg"><button class="on" style="cursor:default">'+esc(loc)+'</button></div>':'<div class="seg">'+LOCS.map(l=>'<button class="'+(l===loc?'on':'')+'" data-a="loc" data-l="'+l+'">'+l+'</button>').join('')+'</div>';
+ const loc=curLoc();const locs=!ownerOK?'<div class="seg"><button class="on" style="cursor:default">'+esc(loc)+'</button></div>':'<div class="seg sc">'+LOCS().map(l=>'<button class="'+(l===loc?'on':'')+'" data-a="loc" data-l="'+esc(l)+'">'+esc(l)+'</button>').join('')+'</div>';
  const views='<div class="seg" style="margin-left:8px"><button class="'+(stView==='hist'?'on':'')+'" data-a="sview" data-v="hist">Riwayat</button><button class="'+(stView==='stock'?'on':'')+'" data-a="sview" data-v="stock">Stok</button></div>';
  let body='';
  if(stView==='stock'){
@@ -623,9 +640,9 @@ function viewStock(){
  }
  return '<section class="panel"><div class="ph"><h2>Stok inventaris</h2></div><div class="mvb">'+[['in','Masuk','mvin'],['out','Keluar','mvout'],['tf','Transfer','swap'],['loss','Rusak','mvloss'],['opname','Opname','mvop']].map(x=>'<button data-a="mvStart" data-m="'+x[0]+'">'+svg(x[2])+'<span>'+x[1]+'</span></button>').join('')+'</div><div style="display:flex;flex-wrap:wrap">'+locs+views+'</div>'+body+'</section>';
 }
-const MYLOCS=()=>ownerOK?LOCS:[S.cfg.store];
+const MYLOCS=()=>ownerOK?LOCS():[S.cfg.store];
 function mvDefaults(mode){
- const l=curLoc(),other=LOCS.filter(x=>x!==l)[0];
+ const l=curLoc(),other=LOCS().filter(x=>x!==l)[0]||'';
  if(mode==='in')return{from:'Supplier',to:l};
  if(mode==='out')return{from:l,to:'Supplier'};
  if(mode==='tf')return{from:l,to:other};
@@ -646,8 +663,8 @@ function mvRender(){
  if(m.mode==='opname'){
   h+='<div class="f"><label>Lokasi</label>'+selHtml('mvF',MYLOCS().map(l=>[l,l]),m.from,'data-ch="mv"')+'</div>';
  }else{
-  const fo=m.mode==='in'?[['Supplier','Supplier'],['Konveksi','Konveksi']]:(m.mode==='tf'?LOCS:MYLOCS()).map(l=>[l,l]);
-  const to=m.mode==='tf'?LOCS.map(l=>[l,l]):m.mode==='in'?MYLOCS().map(l=>[l,l]):m.mode==='out'?[['Supplier','Supplier'],['Konveksi','Konveksi']]:[['Rusak/Hilang','Rusak/Hilang']];
+  const fo=m.mode==='in'?[['Supplier','Supplier'],['Konveksi','Konveksi']]:(m.mode==='tf'?LOCS():MYLOCS()).map(l=>[l,l]);
+  const to=m.mode==='tf'?LOCS().map(l=>[l,l]):m.mode==='in'?MYLOCS().map(l=>[l,l]):m.mode==='out'?[['Supplier','Supplier'],['Konveksi','Konveksi']]:[['Rusak/Hilang','Rusak/Hilang']];
   h+='<div class="row2" style="margin-bottom:10px"><div class="f" style="flex:1;margin:0"><label>Dari</label>'+selHtml('mvF',fo,m.from,'data-ch="mv"')+'</div><div class="f" style="flex:1;margin:0"><label>Ke</label>'+selHtml('mvT',to,m.to,'data-ch="mv"')+'</div></div>';
  }
  h+='<div class="f"><label>'+(m.mode==='opname'?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="mvQ" class="big" inputmode="none" data-np data-max="5" placeholder="0" data-in="mvq" value="'+esc(m.qty)+'" data-focus></div><div class="note" id="mvHint"></div>'+npHtml(false);
@@ -692,12 +709,12 @@ function ownerReport(){
  const days=[0,1,2,3,4,5,6].map(i=>startDay(Date.now())-(6-i)*864e5);
  const vals=days.map(d=>sum(S.txs.filter(t=>!t.void&&startDay(t.t)===d&&stOk(t.store)),t=>t.total));const mx=Math.max.apply(null,vals.concat([1]));
  const bars=days.map((d,i)=>'<div><i style="height:'+Math.max(4,Math.round(vals[i]/mx*92))+'px"></i>'+DAY[new Date(d).getDay()]+'</div>').join('');
- const perStore=STORES.map(s=>s+' '+rp(sum(tx.filter(t=>t.store===s),t=>t.total))).join(' · ');
+ const perStore=STORES().map(s=>s+' '+rp(sum(tx.filter(t=>t.store===s),t=>t.total))).join(' · ');
  const pl={today:'Hari ini','7d':'7 hari',month:'Bulan ini'}[rPer];
  const agg={};tx.forEach(t=>t.items.forEach(i=>{const a=agg[i.pid]||(agg[i.pid]={name:i.name,q:0,r:0});a.q+=i.qty;a.r+=i.qty*i.price}));
  const top=Object.keys(agg).map(k=>agg[k]).sort((a,b)=>b.q-a.q).slice(0,8).map(a=>'<div class="row" style="cursor:default"><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="lbl">'+a.q+' pcs terjual</div></div><div class="v">'+rp(a.r)+'</div></div>').join('')||'<div class="empty">Belum ada penjualan.</div>';
  const shifts=S.shifts.filter(s=>inPer(s.closedAt)&&stOk(s.store)).slice().reverse().map(shiftRow).join('')||'<div class="empty">Belum ada shift ditutup di periode ini.</div>';
- const stock=LOCS.map(l=>{const m=stockMap(l);let q=0,neg=0;Object.keys(m).forEach(k=>{if(m[k]>0)q+=m[k];if(m[k]<0)neg++});return '<div class="it" style="cursor:default;margin:0"><div class="grow"><div class="lbl">'+l+'</div><div class="kv">'+q+' pcs</div>'+(neg?'<div class="lbl neg">'+neg+' produk minus</div>':'')+'</div></div>'}).join('');
+ const stock=LOCS().map(l=>{const m=stockMap(l);let q=0,neg=0;Object.keys(m).forEach(k=>{if(m[k]>0)q+=m[k];if(m[k]<0)neg++});return '<div class="it" style="cursor:default;margin:0"><div class="grow"><div class="lbl">'+l+'</div><div class="kv">'+q+' pcs</div>'+(neg?'<div class="lbl neg">'+neg+' produk minus</div>':'')+'</div></div>'}).join('');
  return '<div style="display:flex;flex-wrap:wrap;gap:8px"><div class="seg">'+[['today','Hari ini'],['7d','7 hari'],['month','Bulan ini']].map(x=>'<button class="'+(rPer===x[0]?'on':'')+'" data-a="per" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><div class="seg">'+['all'].concat(STORES).map(x=>'<button class="'+(rStore===x?'on':'')+'" data-a="rst" data-s="'+x+'">'+(x==='all'?'Semua toko':x)+'</button>').join('')+'</div></div>'+
   '<div class="hero"><div><span class="tag">'+pl+'</span><div class="hbig">'+rp(total)+'</div><div class="hs">'+tx.length+' transaksi · rata-rata '+rp(tx.length?total/tx.length:0)+'</div><div class="hl">'+perStore+'</div></div><div class="bars">'+bars+'</div></div>'+
   '<div class="sub" style="margin-top:0">Produk terlaris</div><div class="card">'+top+'</div><div class="sub">Stok saat ini</div><div class="g3">'+stock+'</div><div class="sub">Riwayat shift</div><div class="card">'+shifts+'</div>';
@@ -713,7 +730,7 @@ function ownerData(){
   '<div class="sub">Suara tombol</div><div class="seg">'+[['1','Nyala'],['0','Mati']].map(x=>'<button class="'+((S.cfg.sound!==false)===(x[0]==='1')?'on':'')+'" data-a="sound" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+
   '<div class="sub">Teks struk</div><div class="f"><label>Judul</label><input id="rch" value="'+esc(rcCfg().head)+'"></div><div class="f"><label>Alamat / info (opsional)</label><input id="rca" value="'+esc(rcCfg().addr)+'"></div><div class="f"><label>Pesan bawah</label><input id="rcf" value="'+esc(rcCfg().foot)+'"></div><button class="btn" data-a="rcSave">Simpan teks struk</button>'+
   '<div class="sub">Ekspor</div>'+ex+'<div class="sub">Cadangan data tablet</div><button class="btn sec" data-a="backup">Unduh cadangan (JSON)</button><button class="btn sec" data-a="restore">Pulihkan dari cadangan</button>'+
-  '<div class="sub">Zona hati-hati</div><button class="btn del" data-a="reset">Reset semua data</button>';
+  '<div class="sub">Zona hati-hati</div><div class="note">Mulai baru menghapus semua transaksi, shift, absen dan pergerakan stok di tablet ini, di tablet lain, dan di tab POS Google Sheet. Produk, karyawan dan toko dari dashboard tetap. Pakai sekali saat uji coba selesai.</div><button class="btn del" data-a="reset">Mulai baru (hapus riwayat uji coba)</button>';
 }
 
 /* ---------- actions ---------- */
@@ -733,7 +750,7 @@ A.fs=()=>{const d=document,el=d.documentElement;try{if(d.fullscreenElement||d.we
 document.addEventListener('fullscreenchange',fsUi);document.addEventListener('webkitfullscreenchange',fsUi);
 A.x=()=>closeSheet();
 A.storeSwitch=()=>{if(S.shift){toast('Tutup shift dulu untuk pindah toko');return}gate(storeSheet)};
-function storeSheet(){openSheet('<h3>Tablet ini dipakai di</h3>'+STORES.map(s=>'<div class="it'+(s===S.cfg.store?' sel':'')+'" data-a="setStore" data-s="'+s+'"><div class="th">'+s.slice(-1)+'</div><div class="grow"><div class="t">'+s+'</div></div><div class="chk'+(s===S.cfg.store?' on':'')+'">'+(s===S.cfg.store?'✓':'')+'</div></div>').join('')+'',false)}
+function storeSheet(){const st=STORES();openSheet('<h3>Tablet ini dipakai di</h3>'+(st.length?st.map(x=>'<div class="it'+(x===S.cfg.store?' sel':'')+'" data-a="setStore" data-s="'+esc(x)+'"><div class="th">'+esc(x.slice(0,1).toUpperCase())+'</div><div class="grow"><div class="t">'+esc(x)+'</div></div><div class="chk'+(x===S.cfg.store?' on':'')+'">'+(x===S.cfg.store?'✓':'')+'</div></div>').join(''):'<div class="empty">Belum ada toko. Tambahkan di dashboard: Operational → Store, tipe <b>Physical store</b>.</div>'),false)}
 A.setStore=el=>{S.cfg.store=el.dataset.s;stLoc=S.cfg.store;sel.clear();S.cart=[];save();closeSheet();render()};
 A.tgStaff=el=>{const id=el.dataset.id;if(sel.has(id))sel.delete(id);else sel.add(id);const on=sel.has(id);el.classList.toggle('on',on);const c=$('.chk',el);c.classList.toggle('on',on);c.textContent=on?'✓':''};
 A.allStaff=()=>{const e=$('#cashStart');if(e)draft.cash=e.value;allStaff=!allStaff;render()};
@@ -741,6 +758,7 @@ A.openShift=()=>{
  const e=$('#cashStart');const raw=e?e.value.trim():'';
  const ids=Array.from(sel).filter(id=>S.staff.some(s=>s.id===id));
   if(raw==='')return err('Isi kas awal (boleh 0).');
+ if(STORES().indexOf(S.cfg.store)<0)return err(STORES().length?'Pilih toko dulu: ketuk nama toko di kanan atas (mode owner).':'Belum ada toko. Tambahkan di dashboard: Operational → Store, tipe Physical store.');
  const names=ids.map(id=>S.staff.find(s=>s.id===id).name);
  const id=uid('SH'),now=Date.now();
  S.shift={id:id,store:S.cfg.store,openedAt:now,staff:ids,staffNames:names,cashStart:num(raw),cashMoves:[]};
@@ -962,7 +980,20 @@ A.exp=el=>{
 };
 A.backup=()=>download('wismir-cadangan-'+ymd(Date.now())+'.json',JSON.stringify(S),'application/json');
 A.restore=()=>$('#rst').click();
-A.reset=el=>twoTap(el,'Ketuk lagi untuk HAPUS SEMUA data',()=>{S=blank();seed();stLoc=S.cfg.store;ownerOK=false;sel.clear();render();toast('Data direset ke contoh')});
+A.reset=el=>twoTap(el,'Ketuk lagi: HAPUS SEMUA riwayat',async()=>{
+ resetting=true;clearTimeout(ft);
+ for(let w=0;w<100&&(flushing||pulling);w++)await new Promise(r=>setTimeout(r,100)); // let a running sync finish first
+ if(syncOn()){
+  try{
+   const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.spin,action:'resetPos'})});
+   const j=await r.json();
+   if(!j.ok||!j.reset)throw new Error(j.ok?'Perbarui Code.gs di Apps Script dulu (versi dengan Mulai baru).':(j.error||'Ditolak server'));
+   S.epoch=String(j.epoch);
+  }catch(e){resetting=false;snd('err');toast('Gagal: '+(e.message||e)+' Tidak ada yang dihapus.');return}
+ }
+ gen++;resetting=false;
+ wipeHistory(false);S.since=0;ownerOK=false;sel.clear();save();snd('ok');toast('Mulai baru: riwayat uji coba sudah dihapus');go('home');kick(0);
+});
 
 /* ---------- events ---------- */
 // Menu (logo) reacts the moment the finger touches, not on release. The click that follows that touch is
