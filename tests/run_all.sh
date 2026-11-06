@@ -11,6 +11,7 @@ run "dashboard smoke (no browser)" node smoke.js ../dashboard.html
 start; run "POS + dashboard sync (e2e)" node e2e.js
 start; run "dashboard multi-device conflict" node conflict.js
 start; run "dashboard PIN lock" node lock.js
+start; run "dashboard Sync button animation" node dash_ui.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 stop

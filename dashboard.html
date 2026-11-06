@@ -29,7 +29,14 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
 .bd{background:var(--amber);color:var(--dark);border-radius:99px;font-size:11px;font-weight:700;padding:1px 7px;margin-left:7px}
 .hr2{margin-left:auto;display:flex;align-items:center;gap:10px}
 .sync{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer}
-.sync i{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none;box-sizing:border-box}
+.sync{color:var(--ink);font-family:inherit}
+/* while syncing the dot becomes a spinning ring; red dot = last sync failed */
+.sync.busy{cursor:progress}
+.sync.busy i{width:13px;height:13px;margin:-2.5px;background:none;border:2px solid var(--green);border-right-color:transparent;animation:spin .7s linear infinite}
+.sync.bad i{background:var(--red)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sync.busy i{animation:none;border-right-color:var(--green);opacity:.5}}
 .av{width:40px;height:40px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:700}
 .top2{display:flex;align-items:center;gap:28px;margin:22px 0 22px;flex-wrap:wrap}
 h1{font-size:38px;line-height:1.05;font-weight:700;letter-spacing:-.035em;margin:0}
@@ -167,7 +174,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 <body>
 <nav id="side"></nav>
 <div class="wrap">
-<header class="hd"><div class="logo"><span class="lm"><svg viewBox="0 0 24 24"><path d="M4 16l5-6 4 4 7-8"/></svg></span>wismir</div><div id="top"></div><div class="hr2"><button class="sync" id="sync"><i></i>Sync</button><span class="av">Y</span></div></header>
+<header class="hd"><div class="logo"><span class="lm"><svg viewBox="0 0 24 24"><path d="M4 16l5-6 4 4 7-8"/></svg></span>wismir</div><div id="top"></div><div class="hr2"><button class="sync" id="sync" aria-live="polite"><i></i><span id="syncLbl">Sync</span></button><span class="av">Y</span></div></header>
 <div class="top2"><h1 id="hi"></h1><div id="kpis"></div><button class="cta" id="cta"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span></span></button></div>
 <main id="app"></main>
 </div>
@@ -234,7 +241,17 @@ function mergeInto(server){
     S[k]=out;
   }
 }
-async function pushSheets(tries=0){
+let syncN=0,syncT0=0,syncOk=true;
+function syncUi(on){
+  if(on){if(!syncN++)syncT0=Date.now()}else syncN=Math.max(0,syncN-1);
+  const b=$('#sync');if(!b)return;
+  const show=busy=>{b.classList.toggle('busy',busy);b.classList.toggle('bad',!busy&&!syncOk);b.setAttribute('aria-busy',String(busy));$('#syncLbl').textContent=busy?'Syncing…':'Sync';b.title=busy?'Syncing with Google Sheets':(syncOk?'Sync with Google Sheets':'Last sync failed: '+status)};
+  if(syncN){show(true);return}
+  setTimeout(()=>{if(!syncN)show(false)},Math.max(0,600-(Date.now()-syncT0)));
+}
+const tracked=f=>async function(...a){syncUi(true);try{return await f.apply(this,a)}finally{syncUi(false)}};
+const pushSheets=tracked(_pushSheets),pullSheets=tracked(_pullSheets);
+async function _pushSheets(tries=0){
   if(!S.cfg.url)return setStatus('Add your Google Sheets URL in Settings first.');
   // Never overwrite Sheets from a device that has not loaded it yet (e.g. a new computer)
   if(!S.cfg.pulled)return pullSheets();
@@ -257,7 +274,7 @@ async function pushSheets(tries=0){
     else setStatus('Failed: '+(j.error||'wrong PIN'));
   }catch(e){setStatus('Could not connect. Your data is safe on this device and will be sent next time.')}
 }
-async function pullSheets(){
+async function _pullSheets(){
   if(!S.cfg.url)return setStatus('Add your Google Sheets URL in Settings first.');
   // Unsent changes on this device go up first, so loading never overwrites them
   if(S.cfg.pulled&&S.cfg.dirty){
@@ -288,7 +305,9 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 // Coming back to an open tab (or every 5 minutes): reload so this device never edits stale data
 function refresh(){const ae=document.activeElement;if(locked||!S.cfg.url||!S.cfg.pulled||$('#bg').classList.contains('open')||(ae&&ae.tagName==='INPUT'))return;if(Date.now()-(refresh.t||0)<20000)return;refresh.t=Date.now();pullSheets()}
 setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},300000);
-function setStatus(t){status=t;const e=$('#st');if(e)e.textContent=t}
+function setStatus(t){status=t;const e=$('#st');if(e)e.textContent=t;
+  // anything that is not progress or success counts as a failed sync (red dot on the Sync button)
+  if(!/…$/.test(t))syncOk=!/^(Failed|Could not|Your latest changes are not sent|Add your Google Sheets URL)/.test(t)}
 
 const TABS=[['home','Overview'],['task','Reminders'],['tx','Finance'],['prod','Production'],['mkt','Marketing'],['ops','Operational'],['set','Settings']];
 const P=k=>(S.pos&&S.pos[k])||[];
@@ -326,7 +345,7 @@ function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind">
 function topNav(){const b={task:dueTasks().length,ops:lowStock().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
 ['#side','#bot','#top'].forEach(id=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t==='theme')return toggleTheme();tab=b.dataset.t;render();scrollTo(0,0);const a=$('#app');a.classList.remove('sw');void a.offsetWidth;a.classList.add('sw')});
 $('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore}[ops]:({task:addTask,tx:addTx,prod:pt==='purch'?addPurch:addProd,mkt:addMkt}[tab]||addTx);if(f)f()};
-$('#sync').onclick=()=>pullSheets();
+$('#sync').onclick=()=>{if(!syncN)pullSheets()};
 const monthTx=()=>allTx().filter(t=>String(t.tanggal).startsWith(today().slice(0,7)));
 function sums(l){let i=0,o=0;l.forEach(t=>t.jenis==='Income'?i+=+t.jumlah:o+=+t.jumlah);return{i,o}}
 let locked=false;
