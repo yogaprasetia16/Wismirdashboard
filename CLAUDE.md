@@ -33,7 +33,8 @@ Hosting: GitHub Pages from `main` (repo is public): `https://yogaprasetia16.gith
 - POS Owner menu has only **Laporan** and **Data**. Products/staff are not editable on the tablet.
 - Attendance = who was ticked when the shift opened (no clock-in/out yet).
 - The POS has **no sample data**. Products, staff and store locations come only from the dashboard; local items unknown to the dashboard are dropped on sync (except ones still queued for upload from an old tablet). Sample data for previews/tests lives in `tests/pos-sample.js`.
-- Dashboard product form = exactly **Product name, Category, SKU, COGS** (owner's list, 2026-11-06). Keys `nama`, `kategori`, `sku`, `cogs`; `sku`/`cogs` are the last two `Stok` columns. No Status field: the form's bottom button is Delete (no POS history) / "Hide from cashier" (sets `aktif` Inactive) / "Show in cashier again". Low-stock minimum defaults to 3 (`min` kept for old rows). Variant, selling price and online stock are no longer in the form (old values stay in the data; the list's −/+ still changes online stock). Duplicate SKUs are refused.
+- Dashboard product form = exactly **Product name, Category, Brand, SKU, COGS** (owner's list, 2026-11-06; Brand added 2026-11-06). Keys `nama`, `kategori`, `brand`, `sku`, `cogs`; `sku`, `cogs`, `brand` are the last `Stok` columns. Category and brand are free text with suggestions (datalist) from values already used; no built-in category list. No Status field: the form's bottom button is Delete (no POS history) / "Hide from cashier" (sets `aktif` Inactive) / "Show in cashier again". Low-stock minimum defaults to 3 (`min` kept for old rows). Variant, selling price and online stock are no longer in the form (old values stay in the data; the list's −/+ still changes online stock). Duplicate SKUs are refused.
+- Dashboard Operational > Stock has **Products | History**. History = POS stock moves with filters (period incl. custom dates, store/warehouse, type, category, brand, product/SKU search); only the list re-renders when a filter changes.
 - Store locations = dashboard `Store` tab: type `Physical store` = POS stores (tablet picks one), type `Warehouse` = warehouses. History is keyed by store **name**: renaming a store splits its history.
 - "Mulai baru" (Owner > Data): `Code.gs` action `resetPos` clears all POS tabs and bumps `posEpoch`; every tablet that sees a new epoch wipes its local history (keeping an open shift). It waits for a running sync first and ignores answers to requests started before the reset.
 - POS navigation is a menu under the top-left logo (no side rail / bottom bar: the owner found the rail laggy). Menu items act on touch-down; the following click is swallowed.
@@ -47,11 +48,10 @@ Hosting: GitHub Pages from `main` (repo is public): `https://yogaprasetia16.gith
 
 1. Make the change, run `bash tests/run_all.sh` (must print `EVERYTHING PASSED`), and for visual changes send previews: `node tests/make_preview.js <scratchpad-dir>`, then send the two files with display `render` (plus screenshots). Never commit preview files or logs.
 2. Push to the session's `claude/...` branch and open a pull request into `main` (Indonesian title and description: summary, changes, testing, steps for the owner).
-3. **Merging:**
-   - **Merge without asking** when all tests pass and the change needs no manual step from the owner (dashboard / POS / docs changes).
-   - **Ask first** when `Code.gs` changes in a way that must be installed in a specific order (e.g. new columns the apps start writing), or when the change could disrupt the cashier (checkout, sync, shift flow). Suggest merging outside store hours.
-   - After merging, tell the owner what changed. Revert quickly if they are unhappy.
-   - **Current status (2026-11-05): the POS is still in trial, not yet used in the store.** Until the owner says it is live, cashier-flow changes may also be merged without asking (still say what changed). Once it is live, go back to asking first and suggest merging outside store hours.
+3. **Merging: always merge right away** once tests pass (owner's decision 2026-11-06), including `Code.gs` changes and cashier-flow changes. Follow the project skill **`wismir-ship`** (`.claude/skills/wismir-ship/SKILL.md`).
+   - `Code.gs` changes must be safe to install late: new columns at the end, apps tolerate the old script (`keepMissing()` in the dashboard, fallbacks in the POS), and `CODE_VERSION` (Code.gs) = `NEED_CODE` (dashboard) bumped together so the dashboard shows "Update Code.gs" until the owner installs it.
+   - After merging, tell the owner what changed (and the Code.gs steps if it changed). Revert quickly if they are unhappy.
+   - The POS was still in trial on 2026-11-05. When it goes live, still merge right away, but point out in the message when a change touches checkout / sync / shifts.
 4. If `Code.gs` changed, tell the owner: open `Code.gs` on GitHub → **Copy raw file** → paste in Apps Script → Ctrl+S → **Deploy → Manage deployments → Edit → New version → Deploy** (never "New deployment": that changes the URL on every device).
 
 ## Testing notes

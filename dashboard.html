@@ -169,6 +169,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 #lock .logo{margin-bottom:18px}
 #lock h2{margin-bottom:4px}
 #lock .lbl{margin:0 4px 14px}
+.hfil{display:grid;gap:0 10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -202,7 +203,9 @@ const DKEYS=['tanggal','date','start','end','joined','tempo'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='';
+let pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
+// stock history filters
+const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
 tx:'<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1.2"/>',
 prod:'<path d="M3 21V10l6 4v-4l6 4V6h6v15z"/>',
@@ -225,12 +228,18 @@ const dashData=()=>{const d={};for(const k in SHEET)d[SHEET[k]]=S[k];return d};
 const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
+// Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
+const NEED_CODE=4;
+// An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
+// instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
+let kmN=0; // values kept this way: they still have to reach the Sheet
+function keepMissing(rows,old){const m={};(old||[]).forEach(o=>m[o.id]=o);return rows.map(r=>{const o=m[r.id];if(!o)return r;const x={...r};for(const k in o)if(!(k in r)){x[k]=o[k];if(o[k]!==''&&o[k]!=null)kmN++}return x})}
 function setBase(ver){S.cfg.ver=ver==null?S.cfg.ver:String(ver);S.base=snap()}
 // Apply this device's edits (added / changed / deleted rows, by id) on top of fresh Sheet data
 function mergeInto(server){
   const base=S.base||{};
   for(const k in SHEET){
-    const n=SHEET[k],srv=(server[n]||[]).map(normRow);
+    const n=SHEET[k],srv=keepMissing((server[n]||[]).map(normRow),S[k]);
     if(!server[n])continue;
     const b={};(base[n]||[]).forEach(x=>b[x.id]=JSON.stringify(x));
     const mine={};S[k].forEach(x=>mine[x.id]=x);
@@ -286,13 +295,17 @@ async function _pullSheets(){
     const r=await fetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin));
     const j=await r.json();
     if(!j.ok)return setStatus('Failed: '+(j.error||'wrong PIN'));
+    kmN=0;
     const busy=S.cfg.pulled&&S.cfg.dirty; // edited while loading: keep local, send it instead
     if(!busy){
-      for(const k in SHEET){const d=j.data[SHEET[k]];if(d)S[k]=d.map(normRow)}
+      for(const k in SHEET){const d=j.data[SHEET[k]];if(d)S[k]=keepMissing(d.map(normRow),S[k])}
       S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
       S.cfg.pulled=1;S.cfg.dirty=0;setBase(j.ver);
     }
     for(const k in POSK){const d=j.data[POSK[k]];if(d)S.pos[k]=d}
+    S.cfg.codeOld=(+j.v||0)<NEED_CODE;
+    // device-only values (older Code.gs): mark as unsent, so they go up before the next load and land once Code.gs is updated
+    if(!busy&&S.cfg.codeOld&&kmN)S.cfg.dirty=(S.cfg.dirty||0)+1;
     save(false);setStatus('Data loaded from Sheets '+hhmm());
     if(!busy&&migratePos())save(); // sends the merged lists back to Sheets
     if(busy)pushSheets();
@@ -316,6 +329,56 @@ const PEXT=['Supplier','Konveksi','Sale','Rusak/Hilang','Koreksi opname'];
 function posLocs(){const nm=t=>S.stores.filter(x=>x.type===t).map(x=>String(x.name||'').trim()).filter(Boolean);const l=[...nm('Warehouse'),...nm('Physical store')];P('stok').forEach(x=>[x.dari,x.ke].forEach(v=>{v=String(v||'');if(v&&!PEXT.includes(v)&&!l.includes(v))l.push(v)}));return l.length?l:['Gudang','Toko A','Toko B']}
 function posStock(){const m={},L=posLocs();P('stok').forEach(x=>{if(x.status==='void')return;const q=+x.qty||0,o=m[x.pid]||(m[x.pid]={});if(L.includes(x.ke))o[x.ke]=(o[x.ke]||0)+q;if(L.includes(x.dari))o[x.dari]=(o[x.dari]||0)-q});return m}
 const posTotal=(m,id)=>Object.values(m[id]||{}).reduce((a,b)=>a+b,0);
+// ---------- stock history (moves recorded on the store tablets) ----------
+const MVT={sale:'Sale',in:'Stock in',out:'Stock out',tf:'Transfer',loss:'Damaged / lost',opname:'Stock count'};
+function mvKind(x){const f=String(x.dari||''),t=String(x.ke||'');return x.jenis==='sale'||t==='Sale'||f==='Sale'?'sale':t==='Rusak/Hilang'?'loss':(f==='Koreksi opname'||t==='Koreksi opname')?'opname':['Supplier','Konveksi'].includes(f)?'in':['Supplier','Konveksi'].includes(t)?'out':'tf'}
+const LOCNAME={'Sale':'Sold','Rusak/Hilang':'Damaged / lost','Koreksi opname':'Stock count'};
+const locName=v=>LOCNAME[v]||v;
+function perRange(){const T=today(),d=n=>{const x=new Date();x.setDate(x.getDate()-n);return ymd(x)},m0=T.slice(0,7)+'-01';
+  const lm=(()=>{const x=new Date();x.setDate(1);x.setMonth(x.getMonth()-1);return ymd(x)})();
+  return {today:[T,T],'7d':[d(6),T],'30d':[d(29),T],month:[m0,T],last:[lm,(()=>{const x=new Date(m0+'T00:00');x.setDate(0);return ymd(x)})()],all:['',''],custom:[HF.from,HF.to]}[HF.per]||['','']}
+function histRows(){
+  const [a,b]=perRange(),pm={};S.products.forEach(p=>pm[p.id]=p);
+  const q=HF.q.trim().toLowerCase();
+  return P('stok').filter(x=>{
+    const d=nd(x.tanggal),p=pm[x.pid]||{};
+    if(a&&d<a||b&&d>b)return false;
+    if(HF.loc!=='all'&&x.dari!==HF.loc&&x.ke!==HF.loc)return false;
+    if(HF.cat!=='all'&&String(p.kategori||'')!==HF.cat)return false;
+    if(HF.brand!=='all'&&String(p.brand||'')!==HF.brand)return false;
+    if(HF.type!=='all'&&mvKind(x)!==HF.type)return false;
+    if(q&&!(String(x.produk||p.nama||'')+' '+String(p.sku||'')).toLowerCase().includes(q))return false;
+    return true;
+  }).sort((x,y)=>(+y.t||0)-(+x.t||0)||String(y.tanggal).localeCompare(String(x.tanggal)));
+}
+function hList(){
+  const r=histRows(),live=r.filter(x=>x.status!=='void'),pm={};S.products.forEach(p=>pm[p.id]=p);
+  // in/out from the point of view of the chosen location (or of the business as a whole)
+  const sign=x=>HF.loc!=='all'?(x.ke===HF.loc?1:-1):(['in'].includes(mvKind(x))||(mvKind(x)==='opname'&&x.dari==='Koreksi opname')?1:['tf'].includes(mvKind(x))?0:-1);
+  let pin=0,pout=0;live.forEach(x=>{const v=+x.qty||0,sg=sign(x);if(sg>0)pin+=v;else if(sg<0)pout+=v});
+  let last='',html='';
+  r.slice(0,HF.n).forEach(x=>{const d=nd(x.tanggal);if(d!==last){last=d;html+=`<div class="sub" style="margin:14px 2px 6px">${d===today()?'Today':fmtD(d)}</div>`}
+    const p=pm[x.pid]||{},k=mvKind(x),sg=sign(x),v=x.status==='void';
+    html+=`<div class="row${v?' fut':''}" style="cursor:default"><div class="grow"><div class="t">${esc(x.produk||p.nama||'(deleted product)')}${p.sku?' <span class="lbl">· '+esc(p.sku)+'</span>':''}</div><div class="lbl">${esc(x.jam||'')} · ${esc(locName(x.dari))} → ${esc(locName(x.ke))}${x.oleh?' · '+esc(x.oleh):''}${x.catatan?' · '+esc(x.catatan):''}${v?' · cancelled':''}</div></div><div style="text-align:right"><span class="pill${k==='sale'||k==='loss'||k==='out'?' warn':''}">${MVT[k]}</span><div><b class="${v?'':sg>0?'pos':sg<0?'neg':''}" style="${v?'text-decoration:line-through':''}">${sg>0?'+':sg<0?'−':''}${+x.qty||0}</b></div></div></div>`});
+  return `<div class="lbl" style="margin:0 4px 6px">${live.length} move${live.length===1?'':'s'} · in ${pin} pcs · out ${pout} pcs${HF.loc==='all'?' (transfers between locations not counted)':''}</div><div class="card">${html||empty(P('stok').length?'No stock moves match these filters.':(S.cfg.url?'No stock history yet. Moves recorded on the store tablet (POS) appear here.':'Connect Google Sheets in Settings to see stock history from the store tablet (POS).'))}</div>`+
+    (r.length>HF.n?`<button class="btn sec" onclick="HF.n+=200;updH()">Show more (${r.length-HF.n} left)</button>`:'')+
+    `<div class="lbl" style="padding:8px 6px 0">Sales of a shift that is still open appear when the shift is closed.</div>`;
+}
+function updH(){const e=$('#hlist');if(e)e.innerHTML=hList()}
+function setHF(k,v){HF[k]=v;HF.n=200;if(k==='per'){const c=$('#hcustom');if(c)c.style.display=v==='custom'?'':'none'}updH()}
+function vHist(){
+  const sel=(k,label,opts)=>`<div class="f"><label>${label}</label><select onchange="setHF('${k}',this.value)">${opts.map(o=>`<option value="${esc(o[0])}"${HF[k]===o[0]?' selected':''}>${esc(o[1])}</option>`).join('')}</select></div>`;
+  const vals=k=>usedVals(k).map(v=>[v,v]);
+  return `<div class="hfil">`+
+    sel('per','Period',[['today','Today'],['7d','Last 7 days'],['30d','Last 30 days'],['month','This month'],['last','Last month'],['all','All time'],['custom','Custom dates']])+
+    sel('loc','Store / warehouse',[['all','All locations'],...posLocs().map(l=>[l,l])])+
+    sel('type','Type',[['all','All types'],...Object.entries(MVT)])+
+    sel('cat','Category',[['all','All categories'],...vals('kategori')])+
+    sel('brand','Brand',[['all','All brands'],...vals('brand')])+
+    `<div class="f"><label>Product or SKU</label><input type="search" value="${esc(HF.q)}" placeholder="Search…" oninput="setHF('q',this.value)"></div>`+
+    `</div><div class="hfil" id="hcustom" style="${HF.per==='custom'?'':'display:none'}"><div class="f"><label>From</label><input type="date" value="${esc(HF.from)}" onchange="setHF('from',this.value)"></div><div class="f"><label>To</label><input type="date" value="${esc(HF.to)}" onchange="setHF('to',this.value)"></div></div>`+
+    `<div id="hlist">${hList()}</div>`;
+}
 // One product list for Dashboard and POS: store/warehouse stock comes from POS moves, online stock is typed here
 const isOff=x=>x.aktif==='Inactive';
 const prodTotal=(p,m)=>posTotal(m,p.id)+(+p.stokOnline||0);
@@ -360,7 +423,8 @@ function render(){
   const {i,o}=sums(monthTx());
   const ot=openTasks(),od=ot.filter(t=>t.tempo&&t.tempo<today()).length,td=ot.filter(t=>t.tempo===today()).length,nd=ot.filter(t=>!t.tempo).length;
   $('#kpis').innerHTML=[[IC.late,od?`<span class="neg">${od}</span>`:od,'Overdue reminders','','late'],[IC.cal,td,'Reminders today','','today'],[IC.nod,nd,'Reminders without date','','nod']].map(k=>`<div class="kpi" data-k="${k[4]}" role="button" tabindex="0"><span class="ic"><svg viewBox="0 0 24 24">${k[0]}</svg></span><div><div class="kv">${k[1]}${k[3]}</div><div class="lbl">${k[2]}</div></div></div>`).join('');
-  $('#app').innerHTML=tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`;
+  $('#app').innerHTML=(S.cfg.url&&S.cfg.codeOld?`<div class="card" style="padding:14px 18px;margin-bottom:16px"><b class="neg">Update Code.gs</b><div class="lbl">The Google Sheets script (Apps Script) is an older version, so some new fields are kept on this device only. Open Code.gs on GitHub, Copy raw file, paste it in Apps Script, then Deploy › Manage deployments › Edit › New version › Deploy.</div></div>`:'')+
+  (tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`);
   if(pop)showKpi(pop);
 }
 const empty=t=>`<div class="empty">${t}</div>`;
@@ -501,21 +565,27 @@ function vStore(){
   return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores · Physical stores and warehouses appear on the store tablet (POS). Do not rename a store once it is used: stock history is kept by name.</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${esc(p.address)}</div></div><div style="text-align:right"><span class="pill">${esc(p.type)}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
 }
 function vStock(){
+  const seg=`<div class="seg">${[['list','Products'],['hist','History']].map(x=>`<button class="${stv===x[0]?'on':''}" onclick="stv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
+  return seg+(stv==='hist'?vHist():vProducts());
+}
+function vProducts(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
+  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
   <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
   <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Products hidden from the cashier stay here, dimmed.</div>`;
 }
 function adj(id,d){const p=S.products.find(x=>x.id===id);p.stokOnline=Math.max(0,(+p.stokOnline||0)+d);save()}
-const PCATS=['Gamis','Hijab','Abaya','Koko','Mukena','Sarung','Other'];
-function pFields(p={}){const cats=!p.kategori||PCATS.includes(p.kategori)?PCATS:[p.kategori,...PCATS];return[
+// Category and brand are typed freely; names used before are offered as suggestions
+const usedVals=k=>[...new Set(S.products.map(p=>String(p[k]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+function pFields(p={}){return[
   {k:'nama',label:'Product name',type:'text',val:p.nama||''},
-  {k:'kategori',label:'Category',type:'select',opts:cats,val:p.kategori||'Gamis'},
+  {k:'kategori',label:'Category',type:'text',val:p.kategori||'',list:usedVals('kategori')},
+  {k:'brand',label:'Brand',type:'text',val:p.brand||'',list:usedVals('brand')},
   {k:'sku',label:'SKU',type:'text',val:p.sku||''},
   {k:'cogs',label:'COGS (Rp)',type:'number',val:p.cogs??''}]}
 // same SKU on two products is almost always a typo
 const skuTaken=(v,id)=>{const k=String(v.sku||'').trim().toLowerCase();return k&&S.products.some(x=>x.id!==id&&String(x.sku||'').trim().toLowerCase()===k)};
-const cleanP=v=>({...v,sku:String(v.sku||'').trim()});
+const cleanP=v=>({...v,sku:String(v.sku||'').trim(),kategori:String(v.kategori||'').trim(),brand:String(v.brand||'').trim()});
 // low-stock alert: products keep their old minimum if they had one, new products use 3
 function addProduct(){form('New product',pFields(),v=>{if(skuTaken(v))return err('This SKU is already used by another product.'),false;S.products.push({id:uid(),min:3,...cleanP(v)});save()})}
 // The bottom button: Delete for a product without store history; otherwise hide it from the POS cashier (history keeps its name), or show it again
@@ -588,7 +658,7 @@ addEventListener('click',e=>{if(pop&&!e.composedPath().some(n=>n.id==='pp'||n.id
 addEventListener('resize',()=>{if(pop)closePop()});
 function form(title,fields,onSave,onDel,delLabel){
   closePop();
-  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}>`}</div>`).join('')+
+  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
   `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?`<button class="btn del" id="rm">${delLabel||'Delete'}</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
   const sync=()=>$('#sheet').querySelectorAll('[data-showif]').forEach(w=>{const [k,v]=w.dataset.showif.split('=');const e=$('#sheet [data-k="'+k+'"]');w.style.display=e&&e.value===v?'':'none'});
   sync();

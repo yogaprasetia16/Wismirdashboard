@@ -15,7 +15,7 @@ const HEADERS = {
   Keuangan: ['id', 'tanggal', 'jenis', 'kategori', 'jumlah', 'channel', 'catatan'],
   // Stok & Staff = daftar produk & karyawan untuk dashboard DAN POS (diatur dari dashboard).
   // stokToko tidak dipakai lagi (stok toko dihitung dari POS); kolomnya dibiarkan supaya urutan tidak bergeser.
-  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs'],
+  Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs', 'brand'],
   Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit'],
   Purchasing: ['id', 'date', 'name', 'category', 'qty', 'total'],
   Staff: ['id', 'joined', 'name', 'aktif'],
@@ -94,6 +94,9 @@ function setup() {
 
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
+// Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
+const CODE_VERSION = 4;
+
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
 function posEpoch() { return PropertiesService.getScriptProperties().getProperty('posEpoch') || '0'; }
@@ -178,12 +181,12 @@ function doGet(e) {
       data.Stok = readSheet('Stok');   // daftar produk dari dashboard (selalu lengkap, ukurannya kecil)
       data.Staff = readSheet('Staff'); // daftar karyawan dari dashboard
       data.Store = readSheet('Store'); // daftar toko & gudang dari dashboard
-      return out({ ok: true, now: Date.now(), epoch: posEpoch(), data: data });
+      return out({ ok: true, v: CODE_VERSION, now: Date.now(), epoch: posEpoch(), data: data });
     }
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
     Object.keys(HEADERS).forEach(function (n) { data[n] = readSheet(n); });
     ['POS Produk', 'POS Karyawan', 'POS Stok', 'POS Shift', 'POS Absen'].forEach(function (n) { data[n] = readSheet(n); });
-    return out({ ok: true, ver: dashVer(), data: data });
+    return out({ ok: true, v: CODE_VERSION, ver: dashVer(), data: data });
   } catch (err) {
     return out({ ok: false, error: String(err) });
   }
