@@ -293,7 +293,8 @@ function setStatus(t){status=t;const e=$('#st');if(e)e.textContent=t}
 const TABS=[['home','Overview'],['task','Reminders'],['tx','Finance'],['prod','Production'],['mkt','Marketing'],['ops','Operational'],['set','Settings']];
 const P=k=>(S.pos&&S.pos[k])||[];
 const PEXT=['Supplier','Konveksi','Sale','Rusak/Hilang','Koreksi opname'];
-function posLocs(){const s=new Set();P('stok').forEach(x=>[x.dari,x.ke].forEach(l=>{if(l&&!PEXT.includes(l))s.add(String(l))}));const l=[...s].sort((a,b)=>(a==='Gudang'?-1:b==='Gudang'?1:a.localeCompare(b)));return l.length?l:['Gudang','Toko A','Toko B']}
+// Stock locations: warehouses + physical stores from Operational > Store (same list the POS uses), then any older names still in POS history
+function posLocs(){const nm=t=>S.stores.filter(x=>x.type===t).map(x=>String(x.name||'').trim()).filter(Boolean);const l=[...nm('Warehouse'),...nm('Physical store')];P('stok').forEach(x=>[x.dari,x.ke].forEach(v=>{v=String(v||'');if(v&&!PEXT.includes(v)&&!l.includes(v))l.push(v)}));return l.length?l:['Gudang','Toko A','Toko B']}
 function posStock(){const m={},L=posLocs();P('stok').forEach(x=>{if(x.status==='void')return;const q=+x.qty||0,o=m[x.pid]||(m[x.pid]={});if(L.includes(x.ke))o[x.ke]=(o[x.ke]||0)+q;if(L.includes(x.dari))o[x.dari]=(o[x.dari]||0)-q});return m}
 const posTotal=(m,id)=>Object.values(m[id]||{}).reduce((a,b)=>a+b,0);
 // One product list for Dashboard and POS: store/warehouse stock comes from POS moves, online stock is typed here
@@ -472,12 +473,12 @@ function vStaff(){
 }
 function storeFields(p={}){return[
   {k:'name',label:'Store name',type:'text',val:p.name||''},
-  {k:'type',label:'Type',type:'select',opts:['Physical store','Online store','Marketplace'],val:p.type||'Physical store'},
+  {k:'type',label:'Type',type:'select',opts:['Physical store','Warehouse','Online store','Marketplace'],val:p.type||'Physical store'},
   {k:'address',label:'Address / link',type:'text',val:p.address||''}]}
 function addStore(){form('New store',storeFields(),v=>{S.stores.push({id:uid(),...v});save()})}
 function editStore(id){const p=S.stores.find(x=>x.id===id);form('Edit store',storeFields(p),v=>{Object.assign(p,v);save()},()=>{S.stores=S.stores.filter(x=>x.id!==id);save()})}
 function vStore(){
-  return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${esc(p.address)}</div></div><div style="text-align:right"><span class="pill">${esc(p.type)}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
+  return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores · Physical stores and warehouses appear on the store tablet (POS). Do not rename a store once it is used: stock history is kept by name.</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${esc(p.address)}</div></div><div style="text-align:right"><span class="pill">${esc(p.type)}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
 }
 function vStock(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));

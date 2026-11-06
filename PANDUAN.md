@@ -42,9 +42,10 @@ Jangan mengubah nama tab atau urutan kolom di Sheet. Isi barisnya boleh dilihat,
 Di setiap tablet: **Owner** → masukkan PIN owner → **Data** → bagian **Google Sheets**.
 Isi URL `/exec` dan PIN Sheets, lalu tekan **Simpan & sinkron sekarang**.
 
-- Tablet yang belum pernah dipakai berjualan akan otomatis membuang data contohnya, lalu mengambil produk, karyawan, dan stok dari Sheets.
+- POS **tidak punya data contoh**. Produk, karyawan, dan toko semuanya diambil dari dashboard. Data lama yang tidak ada di dashboard (termasuk produk/karyawan contoh dan "Stok awal contoh") otomatis hilang dari tablet saat tersambung.
 - Tablet yang sudah berisi data asli: tekan **Kirim semua data tablet ke Sheets** sekali saja (ketuk 2x). Lakukan ini di satu tablet dulu, baru sambungkan tablet lain. Produk dan karyawan dari tablet itu otomatis dipindahkan ke daftar di dashboard saat dashboard dibuka.
 - **Produk dan karyawan diatur di dashboard**, tidak di tablet. Menu Owner di POS hanya berisi **Laporan** dan **Data**.
+- **Toko dan gudang** diambil dari dashboard: **Operational → Store**. Tipe **Physical store** menjadi pilihan toko di tablet, dan tipe **Warehouse** menjadi gudang. **Jangan mengganti nama toko** setelah dipakai, karena riwayat stok dicatat per nama toko.
 
 ## 3. Cara kerja sinkron
 
@@ -69,6 +70,7 @@ Settings → isi URL dan PIN yang sama → **Save settings**. Data POS tampil di
   - **Status Inactive** menyembunyikan produk dari kasir tanpa menghapus riwayatnya. Produk yang sudah punya riwayat di POS tidak bisa dihapus, hanya bisa di-Inactive-kan.
 - **Operational → Staff**: satu daftar karyawan untuk dashboard **dan** POS. Karyawan **Active** muncul di tablet saat buka shift.
 - **Operational → Attendance**: jumlah shift per karyawan bulan ini dan daftar shift terakhir.
+- **Operational → Store**: daftar toko. Physical store dan Warehouse muncul di tablet; Online store dan Marketplace tidak.
 - **Overview → Low stock**: produk yang total stoknya (toko + gudang + online) sama dengan atau di bawah batas minimum.
 
 Penjualan, shift, absen, dan pergerakan stok dari POS hanya untuk dibaca di dashboard. Pencatatannya tetap dilakukan dari tablet.
@@ -147,3 +149,21 @@ Pindah halaman (Shift, Kasir, Struk, Stok, Owner) dilakukan lewat **logo "wismir
 **Catatan:**
 - Mode **Cetak biasa** memakai dialog cetak Android seperti sebelumnya. Mode ini **tidak bisa** membuka laci.
 - Kalau printer mati atau di luar jangkauan, transaksi **tetap tersimpan**. Yang muncul hanya pesan "Printer: …", dan struk bisa dicetak ulang dari menu **Struk**.
+
+
+## 9. Mulai baru (setelah uji coba selesai)
+
+Gunakan sekali saja, saat POS akan mulai dipakai sungguhan di toko.
+
+1. Pasang `Code.gs` terbaru dulu (lihat bagian 1, "Kalau `Code.gs` diperbarui").
+2. Di salah satu tablet: logo → **Owner** → **Data** → paling bawah → **Mulai baru (hapus riwayat uji coba)** → ketuk 2x.
+
+Yang dihapus:
+- Semua transaksi, shift, absen, dan pergerakan stok, di tablet ini, di tablet lain (otomatis saat tablet itu sinkron, paling lama 1 menit), dan di tab **POS** Google Sheet.
+- Penjualan uji coba juga hilang dari Finance di dashboard.
+
+Yang tetap ada:
+- Produk, karyawan, dan toko dari dashboard.
+- Pengaturan tablet (URL, PIN, printer, suara).
+
+Setelah itu, masukkan stok awal yang sebenarnya di tablet: **Stok → Masuk**. Kalau produk atau karyawan contoh sempat ikut masuk ke dashboard, hapus dari dashboard (Operational → Stock / Staff). Sekarang keduanya sudah bisa dihapus karena riwayat uji cobanya sudah hilang.

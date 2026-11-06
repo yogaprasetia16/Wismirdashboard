@@ -5,6 +5,8 @@ const escText=b=>{let o='';for(let i=0;i<b.length;i++){const c=b[i];if(c===27){c
 let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
 (async()=>{
  const br=await chromium.launch();const ctx=await br.newContext({...devices['Galaxy Tab S4 landscape']});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ const SAMPLE=require('./pos-sample')();
+ await p.addInitScript(st=>{try{if(!localStorage.getItem('wismir_pos_v1'))localStorage.setItem('wismir_pos_v1',JSON.stringify(st))}catch(e){}},SAMPLE);
  await p.addInitScript(()=>{
   // count sounds instead of playing them
   window.__snd=[];class FakeAC{constructor(){this.state='running';this.currentTime=0;this.sampleRate=8000;this.destination={}}
