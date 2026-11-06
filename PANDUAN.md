@@ -145,6 +145,11 @@ Pindah halaman (Shift, Kasir, Struk, Stok, Owner) dilakukan lewat **logo "wismir
    - **Cetak struk otomatis setelah bayar:** Ya atau Tidak, sesuai kebutuhan.
 5. Tekan **Tes cetak**, lalu **Tes buka laci**.
 
+**Setiap hari (sambung otomatis):** setelah sekali disambungkan, di kanan atas POS ada tombol **Printer**:
+- **Titik hijau:** printer siap.
+- **Titik kuning:** belum tersambung. POS mencoba menyambung sendiri setiap 20 detik, jadi cukup nyalakan printer dan tunggu sebentar.
+- Kalau tetap kuning (sebagian Chrome tidak mengizinkan sambung otomatis), **ketuk tombol Printer sekali**, lalu pilih printer toko di daftar yang muncul. Daftar itu hanya berisi printer toko.
+
 **Kalau "Bluetooth langsung" tidak bisa di tablet Anda** (misalnya muncul pesan Chrome belum mendukung):
 1. Install aplikasi **RawBT** dari Play Store.
 2. Sambungkan printer di dalam aplikasi RawBT.
