@@ -228,12 +228,18 @@ const dashData=()=>{const d={};for(const k in SHEET)d[SHEET[k]]=S[k];return d};
 const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
+// Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
+const NEED_CODE=4;
+// An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
+// instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
+let kmN=0; // values kept this way: they still have to reach the Sheet
+function keepMissing(rows,old){const m={};(old||[]).forEach(o=>m[o.id]=o);return rows.map(r=>{const o=m[r.id];if(!o)return r;const x={...r};for(const k in o)if(!(k in r)){x[k]=o[k];if(o[k]!==''&&o[k]!=null)kmN++}return x})}
 function setBase(ver){S.cfg.ver=ver==null?S.cfg.ver:String(ver);S.base=snap()}
 // Apply this device's edits (added / changed / deleted rows, by id) on top of fresh Sheet data
 function mergeInto(server){
   const base=S.base||{};
   for(const k in SHEET){
-    const n=SHEET[k],srv=(server[n]||[]).map(normRow);
+    const n=SHEET[k],srv=keepMissing((server[n]||[]).map(normRow),S[k]);
     if(!server[n])continue;
     const b={};(base[n]||[]).forEach(x=>b[x.id]=JSON.stringify(x));
     const mine={};S[k].forEach(x=>mine[x.id]=x);
@@ -289,13 +295,17 @@ async function _pullSheets(){
     const r=await fetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin));
     const j=await r.json();
     if(!j.ok)return setStatus('Failed: '+(j.error||'wrong PIN'));
+    kmN=0;
     const busy=S.cfg.pulled&&S.cfg.dirty; // edited while loading: keep local, send it instead
     if(!busy){
-      for(const k in SHEET){const d=j.data[SHEET[k]];if(d)S[k]=d.map(normRow)}
+      for(const k in SHEET){const d=j.data[SHEET[k]];if(d)S[k]=keepMissing(d.map(normRow),S[k])}
       S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
       S.cfg.pulled=1;S.cfg.dirty=0;setBase(j.ver);
     }
     for(const k in POSK){const d=j.data[POSK[k]];if(d)S.pos[k]=d}
+    S.cfg.codeOld=(+j.v||0)<NEED_CODE;
+    // device-only values (older Code.gs): mark as unsent, so they go up before the next load and land once Code.gs is updated
+    if(!busy&&S.cfg.codeOld&&kmN)S.cfg.dirty=(S.cfg.dirty||0)+1;
     save(false);setStatus('Data loaded from Sheets '+hhmm());
     if(!busy&&migratePos())save(); // sends the merged lists back to Sheets
     if(busy)pushSheets();
@@ -413,7 +423,8 @@ function render(){
   const {i,o}=sums(monthTx());
   const ot=openTasks(),od=ot.filter(t=>t.tempo&&t.tempo<today()).length,td=ot.filter(t=>t.tempo===today()).length,nd=ot.filter(t=>!t.tempo).length;
   $('#kpis').innerHTML=[[IC.late,od?`<span class="neg">${od}</span>`:od,'Overdue reminders','','late'],[IC.cal,td,'Reminders today','','today'],[IC.nod,nd,'Reminders without date','','nod']].map(k=>`<div class="kpi" data-k="${k[4]}" role="button" tabindex="0"><span class="ic"><svg viewBox="0 0 24 24">${k[0]}</svg></span><div><div class="kv">${k[1]}${k[3]}</div><div class="lbl">${k[2]}</div></div></div>`).join('');
-  $('#app').innerHTML=tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`;
+  $('#app').innerHTML=(S.cfg.url&&S.cfg.codeOld?`<div class="card" style="padding:14px 18px;margin-bottom:16px"><b class="neg">Update Code.gs</b><div class="lbl">The Google Sheets script (Apps Script) is an older version, so some new fields are kept on this device only. Open Code.gs on GitHub, Copy raw file, paste it in Apps Script, then Deploy › Manage deployments › Edit › New version › Deploy.</div></div>`:'')+
+  (tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`);
   if(pop)showKpi(pop);
 }
 const empty=t=>`<div class="empty">${t}</div>`;
