@@ -117,6 +117,8 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 @media (min-width:700px){.sheet.wide{max-width:780px}.pcols{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:20px;align-items:start}.pcr .f{margin-bottom:6px}.pcr .stk.big{display:flex;justify-content:space-between}.pcr .qin{flex:1 1 0;width:0;min-width:0}.pcr .tot{padding:14px 4px}}
 .sheet h3{padding-right:44px;margin:0 0 14px;font-size:20px;letter-spacing:-.02em}
 .f{margin-bottom:10px}.f label{display:block;font-size:12.5px;color:var(--mute);margin:0 0 4px 6px}
+.f textarea{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:inherit;line-height:1.45;color:var(--ink);resize:vertical;min-height:84px}
+.f textarea:focus{outline:2px solid var(--green);outline-offset:1px}
 .f input,.f select{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font:inherit;color:var(--ink)}
 .f select{-webkit-appearance:none;appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236f7780' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .f input:focus,.f select:focus,.srch input:focus{outline:2px solid var(--green);outline-offset:1px}
@@ -171,6 +173,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 @media print{body *{visibility:hidden}#rcpt,#rcpt *{visibility:visible}.sheet-bg{position:absolute!important;inset:auto!important;left:0;top:0;background:none!important;display:block!important}.sheet{background:none!important;padding:0!important;max-height:none!important;animation:none;border-radius:0}#rcpt{position:absolute;left:0;top:0;width:100%;margin:0;border-radius:0;padding:0}}
 .sync.prc i{background:var(--amber)}.sync.prc.on i{background:var(--green)}.sync.prc.wait i{background:none;width:12px;height:12px;margin:-2px;border:2px solid var(--amber);border-right-color:transparent;animation:prspin .7s linear infinite}
 @keyframes prspin{to{transform:rotate(360deg)}}
+.sync.prc .pri{display:grid;place-items:center}.sync.prc .pri svg{width:18px;height:18px}
 @media (prefers-reduced-motion:reduce){.sync.prc.wait i{animation:none}}
 </style>
 </head>
@@ -179,7 +182,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
  <header class="hd">
   <button class="logo" id="menuBtn" data-a="menu" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" title="Menu"><span class="lm" id="lm"></span><span class="lt">wismir<small id="curTab"></small></span><span class="chev" id="chev"></span><span id="lbd" style="display:none"></span></button>
   <div id="kpis"></div>
-  <div class="hr2"><button class="sync prc" id="prChip" data-a="prChip" style="display:none" title="Printer"><i></i><span>Printer</span></button><button class="eye" id="fs" data-a="fs" style="display:none"></button><button class="eye" id="eye" data-a="eye"></button><button class="sync own" id="modeown" data-a="ownerOff" style="display:none" title="Keluar mode owner"><i></i><span>Mode owner</span></button><button class="sync" data-a="storeSwitch" title="Ganti toko"><i></i><span id="stlbl"></span></button></div>
+  <div class="hr2"><button class="sync prc" id="prChip" data-a="prChip" style="display:none" title="Printer"><i></i><span class="pri" id="prIco"></span><span id="prName">Printer</span></button><button class="eye" id="fs" data-a="fs" style="display:none"></button><button class="eye" id="eye" data-a="eye"></button><button class="sync own" id="modeown" data-a="ownerOff" style="display:none" title="Keluar mode owner"><i></i><span>Mode owner</span></button><button class="sync" data-a="storeSwitch" title="Ganti toko"><i></i><span id="stlbl"></span></button></div>
  </header>
  <main id="app"></main>
 </div>
@@ -413,7 +416,7 @@ function receiptBytes(t,bill,kick){
  const R=rcCfg(),w=COLS(),p=EP(),hr='-'.repeat(w);
  if(kick)p.raw(...DRAWER);
  p.al(1).bold(1).big(1).ln(R.head).big(0).bold(0);
- if(R.addr)wrapTxt(R.addr,w).forEach(x=>p.ln(x));
+ if(R.addr)R.addr.split('\n').forEach(l=>wrapTxt(l,w).forEach(x=>p.ln(x)));
  p.ln(t.store).ln(dmy(t.t)+' '+hm(t.t));
  if(bill)p.bold(1).ln('TAGIHAN').bold(0);else p.ln('No. '+t.id);
  p.al(0);if(bill&&t.name)p.ln('Atas nama: '+t.name);
@@ -423,7 +426,7 @@ function receiptBytes(t,bill,kick){
  if(bill)p.al(1).ln('Belum dibayar').al(0);
  else if(t.pays&&t.pays.length>1){t.pays.forEach(x=>p.ln(lr(x.method,dot(x.amount),w)));if(t.change)p.ln(lr('Kembali',dot(t.change),w))}
  else{p.ln(lr(t.method,dot(t.paid),w));if(t.method==='Tunai')p.ln(lr('Kembali',dot(t.change||0),w))}
- p.ln(hr).al(1);wrapTxt(R.foot,w).forEach(x=>p.ln(x));
+ p.ln(hr).al(1);String(R.foot||'').split('\n').forEach(l=>wrapTxt(l,w).forEach(x=>p.ln(x)));
  return p.raw(0x1b,0x64,5,0x1d,0x56,0x01).bytes(); // feed 5 lines (ESC d 5) + cut (GS V 1)
 }
 // "Bluetooth langsung" has two ways in, picked automatically:
@@ -475,7 +478,7 @@ async function bleWrite(bytes){
    'on' ready, 'wait' connecting, 'off' not connected. While 'off' the POS keeps trying quietly every 20 s,
    so a printer switched on in the morning connects by itself (when Chrome allows reconnecting without the picker). */
 let PRS='off',prT=null,prBusy=false;
-function setPr(st){PRS=st;const b=$('#prChip');if(!b)return;b.classList.toggle('on',st==='on');b.classList.toggle('wait',st==='wait');b.title=b.ariaLabel=st==='on'?'Printer siap':st==='wait'?'Menyambungkan printer…':'Printer belum tersambung: ketuk untuk menyambungkan'}
+function setPr(st){PRS=st;const b=$('#prChip');if(!b)return;const ic=$('#prIco');if(ic&&!ic.innerHTML)ic.innerHTML=svg('printer');$('#prName').textContent=S.cfg.prBleName||'Printer';b.classList.toggle('on',st==='on');b.classList.toggle('wait',st==='wait');b.title=b.ariaLabel=st==='on'?'Printer siap':st==='wait'?'Menyambungkan printer…':'Printer belum tersambung: ketuk untuk menyambungkan'}
 const prAuto=()=>PRC().mode==='bt'&&!!btWay();
 // silent connect: only to a printer chosen before, never opens Chrome's picker
 async function prSilent(){
@@ -658,7 +661,7 @@ function updPaid(){const total=cartTotal(),d=PAY.paid-total;$('#cashBox').style.
 const rcCfg=()=>Object.assign({head:'WISMIR',addr:'',foot:'Terima kasih'},S.cfg.rc||{});
 function receipt(t){const R=rcCfg();
  const lines=t.items.map(i=>'<div>'+esc(i.name)+'</div><div class="rl"><span>'+i.qty+' x '+dot(i.price)+'</span><span>'+dot(i.qty*i.price)+'</span></div>').join('');
- return '<div id="rcpt"><div class="c"><b>'+esc(R.head)+'</b><br>'+(R.addr?esc(R.addr)+'<br>':'')+esc(t.store)+'<br>'+dmy(t.t)+' '+hm(t.t)+'<br>No. '+esc(t.id)+'</div><div class="rhr"></div>'+lines+'<div class="rhr"></div><div class="rl"><b>TOTAL</b><b>'+dot(t.total)+'</b></div>'+((t.pays&&t.pays.length>1)?t.pays.map(x=>'<div class="rl"><span>'+esc(x.method)+'</span><span>'+dot(x.amount)+'</span></div>').join('')+(t.change?'<div class="rl"><span>Kembali</span><span>'+dot(t.change)+'</span></div>':''):'<div class="rl"><span>'+esc(t.method)+'</span><span>'+dot(t.paid)+'</span></div>'+(t.method==='Tunai'?'<div class="rl"><span>Kembali</span><span>'+dot(t.change)+'</span></div>':''))+'<div class="rhr"></div><div class="c">'+esc(R.foot)+'</div></div>';
+ return '<div id="rcpt"><div class="c"><b>'+esc(R.head)+'</b><br>'+(R.addr?esc(R.addr).replace(/\n/g,'<br>')+'<br>':'')+esc(t.store)+'<br>'+dmy(t.t)+' '+hm(t.t)+'<br>No. '+esc(t.id)+'</div><div class="rhr"></div>'+lines+'<div class="rhr"></div><div class="rl"><b>TOTAL</b><b>'+dot(t.total)+'</b></div>'+((t.pays&&t.pays.length>1)?t.pays.map(x=>'<div class="rl"><span>'+esc(x.method)+'</span><span>'+dot(x.amount)+'</span></div>').join('')+(t.change?'<div class="rl"><span>Kembali</span><span>'+dot(t.change)+'</span></div>':''):'<div class="rl"><span>'+esc(t.method)+'</span><span>'+dot(t.paid)+'</span></div>'+(t.method==='Tunai'?'<div class="rl"><span>Kembali</span><span>'+dot(t.change)+'</span></div>':''))+'<div class="rhr"></div><div class="c">'+esc(R.foot).replace(/\n/g,'<br>')+'</div></div>';
 }
 function kasList(sh){const cm=(sh.cashMoves||[]).slice().reverse();if(!cm.length)return '';return '<div class="sub">Mutasi kas</div><div class="card">'+cm.map(x=>'<div class="row" style="cursor:default"><div class="th w">'+hm(x.t)+'</div><div class="grow"><div class="t">'+(x.type==='in'?'Kas masuk':'Kas keluar')+'</div><div class="lbl">'+esc(x.note||'—')+'</div></div><div class="v '+(x.type==='in'?'pos':'neg')+'">'+(x.type==='in'?'+':'−')+dot(x.amount)+'</div></div>').join('')+'</div>'}
 function closeShiftSheet(){
@@ -795,7 +798,7 @@ function ownerData(){
   '<div class="sub">Ganti PIN owner</div><div class="f"><input id="np" type="password" inputmode="none" data-np data-max="12" placeholder="PIN baru (minimal 4 angka)"></div>'+npHtml(false)+'<div class="err" id="err"></div><button class="btn" data-a="pinSave">Simpan PIN</button>'+
   printerHtml()+
   '<div class="sub">Suara tombol</div><div class="seg">'+[['1','Nyala'],['0','Mati']].map(x=>'<button class="'+((S.cfg.sound!==false)===(x[0]==='1')?'on':'')+'" data-a="sound" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+
-  '<div class="sub">Teks struk</div><div class="f"><label>Judul</label><input id="rch" value="'+esc(rcCfg().head)+'"></div><div class="f"><label>Alamat / info (opsional)</label><input id="rca" value="'+esc(rcCfg().addr)+'"></div><div class="f"><label>Pesan bawah</label><input id="rcf" value="'+esc(rcCfg().foot)+'"></div><button class="btn" data-a="rcSave">Simpan teks struk</button>'+
+  '<div class="sub">Teks struk</div><div class="f"><label>Judul</label><input id="rch" value="'+esc(rcCfg().head)+'"></div><div class="f"><label>Alamat / info (opsional, boleh beberapa baris)</label><textarea id="rca" rows="3" placeholder="Jl. …&#10;WA 08…&#10;IG @wismir">'+esc(rcCfg().addr)+'</textarea></div><div class="f"><label>Pesan bawah (boleh beberapa baris)</label><textarea id="rcf" rows="3">'+esc(rcCfg().foot)+'</textarea></div><button class="btn" data-a="rcSave">Simpan teks struk</button>'+
   '<div class="sub">Ekspor</div>'+ex+'<div class="sub">Cadangan data tablet</div><button class="btn sec" data-a="backup">Unduh cadangan (JSON)</button><button class="btn sec" data-a="restore">Pulihkan dari cadangan</button>'+
   '<div class="sub">Zona hati-hati</div><div class="note">Mulai baru menghapus semua transaksi, shift, absen dan pergerakan stok di tablet ini, di tablet lain, dan di tab POS Google Sheet. Produk, karyawan dan toko dari dashboard tetap. Pakai sekali saat uji coba selesai.</div><button class="btn del" data-a="reset">Mulai baru (hapus riwayat uji coba)</button>';
 }
@@ -909,7 +912,7 @@ A.holdOpen=el=>{if(S.cart.length)return err('Keranjang masih berisi item. Simpan
 A.holdDel=el=>twoTap(el,'Yakin?',()=>{S.holds=S.holds.filter(x=>x.id!==el.dataset.id);save();holdsSheet();renderCart()});
 function billHtml(name){const R=rcCfg(),now=Date.now();
  const lines=S.cart.map(i=>'<div>'+esc(i.name)+'</div><div class="rl"><span>'+i.qty+' x '+dot(i.price)+'</span><span>'+dot(i.qty*i.price)+'</span></div>').join('');
- return '<div id="rcpt"><div class="c"><b>'+esc(R.head)+'</b><br>'+(R.addr?esc(R.addr)+'<br>':'')+esc(S.cfg.store)+'<br>'+dmy(now)+' '+hm(now)+'<br><b>TAGIHAN</b></div>'+(name?'<div class="rhr"></div><div>Atas nama: <b>'+esc(name)+'</b></div>':'')+'<div class="rhr"></div>'+lines+'<div class="rhr"></div><div class="rl"><b>TOTAL</b><b>'+dot(cartTotal())+'</b></div><div class="rhr"></div><div class="c">Belum dibayar<br>'+esc(R.foot)+'</div></div>'}
+ return '<div id="rcpt"><div class="c"><b>'+esc(R.head)+'</b><br>'+(R.addr?esc(R.addr).replace(/\n/g,'<br>')+'<br>':'')+esc(S.cfg.store)+'<br>'+dmy(now)+' '+hm(now)+'<br><b>TAGIHAN</b></div>'+(name?'<div class="rhr"></div><div>Atas nama: <b>'+esc(name)+'</b></div>':'')+'<div class="rhr"></div>'+lines+'<div class="rhr"></div><div class="rl"><b>TOTAL</b><b>'+dot(cartTotal())+'</b></div><div class="rhr"></div><div class="c">Belum dibayar<br>'+esc(R.foot).replace(/\n/g,'<br>')+'</div></div>'}
 A.bill=()=>{if(!S.cart.length)return;PRN={bill:true};openSheet('<h3>Cetak tagihan</h3><div class="f"><label>Nama customer (opsional)</label><input id="bn" data-in="bill" placeholder="Misal: Bu Rina" autocomplete="off"></div><div id="billbox">'+billHtml('')+'</div><button class="btn go" data-a="print">'+svg('printer')+' Cetak tagihan</button>',false)};
 I.bill=el=>{$('#billbox').innerHTML=billHtml(el.value.trim())};
 A.print=()=>{const c=PRC();if(c.mode==='system'||!PRN){try{window.print()}catch(e){toast('Cetak tidak tersedia')}return}
@@ -1092,7 +1095,8 @@ A.prConnect=async()=>{try{const way=btWay();if(!way)throw new Error(NO_BT);if(wa
 A.prTest=()=>printTx({id:'TES',store:S.cfg.store,t:Date.now(),items:[{name:'Tes cetak WISMIR',qty:1,price:10000}],total:10000,method:'Tunai',paid:10000,change:0});
 A.prKick=()=>{if(!PRC().drawer)return toast('Buka laci otomatis sedang Tidak');kickDrawer()};
 A.sound=el=>{S.cfg.sound=el.dataset.v==='1';save();render();if(S.cfg.sound)snd('ok')};
-A.rcSave=()=>{S.cfg.rc={head:$('#rch').value.trim()||'WISMIR',addr:$('#rca').value.trim(),foot:$('#rcf').value.trim()};save();toast('Teks struk disimpan')};
+const multi=v=>String(v||'').replace(/\r/g,'').split('\n').map(l=>l.replace(/\s+$/,'')).join('\n').replace(/^\n+|\n+$/g,'');
+A.rcSave=()=>{S.cfg.rc={head:$('#rch').value.trim()||'WISMIR',addr:multi($('#rca').value),foot:multi($('#rcf').value)};save();toast('Teks struk disimpan')};
 A.pinSave=()=>{const v=$('#np').value.trim();if(!/^\d{4,}$/.test(v))return err('PIN minimal 4 angka.');S.cfg.pin=v;save();$('#np').value='';err('');toast('PIN diganti')};
 A.exp=el=>{
  const w=el.dataset.w,d=ymd(Date.now());let rows;

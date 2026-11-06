@@ -52,6 +52,13 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  ok(txt.split('\n').every(l=>l.length<=48),'80 mm receipt lines fit 48 characters: '+Math.max(...txt.split('\n').map(l=>l.length)));
  await p.click('[data-a=prKick]');await p.waitForTimeout(200);
  pr=await p.evaluate(()=>window.__printed.pop());ok(pr.join()==='27,64,27,112,0,25,250','Tes buka laci sends the drawer pulse (ESC p 0 25 250)');
+ // receipt texts on several lines (address/info and footer)
+ await p.fill('#rca','Jl. Mawar No. 1, Bandung\nWA 0812-3456-7890\nIG @wismir');await p.fill('#rcf','Terima kasih\nBarang yang sudah dibeli tidak dapat ditukar');await p.click('[data-a=rcSave]');
+ ok(await p.evaluate(()=>document.querySelector('#rca').tagName==='TEXTAREA'&&window.__wismir.S.cfg.rc.addr.split('\n').length===3),'address/info is a multi-line box and keeps its 3 lines');
+ await p.click('[data-a=prTest]');await p.waitForTimeout(200);
+ const rt=escText(await p.evaluate(()=>window.__printed.pop())).split('\n').map(l=>l.trim());
+ ok(rt.includes('Jl. Mawar No. 1, Bandung')&&rt.includes('WA 0812-3456-7890')&&rt.includes('IG @wismir'),'printed receipt: each address line on its own line');
+ ok(rt.includes('Terima kasih')&&rt.includes('Barang yang sudah dibeli tidak dapat ditukar'),'printed receipt: footer on two lines');
  // ---------- sale: price sheet layout, auto print + drawer ----------
  await p.click('[data-a=ownerOff]');
  await p.tap('#menuBtn');await p.tap('#menu [data-t=home]');await p.waitForTimeout(300);

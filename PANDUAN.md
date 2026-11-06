@@ -145,7 +145,7 @@ Pindah halaman (Shift, Kasir, Struk, Stok, Owner) dilakukan lewat **logo "wismir
    - **Cetak struk otomatis setelah bayar:** Ya atau Tidak, sesuai kebutuhan.
 5. Tekan **Tes cetak**, lalu **Tes buka laci**.
 
-**Setiap hari (sambung otomatis):** setelah sekali disambungkan, di kanan atas POS ada tombol **Printer**:
+**Setiap hari (sambung otomatis):** setelah sekali disambungkan, di kanan atas POS ada tombol **ikon printer + nama printer** (misalnya **RPP02N**):
 - **Titik hijau:** printer siap.
 - **Titik kuning:** belum tersambung. POS mencoba menyambung sendiri setiap 20 detik, jadi cukup nyalakan printer dan tunggu sebentar.
 - Kalau tetap kuning (sebagian Chrome tidak mengizinkan sambung otomatis), **ketuk tombol Printer sekali**, lalu pilih printer toko di daftar yang muncul. Daftar itu hanya berisi printer toko.
@@ -185,3 +185,10 @@ Setelah itu, masukkan stok awal yang sebenarnya di tablet: **Stok → Masuk**. K
   - Catatan yang diubah ditandai "diubah" beserta tanggal dan jamnya, jadi terlihat juga di dashboard.
 - Kalau catatan memang tidak seharusnya ada, pakai **Batalkan (void)**.
 - Stok keluar, transfer, atau rusak yang membuat stok **minus** tetap bisa disimpan tanpa PIN owner. Layar "Cek sebelum simpan" hanya mengingatkan bahwa stok akan menjadi minus.
+
+## 11. Teks struk beberapa baris
+
+Owner → **Data** → **Teks struk**:
+- **Alamat / info** dan **Pesan bawah** bisa diisi beberapa baris. Tekan **Enter** untuk baris baru, misalnya alamat, nomor WA, dan Instagram di baris masing-masing.
+- Setiap baris tercetak di baris tersendiri di struk. Baris yang terlalu panjang dipotong ke baris berikutnya secara otomatis.
+- Tekan **Simpan teks struk**, lalu **Tes cetak** untuk melihat hasilnya.
