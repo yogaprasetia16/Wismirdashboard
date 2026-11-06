@@ -31,6 +31,7 @@ const chip=p=>p.evaluate(()=>{const b=document.querySelector('#prChip');return !
  await p.tap('#menuBtn');await p.tap('#menu [data-t=owner]');await p.fill('#gpin','1234');await p.click('[data-a=gateOk]');await p.click('[data-a=osub][data-s=data]');
  await p.click('[data-a=prMode][data-v=bt]');await p.click('[data-a=prConnect]');
  ok(await until(async()=>await chip(p)==='on'),'first time: owner connects once in settings, Printer button turns green');
+ ok(await p.evaluate(()=>{const b=document.querySelector('#prChip');return b.textContent.trim()==='BT-P3200'&&!!b.querySelector('svg')}),'header button shows a printer icon and the printer\'s own name');
  // next morning: app opened again, printer already on -> connects without any tap
  await p.reload();await sleep(200);
  ok(await until(async()=>await chip(p)==='on'),'app opened again: connected automatically, no tap');
