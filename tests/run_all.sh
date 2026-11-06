@@ -17,5 +17,6 @@ start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js
 start; run "POS printer over Bluetooth LE (no Web Serial)" node pos_ble.js
+start; run "POS printer auto-connect" node pos_autoconnect.js
 stop
 echo; [ $fails -eq 0 ] && echo "EVERYTHING PASSED" || echo "$fails SUITE(S) FAILED"; exit $fails

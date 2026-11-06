@@ -169,6 +169,9 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 }
 @media (max-width:820px){.hd{flex-wrap:wrap}.hr2{margin-left:auto}.logo{order:1}.hr2{order:2}#kpis{order:3;flex-basis:100%;justify-content:stretch;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.kpi{flex-direction:column;align-items:flex-start;gap:8px}.kv{font-size:14.5px}.lbl{font-size:11.5px}.ic{width:40px;height:40px}}
 @media print{body *{visibility:hidden}#rcpt,#rcpt *{visibility:visible}.sheet-bg{position:absolute!important;inset:auto!important;left:0;top:0;background:none!important;display:block!important}.sheet{background:none!important;padding:0!important;max-height:none!important;animation:none;border-radius:0}#rcpt{position:absolute;left:0;top:0;width:100%;margin:0;border-radius:0;padding:0}}
+.sync.prc i{background:var(--amber)}.sync.prc.on i{background:var(--green)}.sync.prc.wait i{background:none;width:12px;height:12px;margin:-2px;border:2px solid var(--amber);border-right-color:transparent;animation:prspin .7s linear infinite}
+@keyframes prspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sync.prc.wait i{animation:none}}
 </style>
 </head>
 <body>
@@ -176,7 +179,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
  <header class="hd">
   <button class="logo" id="menuBtn" data-a="menu" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" title="Menu"><span class="lm" id="lm"></span><span class="lt">wismir<small id="curTab"></small></span><span class="chev" id="chev"></span><span id="lbd" style="display:none"></span></button>
   <div id="kpis"></div>
-  <div class="hr2"><button class="eye" id="fs" data-a="fs" style="display:none"></button><button class="eye" id="eye" data-a="eye"></button><button class="sync own" id="modeown" data-a="ownerOff" style="display:none" title="Keluar mode owner"><i></i><span>Mode owner</span></button><button class="sync" data-a="storeSwitch" title="Ganti toko"><i></i><span id="stlbl"></span></button></div>
+  <div class="hr2"><button class="sync prc" id="prChip" data-a="prChip" style="display:none" title="Printer"><i></i><span>Printer</span></button><button class="eye" id="fs" data-a="fs" style="display:none"></button><button class="eye" id="eye" data-a="eye"></button><button class="sync own" id="modeown" data-a="ownerOff" style="display:none" title="Keluar mode owner"><i></i><span>Mode owner</span></button><button class="sync" data-a="storeSwitch" title="Ganti toko"><i></i><span id="stlbl"></span></button></div>
  </header>
  <main id="app"></main>
 </div>
@@ -438,22 +441,24 @@ async function btPort(ask){
  if(!pt&&ask)pt=await navigator.serial.requestPort({filters:[{bluetoothServiceClassId:SPP}],allowedBluetoothServiceClassIds:[SPP]});
  if(!pt)throw new Error('Printer belum disambungkan (Owner → Data → Printer).');
  if(!pt.writable)await pt.open({baudRate:9600});
- PORT=pt;return pt;
+ PORT=pt;setPr('on');return pt;
 }
 // GATT services that receipt printers commonly use to receive ESC/POS data
 const BLE_SVC=['000018f0-0000-1000-8000-00805f9b34fb','000018f1-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2','49535343-fe7d-4ae5-8fa9-9fafd205e455','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb'];
 let BLE=null;
-async function bleChar(ask){
+async function bleChar(ask,only,pick){ // pick: always open the picker (choose another printer)
  if(!hasBle())throw new Error(NO_BT);
  if(BLE&&BLE.ch&&BLE.dev.gatt&&BLE.dev.gatt.connected)return BLE.ch;
  let dev=BLE&&BLE.dev;
- if(!dev&&navigator.bluetooth.getDevices){try{dev=(await navigator.bluetooth.getDevices()).find(d=>d.id===S.cfg.prBle)||null}catch(e){}}
- if(!dev&&ask)dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BLE_SVC});
+ if(!dev&&!pick&&navigator.bluetooth.getDevices){try{dev=(await navigator.bluetooth.getDevices()).find(d=>d.id===S.cfg.prBle)||null}catch(e){}}
+ if(!dev&&ask)dev=await navigator.bluetooth.requestDevice(only&&S.cfg.prBleName?{filters:[{name:S.cfg.prBleName}],optionalServices:BLE_SVC}:{acceptAllDevices:true,optionalServices:BLE_SVC});
  if(!dev)throw new Error('Printer belum disambungkan. Owner → Data → Printer → Sambungkan printer.');
  const g=await dev.gatt.connect();let ch=null;
  for(const u of BLE_SVC){try{const sv=await g.getPrimaryService(u);ch=(await sv.getCharacteristics()).find(c=>c.properties.writeWithoutResponse||c.properties.write);if(ch)break}catch(e){}}
  if(!ch){try{dev.gatt.disconnect()}catch(e){}throw new Error('Printer ini tidak menerima data lewat Bluetooth LE. Pilih mode Aplikasi RawBT.')}
- BLE={dev,ch};if(S.cfg.prBle!==dev.id){S.cfg.prBle=dev.id;save()}
+ BLE={dev,ch};if(S.cfg.prBle!==dev.id||(dev.name&&S.cfg.prBleName!==dev.name)){S.cfg.prBle=dev.id;if(dev.name)S.cfg.prBleName=dev.name;save()}
+ if(!dev.__w&&dev.addEventListener){dev.__w=1;dev.addEventListener('gattserverdisconnected',()=>{setPr('off');prRetry(3000)})}
+ setPr('on');
  return ch;
 }
 // Cheap BLE printers take only 20 bytes per write (default BLE packet size) and drop anything beyond it,
@@ -466,6 +471,23 @@ async function bleWrite(bytes){
   else{if(ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);await new Promise(r=>setTimeout(r,25))}
  }
 }
+/* printer status shown on the 'Printer' button in the header:
+   'on' ready, 'wait' connecting, 'off' not connected. While 'off' the POS keeps trying quietly every 20 s,
+   so a printer switched on in the morning connects by itself (when Chrome allows reconnecting without the picker). */
+let PRS='off',prT=null,prBusy=false;
+function setPr(st){PRS=st;const b=$('#prChip');if(!b)return;b.classList.toggle('on',st==='on');b.classList.toggle('wait',st==='wait');b.title=b.ariaLabel=st==='on'?'Printer siap':st==='wait'?'Menyambungkan printer…':'Printer belum tersambung: ketuk untuk menyambungkan'}
+const prAuto=()=>PRC().mode==='bt'&&!!btWay();
+// silent connect: only to a printer chosen before, never opens Chrome's picker
+async function prSilent(){
+ if(!prAuto()||prBusy)return PRS==='on';
+ if(PRS==='on'&&(btWay()==='serial'?PORT&&PORT.writable:BLE&&BLE.ch&&BLE.dev.gatt&&BLE.dev.gatt.connected))return true;
+ prBusy=true;if(PRS!=='on')setPr('wait');
+ try{if(btWay()==='serial')await btPort(false);else await bleChar(false);setPr('on');return true}
+ catch(e){setPr('off');return false}
+ finally{prBusy=false}
+}
+function prRetry(ms){clearTimeout(prT);if(!prAuto()||!canSilent())return;prT=setTimeout(async()=>{if(!(await prSilent()))prRetry(window.__prRetryMs||20000)},ms==null?(window.__prRetryMs||20000):ms)}
+const canSilent=()=>btWay()==='serial'||(hasBle()&&!!navigator.bluetooth.getDevices&&!!S.cfg.prBle);
 const openUrl=u=>{(window.__openUrl||(x=>{location.href=x}))(u)};
 let PQ=Promise.resolve(); // one print job at a time
 function prSend(bytes){const job=PQ.then(()=>prSend1(bytes));PQ=job.catch(()=>{});return job}
@@ -480,7 +502,7 @@ async function prSend1(bytes){
    return;
   }catch(e){
    if(way==='serial'){try{if(PORT)await PORT.close()}catch(x){}PORT=null}else{try{if(BLE)BLE.dev.gatt.disconnect()}catch(x){}if(BLE)BLE={dev:BLE.dev,ch:null}}
-   if(a)throw e;
+   if(a){setPr('off');prRetry(5000);throw new Error((e&&e.message||e)+(PRS!=='on'?' Ketuk tombol Printer di atas untuk menyambungkan.':''))}
   }
  }
 }
@@ -526,6 +548,7 @@ function openMenu(){const m=$('#menu'),r=$('#menuBtn').getBoundingClientRect();m
 function closeMenu(){if(!menuOpen)return;$('#menu').classList.remove('open');$('#menuBtn').setAttribute('aria-expanded','false');menuOpen=false}
 function setBadge(){const q=cartQty(),b=$('#lbd');b.style.display=q&&tab!=='pos'?'':'none';b.textContent=q}
 function renderChrome(){
+ const pc=$('#prChip');if(pc){pc.style.display=prAuto()?'':'none';setPr(PRS)}
  const st=S.cfg.store;
  $('#stlbl').textContent=st;$('#modeown').style.display=ownerOK?'':'none';$('.sync i').style.background=S.shift?'var(--green)':'var(--amber)';
  const ss=shiftStats();
@@ -1051,11 +1074,21 @@ function printerHtml(){const c=PRC(),seg=(a,opts,cur)=>'<div class="seg sc">'+op
   '<div class="row2 sm" style="margin-top:10px"><button class="btn sec" data-a="prTest">'+svg('printer')+' Tes cetak</button><button class="btn sec" data-a="prKick">Tes buka laci</button></div>');
 }
 const prSet=(k,v)=>{S.cfg.pr=Object.assign(PRC(),{[k]:v});save();render()};
-A.prMode=el=>prSet('mode',el.dataset.v);
+A.prMode=el=>{prSet('mode',el.dataset.v);setPr('off');prRetry(0)};
 A.prW=el=>prSet('width',+el.dataset.v);
 A.prDr=el=>prSet('drawer',el.dataset.v==='1');
 A.prAuto=el=>prSet('auto',el.dataset.v==='1');
-A.prConnect=async()=>{try{const way=btWay();if(!way)throw new Error(NO_BT);if(way==='serial'){PORT=null;await btPort(true)}else{BLE=null;await bleChar(true)}snd('ok');toast('Printer tersambung')}catch(e){if(e&&e.name==='NotFoundError')return;snd('err');toast('Printer: '+(e.message||e))}};
+A.prChip=async()=>{
+ if(PRS==='on'){snd('ok');toast('Printer siap');return}
+ try{
+  if(canSilent()){toast('Menyambungkan printer…');if(await prSilent()){snd('ok');toast('Printer tersambung');return}
+   if(btWay()==='serial')throw new Error('Printer belum menyala atau di luar jangkauan.')}
+  // no silent reconnect in this Chrome (or it failed): one tap in the picker, which lists only the saved printer
+  if(btWay()==='ble'){BLE=null;setPr('wait');await bleChar(true,true);snd('ok');toast('Printer tersambung');return}
+  throw new Error(NO_BT);
+ }catch(e){setPr('off');prRetry();if(e&&e.name==='NotFoundError')return;snd('err');toast('Printer: '+(e.message||e))}
+};
+A.prConnect=async()=>{try{const way=btWay();if(!way)throw new Error(NO_BT);if(way==='serial'){PORT=null;await btPort(true)}else{BLE=null;await bleChar(true,false,true)}snd('ok');toast('Printer tersambung');prRetry()}catch(e){if(e&&e.name==='NotFoundError')return;snd('err');toast('Printer: '+(e.message||e))}};
 A.prTest=()=>printTx({id:'TES',store:S.cfg.store,t:Date.now(),items:[{name:'Tes cetak WISMIR',qty:1,price:10000}],total:10000,method:'Tunai',paid:10000,change:0});
 A.prKick=()=>{if(!PRC().drawer)return toast('Buka laci otomatis sedang Tidak');kickDrawer()};
 A.sound=el=>{S.cfg.sound=el.dataset.v==='1';save();render();if(S.cfg.sound)snd('ok')};
@@ -1134,6 +1167,7 @@ setInterval(()=>{if(!document.hidden&&!flushing&&!pulling)kick(0)},60000);
 buildNav();render();fsUi();
 if(typeof navigator!=='undefined'&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 kick(800);
+prRetry(300); // printer: connect to the saved one as soon as the POS opens
 window.__wismir={get S(){return S}};
 })();
 </script>
