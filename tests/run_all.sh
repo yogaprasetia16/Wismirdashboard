@@ -15,5 +15,6 @@ start; run "dashboard Sync button animation" node dash_ui.js
 start; run "new dashboard + old Code.gs (no data loss)" node compat.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
+start; run "POS stock history: no sales, owner edits" node pos_stock.js
 stop
 echo; [ $fails -eq 0 ] && echo "EVERYTHING PASSED" || echo "$fails SUITE(S) FAILED"; exit $fails

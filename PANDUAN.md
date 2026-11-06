@@ -169,3 +169,11 @@ Yang tetap ada:
 - Pengaturan tablet (URL, PIN, printer, suara).
 
 Setelah itu, masukkan stok awal yang sebenarnya di tablet: **Stok → Masuk**. Kalau produk atau karyawan contoh sempat ikut masuk ke dashboard, hapus dari dashboard (Operational → Stock / Staff). Sekarang keduanya sudah bisa dihapus karena riwayat uji cobanya sudah hilang.
+
+## 10. Riwayat stok di tablet
+
+- **Stok → Riwayat** di tablet hanya menampilkan **Masuk, Keluar, Transfer, Rusak, dan Opname**, supaya tidak membingungkan karyawan. Penjualan tetap mengurangi stok, dan tetap terlihat di **dashboard → Operational → Stock → History**.
+- **Mengubah catatan stok** yang salah ketik (hanya dalam **mode owner**): ketuk **Ubah** di baris riwayat, lalu ganti **produk** dan/atau **jumlah**, lalu **Simpan perubahan**.
+  - Untuk **Opname**, yang diubah adalah **hasil hitung fisik**. Selisihnya dihitung ulang otomatis.
+  - Catatan yang diubah ditandai "diubah" beserta tanggal dan jamnya, jadi terlihat juga di dashboard.
+- Kalau catatan memang tidak seharusnya ada, pakai **Batalkan (void)**.
