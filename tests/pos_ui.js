@@ -67,20 +67,25 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const pid=await p.evaluate(()=>{const S=window.__wismir.S,id=S.products[0].id;S.prices[id]={150000:{n:5,t:1},175000:{n:3,t:2},200000:{n:2,t:3},250000:{n:1,t:4},99000:{n:1,t:5}};return id});
  await p.click('.pc[data-id="'+pid+'"]');await p.waitForTimeout(300);
  ok(await p.isVisible('#pchips'),'price chips are shown');
+ ok((await p.$$('#pchips .chip')).length===3,'at most 3 frequently used prices (5 in history)');
  const lay=await p.evaluate(()=>{const b=document.querySelector('[data-a=addLine]').getBoundingClientRect(),k=document.querySelector('.np').getBoundingClientRect(),sh=document.querySelector('#sheet').getBoundingClientRect();return{side:b.left>k.right,visible:b.bottom<=Math.min(innerHeight,sh.bottom)}});
  ok(lay.side,'"Tambah ke keranjang" sits beside the keypad, not below');
  ok(lay.visible,'… and is visible without scrolling, even with price chips');
  ok(await p.evaluate(()=>{const sh=document.querySelector('#sheet').getBoundingClientRect();return [...document.querySelectorAll('.pcr button,.pcr input')].every(e=>{const r=e.getBoundingClientRect();return r.left>=sh.left&&r.right<=sh.right})}),'quantity − / + and field fit inside the sheet');
  await p.screenshot({path:'price-sheet.png'});
  await p.click('#pchips .chip');await p.click('[data-a=addLine]');
- await p.click('[data-a=pay]');await p.click('[data-a=confirmPay]');await p.waitForTimeout(300);
+ await p.click('[data-a=pay]');
+ ok(!(await p.isVisible('#payBtn')),'no "Selesaikan transaksi" button for a single payment');
+ const cash=await p.$$eval('#pchips2 .chip',b=>b.map(x=>x.textContent));ok(cash.length<=3&&cash[0]==='Uang pas','at most 3 cash buttons: '+cash.join(', '));
+ await p.click('#pchips2 .chip >> nth=1');await p.waitForTimeout(300);
+ ok((await p.textContent('#sheet')).includes('Transaksi berhasil')&&(await p.textContent('#sheet')).includes('Kembalian'),'tapping a cash amount finishes the sale at once and shows the change');
  ok(await p.evaluate(()=>window.__snd.includes('tone')),'chime on completed sale');
  pr=await p.evaluate(()=>window.__printed.pop());
  ok(pr&&pr.slice(0,7).join()==='27,64,27,112,0,25,250','cash sale: receipt printed automatically and drawer opened first');
  await p.click('#sheet [data-a=x]');
  // non-cash sale: receipt but no drawer
  await p.click('.pc[data-id="'+pid+'"]');await p.click('#pchips .chip');await p.click('[data-a=addLine]');await p.click('[data-a=pay]');
- await p.click('[data-a=setMethod][data-m=Transfer]');await p.click('[data-a=confirmPay]');await p.waitForTimeout(300);
+ await p.click('[data-a=setMethod][data-m=Transfer]');await p.waitForTimeout(300);ok((await p.textContent('#sheet')).includes('Transaksi berhasil'),'tapping Transfer finishes the sale at once');
  pr=await p.evaluate(()=>window.__printed.pop());ok(pr&&!pr.slice(0,8).join().includes('27,112'),'transfer sale: receipt printed, drawer stays closed');
  await p.click('#sheet [data-a=x]');
  // cash in opens drawer

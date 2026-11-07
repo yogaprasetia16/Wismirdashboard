@@ -55,7 +55,7 @@ ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sh
  await A.click('[data-a=mvStart][data-m=in]');ok(!(await A.$('[data-a=mvNew]')),'stock form has no product creation');
  await A.selectOption('#mvP',pid);await A.selectOption('#mvT','Toko A');await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');await A.click('[data-a=mvSave]');
  await nav(A,'home');await A.click('[data-a=tgStaff]');await A.fill('#cashStart','0');await A.click('[data-a=openShift]');
- await A.click('.pc >> text=Gamis Navy');await A.fill('#pp','200000');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('[data-a=confirmPay]');await A.click('#sheet [data-a=x]');
+ await A.click('.pc >> text=Gamis Navy');await A.fill('#pp','200000');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('#pchips2 .chip');await A.click('#sheet [data-a=x]');
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');
  await until(async()=>(await rows('POS Kasir')).length===1&&(await rows('POS Stok')).length===2,10000,'close shift');
  ok(true,'shift + sale + stock still sync');
