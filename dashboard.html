@@ -570,7 +570,7 @@ function vStock(){
 }
 function vProducts(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
+  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button></div><div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
   <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
   <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Products hidden from the cashier stay here, dimmed.</div>`;
 }
@@ -587,6 +587,45 @@ function pFields(p={}){return[
 const skuTaken=(v,id)=>{const k=String(v.sku||'').trim().toLowerCase();return k&&S.products.some(x=>x.id!==id&&String(x.sku||'').trim().toLowerCase()===k)};
 const cleanP=v=>({...v,sku:String(v.sku||'').trim(),kategori:String(v.kategori||'').trim(),brand:String(v.brand||'').trim()});
 // low-stock alert: products keep their old minimum if they had one, new products use 3
+// ---------- import products pasted from a spreadsheet (copy the cells incl. the header row) ----------
+const IMPCOL={nama:/^(produk|product|products|nama|name|nama produk|product name|item)$/,kategori:/^(category|kategori|categories)$/,brand:/^(brand|merek|merk)$/,sku:/^(sku|kode|code|kode produk|item code)$/,cogs:/^(cogs|hpp|modal|harga pokok|cost|harga modal)$/};
+const IMPORDER=['nama','kategori','brand','sku','cogs'];
+// "75.000" / "75,000" / "Rp 75.000" -> 75000
+const impNum=v=>{v=String(v||'').replace(/rp/i,'').replace(/\s/g,'');if(/^\d{1,3}([.,]\d{3})+$/.test(v))v=v.replace(/[.,]/g,'');else v=v.replace(',','.');const n=parseFloat(v);return isNaN(n)?'':Math.round(n)};
+function impParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(!lines.length)return{map:{},rows:[]};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+  const head=cells[0].map(h=>h.toLowerCase().replace(/\s+/g,' ').trim()),map={};
+  head.forEach((h,i)=>{for(const k in IMPCOL)if(map[k]==null&&IMPCOL[k].test(h))map[k]=i});
+  let body=cells.slice(1);
+  if(map.nama==null){IMPORDER.forEach((k,i)=>map[k]=i);body=cells} // no header row: Product, Category, Brand, SKU, COGS
+  const seen=new Set(S.products.map(p=>String(p.sku||'').trim().toLowerCase()).filter(Boolean));
+  const rows=body.map(c=>{const g=k=>map[k]==null?'':String(c[map[k]]||'').trim();
+    const r={nama:g('nama'),kategori:g('kategori'),brand:g('brand'),sku:g('sku'),cogs:map.cogs==null?'':impNum(g('cogs'))},k=r.sku.toLowerCase();
+    r.st=!r.nama?'skip: no name':k&&seen.has(k)?'skip: SKU already exists':'new';if(r.st==='new'&&k)seen.add(k);return r});
+  return{map,rows};
+}
+function impPreview(){
+  const {map,rows}=impParse($('#imptext').value),nw=rows.filter(r=>r.st==='new');
+  const cols=IMPORDER.map(k=>`${{nama:'Product name',kategori:'Category',brand:'Brand',sku:'SKU',cogs:'COGS'}[k]}${map[k]==null?' <span class="neg">(not found)</span>':''}`).join(' · ');
+  $('#impprev').innerHTML=rows.length?`<div class="lbl" style="margin:4px 6px 8px">Columns: ${cols}</div><div class="card" style="max-height:260px;overflow:auto">${rows.slice(0,200).map(r=>`<div class="row" style="cursor:default${r.st!=='new'?';opacity:.5':''}"><div class="grow"><div class="t">${esc(r.nama||'(empty)')}</div><div class="lbl">${esc([r.kategori,r.brand,r.sku?'SKU '+r.sku:''].filter(Boolean).join(' · '))}${r.st!=='new'?' · '+esc(r.st):''}</div></div><b>${r.cogs!==''?rp(r.cogs):''}</b></div>`).join('')}</div>`:'';
+  const b=$('#impgo');b.textContent=nw.length?`Import ${nw.length} product${nw.length===1?'':'s'}`:'Nothing to import yet';b.disabled=!nw.length;b.style.opacity=nw.length?'':'.5';
+}
+function importSheet(){
+  closePop();
+  $('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Import products</h3><div class="lbl" style="margin:-8px 6px 12px">In your spreadsheet, select the cells (with the header row: Product, Category, Brand, SKU, COGS), copy, and paste them here. Products whose SKU already exists are skipped.</div>
+  <div class="f"><textarea id="imptext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="impprev"></div>
+  <div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="impgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  $('#imptext').oninput=impPreview;$('#no').onclick=close;
+  $('#impgo').onclick=()=>{const nw=impParse($('#imptext').value).rows.filter(r=>r.st==='new');if(!nw.length)return;
+    nw.forEach(r=>S.products.push({id:uid(),nama:r.nama,kategori:r.kategori,brand:r.brand,sku:r.sku,cogs:r.cogs,min:3,aktif:'Active'}));
+    close();tab='ops';ops='stock';stv='list';save();
+    setStatus('Imported '+nw.length+' products');};
+  $('#bg').classList.add('open');setTimeout(()=>$('#imptext').focus(),50);
+}
 function addProduct(){form('New product',pFields(),v=>{if(skuTaken(v))return err('This SKU is already used by another product.'),false;S.products.push({id:uid(),min:3,...cleanP(v)});save()})}
 // The bottom button: Delete for a product without store history; otherwise hide it from the POS cashier (history keeps its name), or show it again
 function editProduct(id){const p=S.products.find(x=>x.id===id),hist=P('stok').some(x=>String(x.pid)===id)||P('produk').some(x=>String(x.id)===id);
