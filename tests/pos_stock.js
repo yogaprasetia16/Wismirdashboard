@@ -28,7 +28,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  // stock in 10 Gamis A, sell 2, close shift
  await nav(A,'stock');await A.click('[data-a=mvStart][data-m=in]');await A.selectOption('#mvP',ids['Gamis A']);await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');await A.click('[data-a=mvSave]');
  await nav(A,'home');await A.click('[data-a=tgStaff]');await A.fill('#cashStart','0');await A.click('[data-a=openShift]');
- await A.click('.pc[data-id="'+ids['Gamis A']+'"]');await A.fill('#pp','100000');await A.fill('#pq','2');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('#pchips2 .chip');await A.click('#sheet [data-a=x]');
+ await A.click('.pc[data-id="'+ids['Gamis A']+'"]');await A.fill('#pp','100000');await A.fill('#pq','2');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('[data-a=setMethod][data-m=Tunai]');await A.click('#sheet [data-a=x]');
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');
  await until(async()=>(await dump())['POS Stok'].v.length===3,10000,'moves synced');
  await nav(A,'stock');

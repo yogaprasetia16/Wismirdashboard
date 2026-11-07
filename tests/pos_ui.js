@@ -76,12 +76,20 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await p.click('#pchips .chip');await p.click('[data-a=addLine]');
  await p.click('[data-a=pay]');
  ok(!(await p.isVisible('#payBtn')),'no "Selesaikan transaksi" button for a single payment');
- const cash=await p.$$eval('#pchips2 .chip',b=>b.map(x=>x.textContent));ok(cash.length<=3&&cash[0]==='Uang pas','at most 3 cash buttons: '+cash.join(', '));
- await p.click('#pchips2 .chip >> nth=1');await p.waitForTimeout(300);
+ const cash=await p.$$eval('#pchips2 .chip',b=>b.map(x=>x.textContent));ok(cash.length>0&&cash.length<=3&&!cash.some(c=>/pas/i.test(c)),'at most 3 cash buttons, only amounts above the total (no "Uang pas"): '+cash.join(', '));
+ ok(await p.evaluate(()=>!document.querySelector('#mchips .mc.on')),'no payment method looks pre-selected');
+ await p.click('#pchips2 .chip >> nth=0');await p.waitForTimeout(300);
  ok((await p.textContent('#sheet')).includes('Transaksi berhasil')&&(await p.textContent('#sheet')).includes('Kembalian'),'tapping a cash amount finishes the sale at once and shows the change');
  ok(await p.evaluate(()=>window.__snd.includes('tone')),'chime on completed sale');
  pr=await p.evaluate(()=>window.__printed.pop());
  ok(pr&&pr.slice(0,7).join()==='27,64,27,112,0,25,250','cash sale: receipt printed automatically and drawer opened first');
+ await p.click('#sheet [data-a=x]');
+ // exact cash: tapping Tunai alone finishes the sale (uang pas), drawer opens
+ await p.click('.pc[data-id="'+pid+'"]');await p.click('#pchips .chip');await p.click('[data-a=addLine]');await p.click('[data-a=pay]');
+ await p.click('[data-a=setMethod][data-m=Tunai]');await p.waitForTimeout(300);
+ const lt=await p.evaluate(()=>{const S=window.__wismir.S,t=S.txs[S.txs.length-1];return t.method+'|'+(t.paid===t.total)+'|'+t.change});
+ ok((await p.textContent('#sheet')).includes('Transaksi berhasil')&&lt==='Tunai|true|0','tapping Tunai = exact cash, sale finished at once: '+lt);
+ pr=await p.evaluate(()=>window.__printed.pop());ok(pr&&pr.slice(0,7).join()==='27,64,27,112,0,25,250','exact cash sale also opens the drawer');
  await p.click('#sheet [data-a=x]');
  // non-cash sale: receipt but no drawer
  await p.click('.pc[data-id="'+pid+'"]');await p.click('#pchips .chip');await p.click('[data-a=addLine]');await p.click('[data-a=pay]');
