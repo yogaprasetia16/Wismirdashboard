@@ -363,7 +363,7 @@ function applyMaster(d){
   if(JSON.stringify(out)!==JSON.stringify(arr))ch=true;
   return out;
  };
- S.products=sync(d.Stok,S.products,'POS Produk',r=>({id:s0(r.id),name:s0(r.nama)+(s0(r.varian)?' · '+s0(r.varian):''),category:s0(r.kategori),active:!OFF(r.aktif)}));
+ S.products=sync(d.Stok,S.products,'POS Produk',r=>({id:s0(r.id),name:s0(r.nama)+(s0(r.varian)?' · '+s0(r.varian):''),category:s0(r.kategori),brand:s0(r.brand),active:!OFF(r.aktif)}));
  S.staff=sync(d.Staff,S.staff,'POS Karyawan',r=>({id:s0(r.id),name:s0(r.name),active:!OFF(r.aktif)}));
  if(Array.isArray(d.Store)){
   const nm=t=>Array.from(new Set(d.Store.filter(r=>s0(r.type)===t).map(r=>s0(r.name).trim()).filter(Boolean)));
@@ -615,12 +615,14 @@ function viewPos(){
   '<section class="panel cartp" id="cartp"></section></div>'+(q?'<button class="cartbar" data-a="toCart"><span>'+q+' item</span><span>'+rp(cartTotal())+' · Lihat keranjang</span></button>':'');
 }
 const CATIC={semua:'all',abaya:'abaya',gamis:'gamis',hijab:'hijab',koko:'koko',mukena:'mukena',sarung:'sarung'};
-function renderCats(){const cats=['Semua'].concat(Array.from(new Set(activeProducts().map(p=>p.category||'Lainnya'))).sort());if(cats.indexOf(posCat)<0)posCat='Semua';$('#cats').innerHTML=cats.map(x=>'<button class="ci'+(x===posCat?' on':'')+'" data-a="cat" data-c="'+esc(x)+'" title="'+esc(x)+'" aria-label="'+esc(x)+'">'+svg(CATIC[x.toLowerCase()]||'tag')+'</button>').join('')}
+const cap=t=>{t=String(t||'');return t.charAt(0).toUpperCase()+t.slice(1)}; // 'gamis' -> 'Gamis' for display
+const brands=()=>Array.from(new Set(activeProducts().map(p=>String(p.brand||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+function renderCats(){const cats=['Semua'].concat(Array.from(new Set(activeProducts().map(p=>p.category||'Lainnya'))).sort());if(cats.indexOf(posCat)<0)posCat='Semua';$('#cats').innerHTML=cats.map(x=>'<button class="'+(x===posCat?'on':'')+'" data-a="cat" data-c="'+esc(x)+'">'+esc(cap(x))+'</button>').join('')}
 function renderGrid(){
  const av=availMap(S.cfg.store);
  const inCart={};S.cart.forEach(c=>inCart[c.pid]=(inCart[c.pid]||0)+c.qty);
  const list=activeProducts().filter(p=>(posCat==='Semua'||(p.category||'Lainnya')===posCat));
- $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';return '<button class="pc" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span><span class="pm"><span class="pill">'+esc(p.category||'Lainnya')+'</span></span></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">'+(activeProducts().length?'Produk tidak ditemukan.':'Belum ada produk.<br>Tambahkan di dashboard: Operational → Stock.')+'</div>';
+ $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';return '<button class="pc" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span><span class="pm">'+(p.brand?'<span class="pill warn">'+esc(cap(p.brand))+'</span>':'<span></span>')+'<span class="pill">'+esc(cap(p.category||'Lainnya'))+'</span></span></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">'+(activeProducts().length?'Produk tidak ditemukan.':'Belum ada produk.<br>Tambahkan di dashboard: Operational → Stock.')+'</div>';
 }
 function renderCart(){
  const c=S.cart;const rows=c.map(l=>'<div class="cl"><div class="grow" data-a="editLine" data-k="'+l.k+'" style="cursor:pointer"><div class="t">'+esc(l.name)+'</div><div class="lbl">'+rp(l.price)+' / pcs</div></div><div class="stk"><button data-a="qm" data-k="'+l.k+'" aria-label="Kurangi">−</button><b>'+l.qty+'</b><button data-a="qp" data-k="'+l.k+'" aria-label="Tambah">+</button></div><div class="lv">'+rp(l.price*l.qty)+'</div></div>').join('');
@@ -720,15 +722,18 @@ function mvDefaults(mode){
 }
 function mvOpen(pid,mode){
  mode=mode||(MV&&MV.mode)||'in';const d=mvDefaults(mode);
- MV=Object.assign({mode:mode,pid:pid||'',qty:'',note:'',pin:'',needPin:false,err:'',step:'form'},d);mvRender();
+ const bs=brands(),p=pid&&prod(pid),def=bs.find(b=>/karmila/i.test(b))||'';
+ MV=Object.assign({mode:mode,pid:pid||'',brand:p?String(p.brand||''):def,qty:'',note:'',pin:'',needPin:false,err:'',step:'form'},d);mvRender();
 }
 function mvTone(m){const t=m.mode==='in'?'in':m.mode==='out'?'out':'';if(t)$('#sheet').dataset.tone=t}
 function mvRender(){
  const m=MV,ps=activeProducts();
  const modes=[['in','Masuk'],['tf','Transfer'],['loss','Rusak/Hilang'],['opname','Opname']];
  let h='<h3>'+({in:'Stok masuk',out:'Stok keluar (retur)',tf:'Transfer stok',loss:'Rusak / hilang',opname:'Opname stok'}[m.mode]||'Pergerakan stok')+'</h3>';
- if(m.step==='confirm')return mvConfirm();
-  h+='<div class="f"><label>Produk</label>'+selHtml('mvP',[['','Pilih produk…']].concat(ps.map(p=>[p.id,p.name])),m.pid,'data-ch="mv"')+'</div>';
+  const bs=brands(),inB=p=>!m.brand||String(p.brand||'')===m.brand,pl=ps.filter(inB);
+  if(m.pid&&!pl.some(p=>p.id===m.pid))m.pid='';
+  h+='<div class="pcols"><div class="pcl"><div class="row2" style="margin-bottom:10px"><div class="f" style="flex:1;margin:0;min-width:0"><label>Brand</label>'+selHtml('mvB',[['','Semua brand']].concat(bs.map(b=>[b,cap(b)])),m.brand,'data-ch="mvb"')+'</div>'+
+   '<div class="f" style="flex:2;margin:0;min-width:0"><label>Produk</label>'+selHtml('mvP',[['','Pilih produk…']].concat(pl.map(p=>[p.id,p.name])),m.pid,'data-ch="mv"')+'</div></div>';
  if(m.mode==='opname'){
   h+='<div class="f"><label>Lokasi</label>'+selHtml('mvF',MYLOCS().map(l=>[l,l]),m.from,'data-ch="mv"')+'</div>';
  }else{
@@ -736,13 +741,15 @@ function mvRender(){
   const to=m.mode==='tf'?LOCS().map(l=>[l,l]):m.mode==='in'?MYLOCS().map(l=>[l,l]):m.mode==='out'?[['Supplier','Supplier'],['Konveksi','Konveksi']]:[['Rusak/Hilang','Rusak/Hilang']];
   h+='<div class="row2" style="margin-bottom:10px"><div class="f" style="flex:1;margin:0"><label>Dari</label>'+selHtml('mvF',fo,m.from,'data-ch="mv"')+'</div><div class="f" style="flex:1;margin:0"><label>Ke</label>'+selHtml('mvT',to,m.to,'data-ch="mv"')+'</div></div>';
  }
- h+='<div class="f"><label>'+(m.mode==='opname'?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="mvQ" class="big" inputmode="none" data-np data-max="5" placeholder="0" data-in="mvq" value="'+esc(m.qty)+'" data-focus></div><div class="note" id="mvHint"></div>'+npHtml(false);
- h+='<div class="err" id="err">'+esc(m.err)+'</div><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvNext" data-enter>Lanjut</button>';
- openSheet(h,false);mvTone(m);mvHint();
+ h+=npHtml(false)+'</div>'+
+  // right column: quantity, stock info and the Save button (big, away from the edge of the sheet)
+  '<div class="pcr"><div class="f"><label>'+(m.mode==='opname'?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="mvQ" class="big" inputmode="none" data-np data-max="5" placeholder="0" data-in="mvq" value="'+esc(m.qty)+'" data-focus></div><div class="note" id="mvHint"></div>'+
+  '<div class="err" id="err">'+esc(m.err)+'</div><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvNext" data-enter style="padding:18px 16px;font-size:16px">Simpan</button></div></div>';
+ openSheet(h,false,true);mvTone(m);mvHint();
 }
 function mvRead(){
  if(!MV||MV.step!=='form')return;const g=id=>{const e=$('#'+id);return e?e.value:null};
- const p=g('mvP');if(p!==null)MV.pid=p;const f=g('mvF');if(f!==null)MV.from=f;const t=g('mvT');if(t!==null)MV.to=t;
+ const b=g('mvB');if(b!==null)MV.brand=b;const p=g('mvP');if(p!==null)MV.pid=p;const f=g('mvF');if(f!==null)MV.from=f;const t=g('mvT');if(t!==null)MV.to=t;
  const q=g('mvQ');if(q!==null)MV.qty=q;const n=g('mvN');if(n!==null)MV.note=n;const pin=g('mvPin');if(pin!==null)MV.pin=pin;
 }
 function mvHint(){
@@ -751,15 +758,8 @@ function mvHint(){
  if(MV.mode==='opname'){const s=availMap(MV.from)[MV.pid]||0;const d=q-s;e.innerHTML='Stok sistem di '+esc(MV.from)+': <b>'+s+'</b>'+(MV.qty!==''?' · Selisih: <b class="'+(d<0?'neg':d>0?'pos':'')+'">'+(d>0?'+':'')+d+'</b>':'');return}
  let t='';if(REAL(MV.from))t+='Stok '+MV.from+': <b>'+(availMap(MV.from)[MV.pid]||0)+'</b>';
  if(REAL(MV.to)){const s=(availMap(MV.to)[MV.pid]||0);t+=(t?' · ':'')+'Stok '+MV.to+': <b>'+s+'</b>'}
+ if(REAL(MV.from)&&MV.mode!=='in'){const av=availMap(MV.from)[MV.pid]||0,after=av-q;if(q>0&&after<0)t+='<div class="neg" style="margin-top:6px;font-weight:600">Stok '+esc(MV.from)+' akan menjadi '+after+'. Pastikan jumlahnya benar.</div>'}
  e.innerHTML=t;
-}
-function mvConfirm(){
- const m=MV;let s;
- if(m.mode==='opname'){const sys=availMap(m.from)[m.pid]||0,c=num(m.qty),d=c-sys;s='<b>'+esc(pname(m.pid))+'</b><br>Opname di '+esc(m.from)+': sistem '+sys+' → fisik '+c+' (selisih '+(d>0?'+':'')+d+')'}
- else{s='<b>'+esc(pname(m.pid))+'</b><br>'+num(m.qty)+' pcs · '+esc(m.from)+' → '+esc(m.to)+(m.note?'<br>Catatan: '+esc(m.note):'');
-  // stock may go below zero (allowed, no PIN): say so, so a typo is still noticed
-  if(REAL(m.from)){const av=availMap(m.from)[m.pid]||0,after=av-num(m.qty);if(after<0)s+='<div class="neg" style="margin-top:8px;font-weight:600">Stok '+esc(m.from)+' akan menjadi '+after+' (sekarang '+av+'). Pastikan jumlahnya benar.</div>'}}
- openSheet('<h3>Cek sebelum simpan</h3><div class="card" style="padding:16px;line-height:1.7">'+s+'</div><div class="err" id="err"></div><div class="row2"><button class="btn sec" data-a="mvBack">Kembali</button><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvSave" data-enter>Simpan</button></div>',false);mvTone(m);
 }
 
 /* --- Owner --- */
@@ -977,8 +977,8 @@ A.mvRow=el=>mvOpen(el.dataset.id,'tf');
 A.mvStart=el=>mvOpen('',el.dataset.m);
 A.mvMode=el=>{mvRead();const keep=MV.pid;mvOpen(keep,el.dataset.m)};
 C.mv=()=>{mvRead();mvHint()};
+C.mvb=()=>{mvRead();MV.pid='';mvRender()};
 I.mvq=()=>mvHint();
-A.mvBack=()=>{MV.step='form';mvRender()};
 A.mvNext=()=>{
  mvRead();const m=MV;m.err='';
  const fail=msg=>{m.err=msg;mvRender();snd('err')};
@@ -990,7 +990,7 @@ A.mvNext=()=>{
   if(m.from===m.to)return fail('Asal dan tujuan tidak boleh sama.');
   if(!ownerOK&&m.mode==='tf'&&m.from!==S.cfg.store&&m.to!==S.cfg.store)return fail('Transfer harus melibatkan '+S.cfg.store+'. Untuk lokasi lain, gunakan mode owner.');
  }
- m.step='confirm';mvRender();
+ A.mvSave(); // saved straight away, no check screen (owner's decision 2026-11-07)
 };
 A.mvSave=()=>{
  const m=MV,now=Date.now(),q=num(m.qty);const by=S.cfg.store;
