@@ -647,11 +647,11 @@ function updPrice(){const v=num($('#pp').value);SC.price=v;$('#ptot').textConten
 const MICON={Tunai:'cash',Transfer:'swap',EDC:'card'};
 function payHtml(){
  const total=cartTotal();
- const r=[total];[50000,100000,500000,1000000].forEach(x=>{const v=Math.ceil(total/x)*x;if(v>total&&r.indexOf(v)<0)r.push(v)});
+ const r=[];[50000,100000,500000,1000000].forEach(x=>{const v=Math.ceil(total/x)*x;if(v>total&&r.indexOf(v)<0)r.push(v)});
  return '<h3>Pembayaran</h3><div class="tot" style="padding-top:0"><span>Total</span><b>'+rp(total)+'</b></div>'+
   '<div style="display:flex;align-items:center;justify-content:space-between"><div class="sub" style="margin:0 2px 8px">Metode</div><button class="chip" id="splitBtn" data-a="splitToggle" style="margin-bottom:6px">Split payment</button></div>'+
-  '<div id="single"><div class="mgrid" id="mchips">'+METHODS.map(m=>'<button class="mc'+(PAY.method===m?' on':'')+'" data-a="setMethod" data-m="'+m+'">'+svg(MICON[m])+'<span>'+m+'</span></button>').join('')+'</div>'+
-  '<div id="cashBox"><div class="sub" style="margin:4px 2px 8px">Uang diterima · ketuk untuk menyelesaikan</div><div class="chips" id="pchips2">'+r.slice(0,3).map((v,i)=>'<button class="chip" data-a="setPaid" data-v="'+v+'">'+(i===0?'Uang pas':rp(v))+'</button>').join('')+'</div><div class="tot" style="display:none"><span id="chlbl"></span><b id="chv"></b></div></div></div>'+
+  '<div id="single"><div class="mgrid" id="mchips">'+METHODS.map(m=>'<button class="mc" data-a="setMethod" data-m="'+m+'">'+svg(MICON[m])+'<span>'+m+'</span>'+(m==='Tunai'?'<small style="font-size:11.5px;font-weight:500;opacity:.7;margin-top:-4px">uang pas</small>':'')+'</button>').join('')+'</div>'+
+  '<div id="cashBox"><div class="sub" style="margin:4px 2px 8px">Tunai, uang lebih (ada kembalian)</div><div class="chips" id="pchips2">'+r.slice(0,3).map(v=>'<button class="chip" data-a="setPaid" data-v="'+v+'">'+rp(v)+'</button>').join('')+'</div><div class="tot" style="display:none"><span id="chlbl"></span><b id="chv"></b></div></div></div>'+
   '<div id="splitBox" style="display:none">'+METHODS.map(m=>'<div class="f"><label>'+m+'</label><div class="row2" style="align-items:center"><input id="sp_'+m+'" inputmode="none" data-np data-in="money" data-sp="'+m+'" placeholder="0" style="flex:1;min-width:0;font-size:20px;font-weight:700"><button class="chip" style="flex:none;white-space:nowrap" data-a="spRest" data-m="'+m+'">Sisa</button></div></div>').join('')+npHtml(true)+'<div class="tot"><span id="splbl"></span><b id="spv"></b></div></div>'+
   '<div class="err" id="err"></div><button class="btn go" id="payBtn" data-a="confirmPay" data-enter style="display:none">Selesaikan transaksi</button>';
 }
@@ -939,7 +939,8 @@ A.clearCart=el=>twoTap(el,'Yakin?',()=>{S.cart=[];save();renderGrid();renderCart
 A.toCart=()=>{const c=$('#cartp');if(c)c.scrollIntoView({behavior:'smooth',block:'start'})};
 A.pay=()=>{if(!S.cart.length)return;PAY={method:'Tunai',paid:cartTotal(),split:false,sp:{Tunai:0,Transfer:0,EDC:0}};openSheet(payHtml(),false);updPaid()};
 // Transfer / EDC: tapping the method finishes the sale right away; Tunai shows the cash buttons (tap one = done)
-A.setMethod=el=>{PAY.method=el.dataset.m;$$('#mchips .mc').forEach(c=>c.classList.toggle('on',c.dataset.m===PAY.method));if(PAY.method!=='Tunai'){PAY.paid=cartTotal();A.confirmPay();return}updPaid()};
+// tapping a method finishes the sale: Tunai = exact cash (uang pas), Transfer / EDC = the total
+A.setMethod=el=>{PAY.method=el.dataset.m;PAY.paid=cartTotal();A.confirmPay()};
 A.splitToggle=()=>{PAY.split=!PAY.split;$('#single').style.display=PAY.split?'none':'';$('#splitBox').style.display=PAY.split?'':'none';$('#payBtn').style.display=PAY.split?'':'none';$('#splitBtn').classList.toggle('on',PAY.split);err('');if(PAY.split){updSplit();const f=$('#sp_Tunai');if(f)f.focus()}else updPaid()};
 A.spRest=el=>{const m=el.dataset.m;const others=sum(METHODS.filter(x=>x!==m),x=>PAY.sp[x]||0);const v=Math.max(0,cartTotal()-others);PAY.sp[m]=v;$('#sp_'+m).value=v?dot(v):'';updSplit()};
 A.setPaid=el=>{PAY.method='Tunai';PAY.paid=+el.dataset.v;A.confirmPay()};
