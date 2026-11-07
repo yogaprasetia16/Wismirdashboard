@@ -2,7 +2,7 @@
 // Usage: const sample=require('./pos-sample'); localStorage['wismir_pos_v1']=JSON.stringify(sample())
 module.exports=function sample(){
   const P=[["Gamis Syar'i Navy",'Gamis'],['Gamis Polos Hitam','Gamis'],['Gamis Brokat Maroon','Gamis'],['Khimar Instan Cream','Hijab'],['Pashmina Ceruty Sage','Hijab'],
-    ['Hijab Segi Empat Voal','Hijab'],['Abaya Dubai Mocha','Abaya'],['Koko Pria Putih','Koko'],['Mukena Katun Jepang','Mukena'],['Sarung Tenun Premium','Sarung']];
+    ['Hijab Segi Empat Voal','Hijab'],['Tunik Linen Sage','Atasan'],['Kemeja Koko Putih','Atasan'],['Rok Plisket Mocca','Bawahan'],['Oneset Rayon Dusty','Oneset']];
   const t=Date.now()-86400000,products=[],moves=[];
   P.forEach((p,i)=>{const id='PS'+i;products.push({id,name:p[0],category:p[1],active:true});
     [['Gudang',40+i],['Toko A',8+i%4],['Toko B',6+i%3]].forEach((x,k)=>moves.push({id:'MS'+i+'_'+k,t,pid:id,from:'Supplier',to:x[0],qty:x[1],by:'Sampel',note:'Stok sampel',status:'ok',kind:'manual'}))});

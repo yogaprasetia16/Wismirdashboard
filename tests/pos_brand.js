@@ -1,4 +1,4 @@
-// POS: category filter shows names, product cards show brand (left) + category (right),
+// POS: category filter shows names, product cards show the brand and a colour per category (no category pill),
 // stock form has a Brand picker (default Karmila) and saves with one tap on "Simpan" (no check screen).
 const {chromium,devices}=require('playwright');
 let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
@@ -13,10 +13,13 @@ S0.products.forEach((p,i)=>{p.brand=i%2?'wismir':'karmila';p.category=p.category
  const cats=await p.$$eval('#cats button',b=>b.map(x=>x.textContent+(x.querySelector('svg')?'[icon]':'')));
  ok(cats[0]==='Semua'&&cats.includes('Gamis')&&cats.includes('Hijab')&&!cats.some(c=>c.includes('[icon]')),'category filter shows names, no icons: '+cats.join(', '));
  await p.click('#cats button >> text=Hijab');
- ok((await p.$$eval('#grid .pc',b=>b.map(x=>x.textContent))).every(t=>t.includes('Hijab')),'tapping a category name filters the products');
+ const hij=await p.evaluate(()=>window.__wismir.S.products.filter(x=>x.category==='hijab').map(x=>x.id).sort().join());
+ ok((await p.$$eval('#grid .pc',b=>b.map(x=>x.dataset.id).sort().join()))===hij,'tapping a category name filters the products');
  await p.click('#cats button >> text=Semua');
- const pm=await p.$eval('#grid .pc .pm',e=>[...e.children].map(c=>c.textContent+'@'+Math.round(c.getBoundingClientRect().left)));
- ok(pm.length===2&&/^(Karmila|Wismir)@/.test(pm[0])&&+pm[0].split('@')[1]<+pm[1].split('@')[1],'product card: brand on the left, category on the right: '+pm.join(' | '));
+ const pm=await p.$eval('#grid .pc .pm',e=>[...e.children].map(c=>c.textContent));
+ ok(pm.length===1&&/^(Karmila|Wismir)$/.test(pm[0]),'product card: only the brand pill, no category pill: '+pm.join(' | '));
+ const col=await p.evaluate(()=>{const o={};window.__wismir.S.products.forEach(x=>{const e=document.querySelector('#grid .pc[data-id="'+x.id+'"]');o[x.category]=getComputedStyle(e).backgroundColor});return o});
+ ok(col.atasan==='rgb(226, 236, 250)'&&col.gamis==='rgb(253, 242, 204)'&&col.bawahan==='rgb(251, 225, 220)'&&col.oneset==='rgb(236, 226, 247)'&&col.hijab==='rgb(255, 255, 255)','card colour per category: Atasan blue, Gamis yellow, Bawahan red, Oneset purple, others white '+JSON.stringify(col));
  await p.screenshot({path:'kasir-brand.png'});
  // ---- Stok: brand picker + one-tap Simpan ----
  await p.tap('#menuBtn');await p.tap('#menu [data-t=stock]');await p.waitForTimeout(300);
@@ -32,6 +35,8 @@ S0.products.forEach((p,i)=>{p.brand=i%2?'wismir':'karmila';p.category=p.category
  ok(opts2.length===wis.length&&opts2.every(v=>wis.includes(v)),'switching to Wismir shows only Wismir products');
  const lay=await p.evaluate(()=>{const b=document.querySelector('[data-a=mvNext]'),k=document.querySelector('#sheet .np');return{txt:b.textContent,side:b.getBoundingClientRect().left>k.getBoundingClientRect().right}});
  ok(lay.txt==='Simpan'&&lay.side,'button says "Simpan" and sits beside the keypad');
+ const bg=await p.evaluate(()=>{const e=document.querySelector('#sheet');return [getComputedStyle(e).backgroundColor,e.dataset.tone||'',getComputedStyle(document.querySelector('[data-a=mvNext]')).backgroundColor]});
+ ok(bg[0]==='rgb(247, 249, 249)'&&!bg[1]&&bg[2]==='rgb(46, 107, 79)','stock-in form: plain sheet background, green Simpan '+bg.join(' '));
  await p.selectOption('#mvP',wis[0]);await p.fill('#mvQ','5');await p.click('[data-a=mvNext]');await p.waitForTimeout(250);
  ok(!(await p.isVisible('#sheet'))&&(await p.textContent('#sheet'))==='','Simpan saves at once: no check screen, form closed');
  const last=await p.evaluate(()=>{const S=window.__wismir.S,m=S.moves[S.moves.length-1];return [S.moves.length,m.pid,m.qty,m.to].join('|')});
@@ -40,6 +45,9 @@ S0.products.forEach((p,i)=>{p.brand=i%2?'wismir':'karmila';p.category=p.category
  await p.click('[data-a=sview][data-v=stock]');await p.click('[data-a=mvRow][data-id="'+kar[0]+'"]');await p.waitForTimeout(150);
  ok(await p.$eval('#mvB',e=>e.value)==='karmila'&&await p.$eval('#mvP',e=>e.value)===kar[0],'opening from a product keeps that product and its brand');
  await p.screenshot({path:'stock-form.png'});
+ await p.click('#sheet [data-a=x]');await p.click('[data-a=mvStart][data-m=out]');await p.waitForTimeout(150);
+ const bo=await p.evaluate(()=>[getComputedStyle(document.querySelector('#sheet')).backgroundColor,getComputedStyle(document.querySelector('[data-a=mvNext]')).backgroundColor]);
+ ok(bo[0]==='rgb(247, 249, 249)'&&bo[1]==='rgb(200, 68, 47)','stock-out form: plain sheet background, red Simpan '+bo.join(' '));
  ok(errs.length===0,'no page errors '+errs.join(';'));
  await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0);
 })().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
