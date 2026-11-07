@@ -17,6 +17,7 @@ start; run "dashboard import products from a spreadsheet" node dash_import.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js
+start; run "POS brand + category names, one-tap Simpan" node pos_brand.js
 start; run "POS printer over Bluetooth LE (no Web Serial)" node pos_ble.js
 start; run "POS printer auto-connect" node pos_autoconnect.js
 stop

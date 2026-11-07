@@ -53,7 +53,7 @@ ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sh
  ok(!(await A.$('[data-a=mvNew]')),'no "+ Produk baru" shortcut in the stock form');
  const pid=await A.evaluate(()=>window.__wismir.S.products.find(p=>p.name.startsWith('Gamis')).id);
  await A.click('[data-a=mvStart][data-m=in]');ok(!(await A.$('[data-a=mvNew]')),'stock form has no product creation');
- await A.selectOption('#mvP',pid);await A.selectOption('#mvT','Toko A');await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');await A.click('[data-a=mvSave]');
+ await A.selectOption('#mvP',pid);await A.selectOption('#mvT','Toko A');await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');
  await nav(A,'home');await A.click('[data-a=tgStaff]');await A.fill('#cashStart','0');await A.click('[data-a=openShift]');
  await A.click('.pc >> text=Gamis Navy');await A.fill('#pp','200000');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('[data-a=setMethod][data-m=Tunai]');await A.click('#sheet [data-a=x]');
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');

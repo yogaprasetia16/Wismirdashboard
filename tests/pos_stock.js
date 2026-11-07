@@ -26,7 +26,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const stock=(pid)=>A.evaluate(id=>{const S=window.__wismir.S;let n=0;S.moves.forEach(m=>{if(m.status==='void'||m.pid!==id)return;if(m.to==='Toko A')n+=m.qty;if(m.from==='Toko A')n-=m.qty});return n},pid);
  await A.click('[data-a=ownerOff]');
  // stock in 10 Gamis A, sell 2, close shift
- await nav(A,'stock');await A.click('[data-a=mvStart][data-m=in]');await A.selectOption('#mvP',ids['Gamis A']);await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');await A.click('[data-a=mvSave]');
+ await nav(A,'stock');await A.click('[data-a=mvStart][data-m=in]');await A.selectOption('#mvP',ids['Gamis A']);await A.fill('#mvQ','10');await A.click('[data-a=mvNext]');
  await nav(A,'home');await A.click('[data-a=tgStaff]');await A.fill('#cashStart','0');await A.click('[data-a=openShift]');
  await A.click('.pc[data-id="'+ids['Gamis A']+'"]');await A.fill('#pp','100000');await A.fill('#pq','2');await A.click('[data-a=addLine]');await A.click('[data-a=pay]');await A.click('[data-a=setMethod][data-m=Tunai]');await A.click('#sheet [data-a=x]');
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');
@@ -42,16 +42,16 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await A.click('[data-a=mvEdit]');await A.selectOption('#emP',ids['Hijab B']);await A.click('[data-a=mvEditSave]');
  ok(await stock(ids['Hijab B'])===7&&await stock(ids['Gamis A'])===-2,'product edited: Hijab B gets the 7, Gamis A only has the sale');
  // opname on Hijab B: count 5 (system 7) -> -2; then the count was really 9 -> +2
- await A.click('[data-a=mvStart][data-m=opname]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','5');await A.click('[data-a=mvNext]');await A.click('[data-a=mvSave]');
+ await A.click('[data-a=mvStart][data-m=opname]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','5');await A.click('[data-a=mvNext]');
  ok(await stock(ids['Hijab B'])===5,'opname: counted 5');
  await A.click('[data-a=mvEdit] >> nth=0');
  ok((await A.textContent('#emHint')).includes('7'),'opname edit shows system stock without this record (7)');
  await A.fill('#emQ','9');await A.click('[data-a=mvEditSave]');
  ok(await stock(ids['Hijab B'])===9,'opname edited to a count of 9: stock is 9');
  // stock out of more than there is: no owner PIN, only a warning
- await A.click('[data-a=mvStart][data-m=out]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','12');await A.click('[data-a=mvNext]');
- ok(!(await A.$('#mvPin'))&&(await A.textContent('#sheet')).includes('akan menjadi -3'),'stock out below zero: no PIN asked, warning "akan menjadi -3" shown');
- await A.click('[data-a=mvSave]');ok(await stock(ids['Hijab B'])===-3,'saved: stock is -3');
+ await A.click('[data-a=mvStart][data-m=out]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','12');
+ ok(!(await A.$('#mvPin'))&&(await A.textContent('#sheet')).includes('akan menjadi -3'),'stock out below zero: no PIN asked, warning "akan menjadi -3" shown in the form');
+ await A.click('[data-a=mvNext]');ok(await stock(ids['Hijab B'])===-3,'saved: stock is -3');
  // edits reach the Sheet and the dashboard history
  await until(async()=>{const r=(await dump())['POS Stok'].v;const h=r[0];return r.slice(1).some(x=>x[h.indexOf('catatan')].includes('diubah')&&x[h.indexOf('produk')]==='Hijab B'&&x[h.indexOf('qty')]===7)},10000,'edit synced');
  ok(true,'edited move is updated in the POS Stok sheet (same row, marked "diubah")');
