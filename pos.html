@@ -87,7 +87,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .row:last-child{border:0}
 .row .v{font-weight:700;font-size:14px;text-align:right;white-space:nowrap}
 .pos{color:var(--green)}.neg{color:var(--red)}.zero{color:var(--mute)}
-.void .t,.void .v{text-decoration:line-through;color:var(--mute)}
+.void .t,.void .v,.void .lbl{text-decoration:line-through;color:var(--mute)}
 .chk{width:26px;height:26px;border-radius:50%;border:1.5px solid #b8c0c4;background:var(--card);flex:none;color:#fff;font-size:14px;line-height:23px;text-align:center}.chk.on{background:var(--green);border-color:var(--green)}
 .stk{display:flex;align-items:center;gap:9px}.stk button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer}
 .stk b{min-width:22px;text-align:center}
@@ -684,7 +684,7 @@ let rcPer='today';
 function viewRc(){
  const stl=S.cfg.store;const list=S.txs.filter(t=>t.store===stl&&perOk(t.t,rcPer)).slice().sort((a,b)=>b.t-a.t);
  const live=list.filter(t=>!t.void);
- const rows=list.map(t=>'<div class="row'+(t.void?' void':'')+'" data-a="viewTx" data-id="'+t.id+'"><div class="th w">'+hm(t.t)+'</div><div class="grow"><div class="t">'+t.items.map(i=>esc(i.name)).join(', ')+'</div><div class="lbl">'+dm(t.t)+' · '+t.items.reduce((a,i)=>a+i.qty,0)+' pcs · '+esc(t.method)+'</div></div>'+(t.void?'<span class="pill red">Void</span>':t.edited?'<span class="pill warn">Diubah</span>':'')+'<div class="v">'+rp(t.total)+'</div></div>').join('')||'<div class="empty">Belum ada transaksi.</div>';
+ const rows=list.map(t=>'<div class="row'+(t.void?' void':'')+'" data-a="viewTx" data-id="'+t.id+'"><div class="th w">'+hm(t.t)+'</div><div class="grow"><div class="t">'+t.items.map(i=>esc(i.name)).join(', ')+'</div><div class="lbl">'+dm(t.t)+' · '+t.items.reduce((a,i)=>a+i.qty,0)+' pcs · '+esc(t.method)+'</div></div>'+(t.void?'<span class="pill red">Dibatalkan</span>':t.edited?'<span class="pill warn">Diubah</span>':'')+'<div class="v">'+rp(t.total)+'</div></div>').join('')||'<div class="empty">Belum ada transaksi.</div>';
  return '<section class="panel"><div class="ph"><h2>Struk · '+esc(stl)+'</h2><span class="live">'+live.length+' transaksi · '+rp(sum(live,t=>t.total))+'</span></div><div class="seg">'+[['today','Hari ini'],['7d','7 hari'],['all','Semua']].map(x=>'<button class="'+(rcPer===x[0]?'on':'')+'" data-a="rper" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><div class="card">'+rows+'</div></section>';
 }
 function viewStock(){
@@ -857,7 +857,7 @@ A.doClose=()=>{
  Object.keys(agg).forEach(pid=>{const mv={id:uid('M'),t:now,pid:pid,from:sh.store,to:'Sale',qty:agg[pid],by:'Sistem',note:'Penjualan shift '+sh.id,status:'ok',kind:'sale',ref:sh.id};S.moves.push(mv);enqueue('POS Stok',mv)});
  S.shift=null;S.cart=[];save();closeSheet();snd('ok');toast(syncOn()?'Shift ditutup · data dikirim ke Google Sheets':'Shift ditutup');render(true);kick(0);
 };
-function rcSheet(id){const t=S.txs.find(x=>x.id===id);if(!t)return;PRN={t:t};openSheet('<h3>Struk</h3>'+(t.void?'<div class="pill red" style="display:inline-block;margin-bottom:10px">Dibatalkan (void)</div>':'')+receipt(t)+'<div class="row2"><button class="btn sec" data-a="print">Cetak</button>'+(t.void||!ownerOK?'':'<button class="btn" data-a="rcEdit" data-id="'+id+'">Ubah struk</button>')+'</div>',false)}
+function rcSheet(id){const t=S.txs.find(x=>x.id===id);if(!t)return;PRN={t:t};openSheet('<h3>Struk</h3>'+(t.void?'<div class="pill red" style="display:inline-block;margin-bottom:10px">Dibatalkan (void)</div>':'')+receipt(t)+'<div class="row2"><button class="btn sec" data-a="print">Cetak</button>'+'</div>'+(t.void?'':'<div class="row2"><button class="btn" data-a="rcPay" data-id="'+id+'">Ubah pembayaran</button><button class="btn del" data-a="rcVoid" data-id="'+id+'">Batalkan struk</button></div>'),false)}
 A.viewTx=el=>rcSheet(el.dataset.id);
 A.shiftView=el=>{const id=el.dataset.id;gate(()=>shiftSheet(id))};
 A.xsheet=()=>closeSheet();
@@ -869,41 +869,24 @@ let lastAct=Date.now();const touch=()=>{lastAct=Date.now()};
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,touch,true));
 setInterval(()=>{if(ownerOK&&Date.now()-lastAct>5*60000){ownerOK=false;toast('Mode owner nonaktif (tidak ada aktivitas)');if(tab==='owner')go('home');else render()}},15000);
 A.gateOk=()=>{if($('#gpin').value!==S.cfg.pin)return err('PIN salah.');const n=GATE;GATE=null;if(n)n()};
-A.rcEdit=el=>{const id=el.dataset.id;gate(()=>editSheet(id))};
-function editSheet(id){
- const t=S.txs.find(x=>x.id===id);if(!t)return;const split=t.pays&&t.pays.length>1;SC={eid:id,method:t.method};
- let h='<h3>Ubah struk</h3><div class="note">No. '+esc(t.id)+' · '+dm(t.t)+' '+hm(t.t)+'</div>';
- if(split)h+='<div class="note">Transaksi split pembayaran tidak bisa diubah. Batalkan (void) lalu buat ulang di kasir.</div>';
- else{
-  h+=t.items.map((i,k)=>'<div class="cl" id="el'+k+'"><div class="grow"><div class="t">'+esc(i.name)+'</div></div><div style="display:flex;gap:8px;align-items:center;width:100%"><input class="ein" inputmode="none" data-np data-in="money" data-ei="'+k+'" data-f="price" value="'+dot(i.price)+'"><b>×</b><input class="ein" style="width:76px;flex:none;text-align:center" inputmode="none" data-np data-in="eqty" data-ei="'+k+'" data-f="qty" data-max="4" value="'+i.qty+'"><button class="chip" data-a="eRm" data-k="'+k+'">Hapus</button></div></div>').join('')+npHtml(true)+
-   '<div class="tot"><span>Total</span><b id="etot">'+rp(t.total)+'</b></div><div class="sub" style="margin:0 2px 8px">Metode</div><div class="mgrid" id="emchips">'+METHODS.map(m=>'<button class="mc'+(t.method===m?' on':'')+'" data-a="eMethod" data-m="'+m+'">'+svg(MICON[m])+'<span>'+m+'</span></button>').join('')+'</div>'+
-   (t.shiftId!==(S.shift&&S.shift.id)?'<div class="note">Shift transaksi ini sudah ditutup. Perubahan jumlah akan membuat koreksi stok otomatis.</div>':'')+'<div class="err" id="err"></div><button class="btn go" data-a="eSave" data-enter>Simpan perubahan</button>';
- }
- h+='<button class="btn del" data-a="eVoid" style="margin-top:6px">Batalkan transaksi (void)</button>';
- openSheet(h,false);
-}
-function updEdit(){const t=sum(S.txs.find(x=>x.id===SC.eid).items,(i,k)=>0);let tot=0;$$('[data-ei]').forEach(e=>{});const n=S.txs.find(x=>x.id===SC.eid).items.length;for(let k=0;k<n;k++){const p=num($('[data-ei="'+k+'"][data-f=price]').value),q=num($('[data-ei="'+k+'"][data-f=qty]').value);tot+=p*q}const e=$('#etot');if(e)e.textContent=rp(tot)}
-I.eqty=el=>{el.value=el.value.replace(/\D/g,'');updEdit()};
-A.eRm=el=>{const k=el.dataset.k;$('[data-ei="'+k+'"][data-f=qty]').value='0';$('#el'+k).classList.add('void');updEdit()};
-A.eMethod=el=>{SC.method=el.dataset.m;$$('#emchips .mc').forEach(c=>c.classList.toggle('on',c.dataset.m===SC.method))};
+// Receipts (owner's decision 2026-11-07): anyone can change the payment method or cancel a receipt; no owner mode, no item edits.
+A.rcPay=el=>{const t=S.txs.find(x=>x.id===el.dataset.id);if(!t||t.void)return;SC={eid:t.id};const cur=t.pays&&t.pays.length>1?'':t.method;
+ openSheet('<h3>Ubah pembayaran</h3><div class="note">No. '+esc(t.id)+' · '+dm(t.t)+' '+hm(t.t)+' · Total <b>'+rp(t.total)+'</b><br>Sekarang: <b>'+esc((t.pays&&t.pays.length>1)?t.pays.map(x=>x.method+' '+rp(x.amount)).join(' + '):t.method)+'</b>. Ketuk metode yang benar.</div>'+
+  '<div class="mgrid" id="emchips">'+METHODS.map(m=>'<button class="mc'+(cur===m?' on':'')+'" data-a="ePay" data-m="'+m+'">'+svg(MICON[m])+'<span>'+m+'</span></button>').join('')+'</div>',false)};
+A.ePay=el=>{const t=S.txs.find(x=>x.id===SC.eid);if(!t)return;const m=el.dataset.m;
+ if(m===t.method&&!(t.pays&&t.pays.length>1)){closeSheet();return}
+ t.method=m;t.pays=[{method:m,amount:t.total}];t.paid=t.total;t.change=0;t.edited=true;
+ if(S.shifts.some(x=>x.id===t.shiftId)){recalcShift(t.shiftId);enqueue('POS Kasir',t)}
+ save();closeSheet();toast('Pembayaran diubah ke '+m);render();renderChrome();kick();
+};
+A.rcVoid=el=>{SC={eid:el.dataset.id};twoTap(el,'Ketuk lagi untuk batalkan',()=>voidTx(el.dataset.id))};
 function recalcShift(id){const sh=S.shifts.find(x=>x.id===id);if(!sh)return;const ss=shiftStats(sh);sh.total=ss.total;sh.by=ss.by;sh.cashSales=ss.cash;sh.expected=ss.expected;sh.n=ss.n;enqueue('POS Shift',sh)}
 function saleCorr(t,pid,diff,note){if(!diff)return;const mv={id:uid('M'),t:Date.now(),pid:pid,from:diff>0?t.store:'Sale',to:diff>0?'Sale':t.store,qty:Math.abs(diff),by:'Sistem',note:note+' '+t.id,status:'ok',kind:'sale',ref:t.shiftId};S.moves.push(mv);enqueue('POS Stok',mv)}
-A.eSave=()=>{
- const t=S.txs.find(x=>x.id===SC.eid);const items=[];
- for(let k=0;k<t.items.length;k++){const p=num($('[data-ei="'+k+'"][data-f=price]').value),q=num($('[data-ei="'+k+'"][data-f=qty]').value);if(q<=0)continue;if(p<=0)return err('Isi harga untuk '+t.items[k].name+'.');items.push({pid:t.items[k].pid,name:t.items[k].name,qty:q,price:p})}
- if(!items.length)return err('Minimal satu produk. Atau batalkan transaksi.');
- const total=sum(items,i=>i.qty*i.price),oldM=t.method,m=SC.method;
- const closed=S.shifts.some(x=>x.id===t.shiftId);
- if(closed){const d={};t.items.forEach(i=>d[i.pid]=(d[i.pid]||0)-i.qty);items.forEach(i=>d[i.pid]=(d[i.pid]||0)+i.qty);Object.keys(d).forEach(pid=>saleCorr(t,pid,d[pid],'Koreksi struk'))}
- t.items=items;t.total=total;t.paid=(oldM==='Tunai'&&m==='Tunai')?Math.max(t.paid||0,total):total;t.change=m==='Tunai'?t.paid-total:0;t.method=m;t.pays=[{method:m,amount:total}];t.edited=true;
- if(closed){recalcShift(t.shiftId);enqueue('POS Kasir',t)}
- save();closeSheet();toast('Struk diubah');render();kick();
-};
-A.eVoid=el=>twoTap(el,'Ketuk lagi untuk batalkan transaksi',()=>{
- const t=S.txs.find(x=>x.id===SC.eid);t.void=true;
+function voidTx(id){
+ const t=S.txs.find(x=>x.id===id);if(!t||t.void)return;t.void=true;
  if(S.shifts.some(x=>x.id===t.shiftId)){const d={};t.items.forEach(i=>d[i.pid]=(d[i.pid]||0)+i.qty);Object.keys(d).forEach(pid=>saleCorr(t,pid,-d[pid],'Void struk'));recalcShift(t.shiftId);enqueue('POS Kasir',t)}
- save();closeSheet();toast('Transaksi dibatalkan');render();renderChrome();kick();
-});
+ save();closeSheet();toast('Struk dibatalkan');render();renderChrome();kick();
+}
 /* simpan order */
 A.hold=()=>{if(!S.cart.length)return;openSheet('<h3>Simpan order</h3><div class="note">Keranjang disimpan dan bisa dibuka lagi nanti. Stok tidak dikunci.</div><div class="f"><label>Nama / catatan (opsional)</label><input id="hn" placeholder="Misal: Bu Rina, ambil jam 5" data-focus></div><div class="err" id="err"></div><button class="btn go" data-a="holdSave" data-enter>Simpan order</button>')};
 A.holdSave=()=>{const name=$('#hn').value.trim()||('Order '+(S.holds.filter(h=>h.store===S.cfg.store).length+1));S.holds.push({id:uid('H'),t:Date.now(),name:name,store:S.cfg.store,cart:S.cart.map(c=>Object.assign({},c))});S.cart=[];save();closeSheet();renderGrid();renderCart();toast('Order disimpan')};
@@ -1150,7 +1133,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const el=e.target;if(!el.dataset||!el.dataset.in)return;
- if(el.dataset.in==='money'){const n=num(el.value);el.value=el.value===''?'':dot(n);if(el.id==='pp')updPrice();else if(el.dataset.sp){PAY.sp[el.dataset.sp]=n;updSplit()}else if(el.dataset.ei!==undefined)updEdit();else if(el.id==='cashStart')draft.cash=el.value}
+ if(el.dataset.in==='money'){const n=num(el.value);el.value=el.value===''?'':dot(n);if(el.id==='pp')updPrice();else if(el.dataset.sp){PAY.sp[el.dataset.sp]=n;updSplit()}else if(el.id==='cashStart')draft.cash=el.value}
  else if(I[el.dataset.in])I[el.dataset.in](el,e);
 });
 document.addEventListener('focusin',e=>{if(e.target.dataset&&e.target.dataset.np!==undefined)NP=e.target});
