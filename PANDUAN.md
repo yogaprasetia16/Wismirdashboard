@@ -192,3 +192,15 @@ Owner → **Data** → **Teks struk**:
 - **Alamat / info** dan **Pesan bawah** bisa diisi beberapa baris. Tekan **Enter** untuk baris baru, misalnya alamat, nomor WA, dan Instagram di baris masing-masing.
 - Setiap baris tercetak di baris tersendiri di struk. Baris yang terlalu panjang dipotong ke baris berikutnya secara otomatis.
 - Tekan **Simpan teks struk**, lalu **Tes cetak** untuk melihat hasilnya.
+
+## 12. Import produk dari spreadsheet lama
+
+1. Di spreadsheet lama, **blok** kolom **Produk, Category, brand, sku, cogs**, termasuk baris judulnya, lalu **Copy** (Ctrl+C).
+2. Di dashboard: **Operational → Stock → Products → Import from spreadsheet**.
+3. Klik kotak putih, lalu **Paste** (Ctrl+V). Daftar pratinjau akan muncul.
+4. Cek pratinjaunya, lalu tekan **Import … products**.
+
+Catatan:
+- Produk yang **SKU-nya sudah ada** dilewati, jadi aman kalau tidak sengaja di-import dua kali.
+- Baris tanpa nama produk juga dilewati.
+- Jumlah stok **tidak** ikut di-import. Masukkan stok awal di tablet lewat **Stok → Masuk**.
