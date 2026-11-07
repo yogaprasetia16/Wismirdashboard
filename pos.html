@@ -133,6 +133,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .pc{position:relative;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:10px;min-height:118px;color:var(--ink);font:inherit}
 .pc:active{transform:scale(.98)}
 .pn{font-weight:600;font-size:14.5px;line-height:1.3;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc.k-atasan{background:#e2ecfa;border-color:#b3cbee}.pc.k-gamis{background:#fdf2cc;border-color:#ecd68a}.pc.k-bawahan{background:#fbe1dc;border-color:#eeb6ab}.pc.k-oneset{background:#ece2f7;border-color:#cdb8ec}.pc[class*=k-] .pill{background:#fff}
 .pm{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}
 .sk{font-size:13px;font-weight:700}.sk.low{color:#b57a0a}
 .qb{position:absolute;top:-7px;right:-4px;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--amber);color:#16181b;font-size:12px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
@@ -147,7 +148,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .row2.sm .btn{font-size:13px;padding:12px 8px;white-space:nowrap}
 .btn svg{width:17px;height:17px;vertical-align:-3px;margin-right:4px}
 .mvb{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:4px 0 14px}.mvb button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:18px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}.mvb svg{width:22px;height:22px}.mvb button:active{background:var(--seg)}.mvb [data-m=in]{background:rgba(46,107,79,.12);border-color:rgba(46,107,79,.28);color:var(--green)}.mvb [data-m=out]{background:rgba(200,68,47,.11);border-color:rgba(200,68,47,.28);color:var(--red)}
-.sheet[data-tone=in]{background:color-mix(in srgb,var(--green) 16%,var(--sheet))}.sheet[data-tone=out]{background:color-mix(in srgb,var(--red) 15%,var(--sheet))}.btn.go.rd{background:var(--red)}
+.btn.go.rd{background:var(--red)}
 .dsep{display:flex;align-items:center;gap:10px;padding:14px 0 6px;font-size:12.5px;font-weight:700;color:var(--ink)}.dsep:first-child{padding-top:10px}.dsep span{background:var(--seg);border-radius:99px;padding:5px 12px;white-space:nowrap}.dsep i{flex:1;height:1px;background:var(--line)}.dsep em{font-style:normal;font-weight:500;color:var(--mute);font-size:12px;white-space:nowrap}
 .kic svg{width:20px;height:20px}.k-in{background:rgba(46,107,79,.14)!important;color:var(--green)!important}.k-out,.k-loss{background:rgba(200,68,47,.12)!important;color:var(--red)!important}.k-tf{background:rgba(58,94,140,.13)!important;color:var(--blue)!important}.k-op{background:var(--seg)!important;color:var(--ink)!important}.k-sale{background:rgba(241,184,75,.22)!important;color:#9a6a0c!important}
 .ktag{font-size:11px;padding:1px 7px;border-radius:99px;margin-right:4px;font-weight:700}span.ktag{}
@@ -617,12 +618,13 @@ function viewPos(){
 const CATIC={semua:'all',abaya:'abaya',gamis:'gamis',hijab:'hijab',koko:'koko',mukena:'mukena',sarung:'sarung'};
 const cap=t=>{t=String(t||'');return t.charAt(0).toUpperCase()+t.slice(1)}; // 'gamis' -> 'Gamis' for display
 const brands=()=>Array.from(new Set(activeProducts().map(p=>String(p.brand||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+const CATK=c=>{c=String(c||'').toLowerCase().replace(/[\s_-]+/g,'');return {atasan:'atasan',gamis:'gamis',bawahan:'bawahan',oneset:'oneset'}[c]||''}; // card colour per category (owner 2026-11-07)
 function renderCats(){const cats=['Semua'].concat(Array.from(new Set(activeProducts().map(p=>p.category||'Lainnya'))).sort());if(cats.indexOf(posCat)<0)posCat='Semua';$('#cats').innerHTML=cats.map(x=>'<button class="'+(x===posCat?'on':'')+'" data-a="cat" data-c="'+esc(x)+'">'+esc(cap(x))+'</button>').join('')}
 function renderGrid(){
  const av=availMap(S.cfg.store);
  const inCart={};S.cart.forEach(c=>inCart[c.pid]=(inCart[c.pid]||0)+c.qty);
  const list=activeProducts().filter(p=>(posCat==='Semua'||(p.category||'Lainnya')===posCat));
- $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';return '<button class="pc" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span><span class="pm">'+(p.brand?'<span class="pill warn">'+esc(cap(p.brand))+'</span>':'<span></span>')+'<span class="pill">'+esc(cap(p.category||'Lainnya'))+'</span></span></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">'+(activeProducts().length?'Produk tidak ditemukan.':'Belum ada produk.<br>Tambahkan di dashboard: Operational → Stock.')+'</div>';
+ $('#grid').innerHTML=list.map(p=>{const n=av[p.id]||0;const cl=n<=0?'neg':n<=3?'low':'';const k=CATK(p.category);return '<button class="pc'+(k?' k-'+k:'')+'" data-a="pick" data-id="'+p.id+'">'+(inCart[p.id]?'<span class="qb">'+inCart[p.id]+'</span>':'')+'<span class="pn">'+esc(p.name)+'</span>'+(p.brand?'<span class="pm"><span class="pill warn">'+esc(cap(p.brand))+'</span></span>':'')+'</button>'}).join('')||'<div class="empty" style="grid-column:1/-1">'+(activeProducts().length?'Produk tidak ditemukan.':'Belum ada produk.<br>Tambahkan di dashboard: Operational → Stock.')+'</div>';
 }
 function renderCart(){
  const c=S.cart;const rows=c.map(l=>'<div class="cl"><div class="grow" data-a="editLine" data-k="'+l.k+'" style="cursor:pointer"><div class="t">'+esc(l.name)+'</div><div class="lbl">'+rp(l.price)+' / pcs</div></div><div class="stk"><button data-a="qm" data-k="'+l.k+'" aria-label="Kurangi">−</button><b>'+l.qty+'</b><button data-a="qp" data-k="'+l.k+'" aria-label="Tambah">+</button></div><div class="lv">'+rp(l.price*l.qty)+'</div></div>').join('');
@@ -725,7 +727,6 @@ function mvOpen(pid,mode){
  const bs=brands(),p=pid&&prod(pid),def=bs.find(b=>/karmila/i.test(b))||'';
  MV=Object.assign({mode:mode,pid:pid||'',brand:p?String(p.brand||''):def,qty:'',note:'',pin:'',needPin:false,err:'',step:'form'},d);mvRender();
 }
-function mvTone(m){const t=m.mode==='in'?'in':m.mode==='out'?'out':'';if(t)$('#sheet').dataset.tone=t}
 function mvRender(){
  const m=MV,ps=activeProducts();
  const modes=[['in','Masuk'],['tf','Transfer'],['loss','Rusak/Hilang'],['opname','Opname']];
@@ -745,7 +746,7 @@ function mvRender(){
   // right column: quantity, stock info and the Save button (big, away from the edge of the sheet)
   '<div class="pcr"><div class="f"><label>'+(m.mode==='opname'?'Hasil hitung fisik (pcs)':'Jumlah (pcs)')+'</label><input id="mvQ" class="big" inputmode="none" data-np data-max="5" placeholder="0" data-in="mvq" value="'+esc(m.qty)+'" data-focus></div><div class="note" id="mvHint"></div>'+
   '<div class="err" id="err">'+esc(m.err)+'</div><button class="btn go'+(m.mode==='out'?' rd':'')+'" data-a="mvNext" data-enter style="padding:18px 16px;font-size:16px">Simpan</button></div></div>';
- openSheet(h,false,true);mvTone(m);mvHint();
+ openSheet(h,false,true);mvHint();
 }
 function mvRead(){
  if(!MV||MV.step!=='form')return;const g=id=>{const e=$('#'+id);return e?e.value:null};
