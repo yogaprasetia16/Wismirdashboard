@@ -204,3 +204,21 @@ Catatan:
 - Produk yang **SKU-nya sudah ada** dilewati, jadi aman kalau tidak sengaja di-import dua kali.
 - Baris tanpa nama produk juga dilewati.
 - Jumlah stok **tidak** ikut di-import. Masukkan stok awal di tablet lewat **Stok → Masuk**.
+
+## 13. Rekap supplier (Production › Supplier)
+
+Menghitung tagihan ke supplier per bulan dari pergerakan stok di tablet POS:
+
+- **Barang masuk** = Stok › Masuk dengan "Dari: Supplier".
+- **Barang keluar** = Stok › Keluar dengan "Ke: Supplier" (retur).
+- Per produk: (masuk − keluar) × COGS, lalu semua dijumlahkan. Transfer antar toko, Konveksi dan baris yang dibatalkan tidak dihitung.
+
+Cara pakai:
+1. Buka Dashboard › **Production** › **Supplier**. Setiap bulan tampil dengan totalnya, misalnya "June 2026 · Pay in July 2026".
+2. Klik bulannya untuk melihat rekap per produk.
+3. Tekan **Copy** untuk menyalin angka total (tanpa titik, misalnya `1200000`), lalu tempel di aplikasi bank.
+4. Setelah dibayar, tekan **Mark as paid**. Bulan itu mendapat tanda centang hijau. Salah tekan? Buka lagi, lalu tekan **Mark as not paid** dua kali.
+
+Pastikan setiap produk sudah punya **COGS** (Operational › Stock). Produk tanpa COGS dihitung Rp 0 dan diberi tanda merah di rekap.
+
+Fitur ini butuh **Code.gs versi 5**. Selama Code.gs belum diperbarui, tanda "sudah bayar" hanya tersimpan di perangkat itu. Setelah Code.gs diperbarui, tanda tersebut otomatis terkirim ke Sheet (tab baru **Supplier**).
