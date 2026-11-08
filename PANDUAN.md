@@ -222,3 +222,24 @@ Cara pakai:
 Pastikan setiap produk sudah punya **COGS** (Operational › Stock). Produk tanpa COGS dihitung Rp 0 dan diberi tanda merah di rekap.
 
 Fitur ini butuh **Code.gs versi 5**. Selama Code.gs belum diperbarui, tanda "sudah bayar" hanya tersimpan di perangkat itu. Setelah Code.gs diperbarui, tanda tersebut otomatis terkirim ke Sheet (tab baru **Supplier**).
+
+## 14. Toko: tipe, sumber stok, dan produk per toko (Operational › Store)
+
+Ada 3 tipe toko:
+- **Warehouse**: hanya gudang. Ada stok, tapi tidak ada penjualan dan tidak bisa dipilih sebagai toko di tablet.
+- **Physical store**: toko fisik biasa, dengan tablet kasir dan stoknya sendiri.
+- **Online store**: punya rekap penjualan sendiri (struk dan shift atas nama toko online), tapi **stoknya diambil dari toko lain**. Pilih tokonya di **Stock from**. Setiap penjualan online mengurangi stok toko yang dipilih di sana.
+
+Produk per toko:
+1. Klik nama toko di Operational › Store.
+2. Di bagian **Products**, centang produk yang dijual atau disimpan di toko itu. Ada kolom cari serta tombol All / None.
+3. Tekan **Save**.
+
+Kasir dan input stok di tablet hanya menampilkan produk yang dicentang untuk toko tersebut. Kalau semua produk dicentang, produk baru yang ditambahkan nanti otomatis ikut muncul. Kalau hanya sebagian yang dicentang, produk baru harus dicentang dulu di toko itu.
+
+Menjalankan toko online di tablet:
+1. Aktifkan mode owner di tablet.
+2. Ketuk nama toko di kanan atas, lalu pilih toko online.
+3. Buka shift seperti biasa.
+
+Fitur ini butuh **Code.gs versi 6** (kolom baru `sumber` dan `produk` di tab Store).

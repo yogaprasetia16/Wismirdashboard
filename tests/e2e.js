@@ -47,7 +47,7 @@ ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sh
  const names=await A.evaluate(()=>window.__wismir.S.products.map(p=>p.name+'|'+p.category).sort().join(', '));
  ok(names==='Gamis Navy|Gamis, Khimar Lama|Hijab','tablet shows dashboard products with category: '+names);
  const cl=await A.evaluate(()=>{const S=window.__wismir.S;return JSON.stringify({staff:S.staff.map(k=>k.name).sort(),contoh:S.moves.filter(m=>m.by==='Contoh').length,locs:S.locs,store:S.cfg.store})});
- ok(cl==='{"staff":["Budi","Rina"],"contoh":0,"locs":{"stores":["Toko A"],"wh":["Gudang"]},"store":"Toko A"}','old sample products, staff and stock are gone; stores come from the dashboard: '+cl);
+ ok(cl==='{"staff":["Budi","Rina"],"contoh":0,"locs":{"stores":["Toko A"],"wh":["Gudang"],"online":[],"prods":{}},"store":"Toko A"}','old sample products, staff and stock are gone; stores come from the dashboard: '+cl);
  // stock in + transfer + shift + sale
  await A.click('[data-a=ownerOff]');await nav(A,'stock');
  ok(!(await A.$('[data-a=mvNew]')),'no "+ Produk baru" shortcut in the stock form');
@@ -62,7 +62,7 @@ ok(await D.evaluate(()=>{addProduct();const k=[...document.querySelectorAll('#sh
  // ---- dashboard sees combined stock; deactivate product hides it in POS ----
  await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>(S.pos.stok||[]).length===2),10000,'dash sees moves');
  await D.evaluate(()=>{tab='ops';ops='stock';render()});
- const row=await D.textContent('#app');ok(row.includes('Toko A 9')&&row.includes('Online 0'),'dashboard Stock row: Toko A 9 · Online 0');
+ const row=await D.$eval('.ptab tbody tr',e=>[...e.children].slice(1).map(c=>c.textContent).join('|'));ok(row==='0|9|9','dashboard stock table: Gudang 0, Toko A 9, total 9: '+row);
  // stock history with filters
  await D.evaluate(()=>{stv='hist';HF.per='today';render()});
  const h1=await D.textContent('#hlist');ok(h1.includes('Gamis Navy')&&h1.includes('Stock in')&&h1.includes('Sale'),'Stock › History lists today\'s moves (stock in + sale)');

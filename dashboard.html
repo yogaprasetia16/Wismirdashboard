@@ -158,6 +158,8 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .f select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23888' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 .sheet{overflow-x:hidden}
 @media (min-width:700px){.board.b2{grid-template-columns:repeat(2,minmax(0,1fr))}.board.b3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ckl{border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}.ckh{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--line)}.ckh input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;background:var(--card);color:var(--ink)}.ckh .btn{width:auto;margin:0;padding:8px 12px;font-size:12.5px}.ckn{white-space:nowrap}.ckb{max-height:260px;overflow:auto;padding:4px 8px}.ck{display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);cursor:pointer}.ck:last-child{border-bottom:0}.f .ck{display:flex;font-size:14px;color:var(--ink);margin:0}.f .ck input{-webkit-appearance:auto;appearance:auto;width:20px;height:20px;min-width:20px;padding:0;margin:0;border-radius:4px;accent-color:var(--green);flex:none}.f .ckh input{width:auto;padding:8px 10px;border-radius:10px}.ck small{display:block;color:var(--mute);font-size:11.5px}
+.ptab tbody tr{cursor:pointer}.ptab tbody tr:hover{background:var(--seg)}.ptab .t{font-weight:600}.ptab tr.fut{opacity:.5}
 .stab{width:100%;border-collapse:collapse;font-size:13px}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .sc2{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 12px;cursor:pointer;min-width:0;transition:transform .15s,box-shadow .15s}
@@ -230,7 +232,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=5;
+const NEED_CODE=6;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -386,7 +388,7 @@ function vHist(){
 }
 // One product list for Dashboard and POS: store/warehouse stock comes from POS moves, online stock is typed here
 const isOff=x=>x.aktif==='Inactive';
-const prodTotal=(p,m)=>posTotal(m,p.id)+(+p.stokOnline||0);
+const prodTotal=(p,m)=>posTotal(m,p.id);
 const pname=p=>String(p.nama||'')+(p.varian?' · '+p.varian:'');
 // Products and staff made on a store tablet before they moved to the dashboard: copy them in once (same id, so history stays linked)
 function migratePos(){
@@ -605,14 +607,24 @@ function vStaff(){
   const l=[...S.staff].sort((a,b)=>(isOff(a)-isOff(b))||String(a.name||'').localeCompare(String(b.name||'')));
   return `<div class="lbl" style="margin:0 4px 14px">${S.staff.length} staff</div>`+(l.length?`<div class="sg">${l.map(p=>`<div class="sc2${isOff(p)?' fut':''}" onclick="editStaff('${p.id}')"><div class="sav">${esc(String(p.name||'?')[0].toUpperCase())}</div><div class="t">${esc(p.name)}</div><div class="lbl">${p.joined?'Joined '+new Date(p.joined+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>${isOff(p)?'<span class="pill warn">Inactive</span>':p.joined?`<span class="pill">${tenure(p.joined)}</span>`:''}</div>`).join('')}</div><div class="lbl" style="padding:12px 6px 0">Active staff appear on the store tablet (POS) when a shift is opened.</div>`:`<div class="card">${empty('No staff yet. Press the button above to add one.')}</div>`);
 }
-function storeFields(p={}){return[
+// Store types (owner 2026-11-08): Warehouse = stock only, no sales; Physical store = a shop with a tablet;
+// Online store = own sales on a tablet, stock taken from the store in "Stock from". "Marketplace" (old) counts as Online store.
+const STYPES=['Physical store','Warehouse','Online store'];
+const stype=p=>p.type==='Marketplace'?'Online store':(p.type||'Physical store');
+const stockStores=id=>S.stores.filter(x=>x.id!==id&&['Physical store','Warehouse'].includes(stype(x))).map(x=>String(x.name||'').trim()).filter(Boolean);
+// produk = JSON list of product ids sold / stocked there; empty = all products (also products added later)
+const storeProds=p=>{try{const a=JSON.parse(p.produk||'');return Array.isArray(a)?a.map(String):null}catch(e){return null}};
+function storeFields(p={}){const src=stockStores(p.id),sel=storeProds(p);return[
   {k:'name',label:'Store name',type:'text',val:p.name||''},
-  {k:'type',label:'Type',type:'select',opts:['Physical store','Warehouse','Online store','Marketplace'],val:p.type||'Physical store'},
-  {k:'address',label:'Address / link',type:'text',val:p.address||''}]}
-function addStore(){form('New store',storeFields(),v=>{S.stores.push({id:uid(),...v});save()})}
-function editStore(id){const p=S.stores.find(x=>x.id===id);form('Edit store',storeFields(p),v=>{Object.assign(p,v);save()},()=>{S.stores=S.stores.filter(x=>x.id!==id);save()})}
+  {k:'type',label:'Type',type:'select',opts:STYPES,val:stype(p)},
+  {k:'sumber',label:'Stock from',type:'select',opts:src.length?src:[''],val:p.sumber||src[0]||'',showIf:'type=Online store'},
+  {k:'address',label:'Address / link',type:'text',val:p.address||''},
+  {k:'produk',label:'Products',type:'checks',opts:[...S.products].filter(x=>!isOff(x)).sort((a,b)=>pname(a).localeCompare(pname(b))).map(x=>[x.id,x.nama+(x.varian?' · '+x.varian:''),[x.kategori,x.brand].filter(Boolean).join(' · ')]),val:sel}]}
+const cleanStore=v=>{if(v.type!=='Online store')v.sumber='';return v};
+function addStore(){form('New store',storeFields(),v=>{if(v.type==='Online store'&&!v.sumber)return err('Add a physical store or warehouse first: an online store takes its stock from one.'),false;S.stores.push({id:uid(),...cleanStore(v)});save()})}
+function editStore(id){const p=S.stores.find(x=>x.id===id);form('Edit store',storeFields(p),v=>{if(v.type==='Online store'&&!v.sumber)return err('Choose where this online store takes its stock from.'),false;Object.assign(p,cleanStore(v));save()},()=>{S.stores=S.stores.filter(x=>x.id!==id);save()})}
 function vStore(){
-  return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores · Physical stores and warehouses appear on the store tablet (POS). Do not rename a store once it is used: stock history is kept by name.</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${esc(p.address)}</div></div><div style="text-align:right"><span class="pill">${esc(p.type)}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
+  return `<div class="lbl" style="margin:0 4px 14px">${S.stores.length} stores · Physical and online stores can be chosen on the store tablet (POS); online stores sell from the stock of their \"Stock from\" store. Warehouses only hold stock. Tap a store to choose its products. Do not rename a store once it is used: stock history is kept by name.</div><div class="card">${S.stores.length?S.stores.map(p=>`<div class="row" onclick="editStore('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${[stype(p)==='Online store'?'Stock from '+esc(p.sumber||'?'):'',(()=>{const a=storeProds(p);return a?a.length+(a.length===1?' product':' products'):'All products'})(),esc(p.address)].filter(Boolean).join(' · ')}</div></div><div style="text-align:right"><span class="pill">${esc(stype(p))}</span></div></div>`).join(''):empty('No stores yet. Press the button above to add one.')}</div>`;
 }
 function vStock(){
   const seg=`<div class="seg">${[['list','Products'],['hist','History']].map(x=>`<button class="${stv===x[0]?'on':''}" onclick="stv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
@@ -620,11 +632,9 @@ function vStock(){
 }
 function vProducts(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button></div><div class="card">${l.length?l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<div class="row${off?' fut':''}"><div class="grow" onclick="editProduct('${p.id}')"><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · SKU '+esc(p.sku):''}${p.cogs!==''&&p.cogs!=null?' · COGS '+rp(p.cogs):''}${off?' · Hidden from cashier':''}</div><div class="lbl">${L.map(x=>esc(x)+' '+(s[x]||0)).join(' · ')} · Online ${+p.stokOnline||0}</div></div>
-  <div class="stk"><button onclick="adj('${p.id}',-1)" aria-label="Decrease online stock">−</button><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b><button onclick="adj('${p.id}',1)" aria-label="Increase online stock">+</button></div></div>`}).join(''):empty('No products yet. Press the button above to add one.')}</div>
-  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Warehouse and store stock come from the POS; the − and + buttons change online stock. Products hidden from the cashier stay here, dimmed.</div>`;
+  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button></div><div class="card" style="overflow-x:auto">${l.length?`<table class="stab ptab"><thead><tr><th>Product</th>${L.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<tr class="${off?'fut':''}" data-pid="${esc(p.id)}" onclick="editProduct('${p.id}')"><td><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · '+esc(p.sku):''}${off?' · Hidden from cashier':''}</div></td>${L.map(x=>`<td class="${(s[x]||0)<0?'neg':''}">${s[x]||0}</td>`).join('')}<td><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b></td></tr>`}).join('')}</tbody></table>`:empty('No products yet. Press the button above to add one.')}</div>
+  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Stock per warehouse and store comes from the POS. Online stores sell from the stock of the store chosen in Operational › Store. Products hidden from the cashier stay here, dimmed.</div>`;
 }
-function adj(id,d){const p=S.products.find(x=>x.id===id);p.stokOnline=Math.max(0,(+p.stokOnline||0)+d);save()}
 // Category and brand are typed freely; names used before are offered as suggestions
 const usedVals=k=>[...new Set(S.products.map(p=>String(p[k]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 function pFields(p={}){return[
@@ -747,13 +757,13 @@ addEventListener('click',e=>{if(pop&&!e.composedPath().some(n=>n.id==='pp'||n.id
 addEventListener('resize',()=>{if(pop)closePop()});
 function form(title,fields,onSave,onDel,delLabel){
   closePop();
-  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
+  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='checks'?chkHtml(f):f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
   `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?`<button class="btn del" id="rm">${delLabel||'Delete'}</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
   const sync=()=>$('#sheet').querySelectorAll('[data-showif]').forEach(w=>{const [k,v]=w.dataset.showif.split('=');const e=$('#sheet [data-k="'+k+'"]');w.style.display=e&&e.value===v?'':'none'});
-  sync();
+  sync();$('#sheet').querySelectorAll('.ckl .ckb input').forEach((x,i)=>{if(!i)ckCount(x)});
   $('#sheet').oninput=()=>{sync();const g=k=>+(($('#sheet [data-k="'+k+'"]')||{}).value)||0;if($('#calc'))$('#calc').value=rp(g('qty')*g('unitCost'))};
   $('#bg').classList.add('open');
-  $('#ok').onclick=()=>{const v={};$('#sheet').querySelectorAll('[data-k]').forEach(e=>v[e.dataset.k]=e.value);
+  $('#ok').onclick=()=>{const v={};$('#sheet').querySelectorAll('[data-k]').forEach(e=>v[e.dataset.k]=e.dataset.checks!=null?chkVal(e):e.value);
     if((v.jumlah!==undefined&&!+v.jumlah)||(v.total!==undefined&&!+v.total)||(v.qty!==undefined&&!+v.qty&&!fields.find(f=>f.k==='qty').opt))return err('Please enter an amount or quantity.');
     if([v.nama,v.judul,v.name].some(x=>x!==undefined&&!x.trim()))return err('Please enter a name.');
     if(onSave(v)===false)return;close()};
@@ -761,6 +771,13 @@ function form(title,fields,onSave,onDel,delLabel){
   if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm'+(delLabel?'':' delete');return}if(onDel()!==false)close()}}
 }
 const err=m=>{$('#err').textContent=m};
+// checklist field: all ticked is saved as '' (= every product, also ones added later)
+function chkHtml(f){const on=id=>!f.val||f.val.includes(id);
+  return `<div class="ckl" data-k="${f.k}" data-checks><div class="ckh"><input placeholder="Search" oninput="ckFilter(this)"><button type="button" class="btn sec" onclick="ckAll(this,true)">All</button><button type="button" class="btn sec" onclick="ckAll(this,false)">None</button><span class="lbl ckn"></span></div><div class="ckb">${f.opts.length?f.opts.map(o=>`<label class="ck" data-q="${esc((o[1]+' '+o[2]).toLowerCase())}"><input type="checkbox" value="${esc(o[0])}" ${on(o[0])?'checked':''} onchange="ckCount(this)"><span>${esc(o[1])}${o[2]?`<small>${esc(o[2])}</small>`:''}</span></label>`).join(''):'<div class="lbl" style="padding:10px">No products yet.</div>'}</div></div>`}
+function chkVal(e){const b=[...e.querySelectorAll('.ckb input')],c=b.filter(x=>x.checked).map(x=>x.value);return c.length===b.length?'':JSON.stringify(c)}
+function ckCount(el){const w=el.closest('.ckl'),b=w.querySelectorAll('.ckb input');w.querySelector('.ckn').textContent=[...b].filter(x=>x.checked).length+' of '+b.length}
+function ckAll(el,v){const w=el.closest('.ckl');w.querySelectorAll('.ck').forEach(l=>{if(l.style.display!=='none')l.querySelector('input').checked=v});ckCount(el)}
+function ckFilter(el){const q=el.value.trim().toLowerCase();el.closest('.ckl').querySelectorAll('.ck').forEach(l=>l.style.display=!q||l.dataset.q.includes(q)?'':'none')}
 function close(){closePop();$('#bg').classList.remove('open')}
 $('#bg').onclick=e=>{if(e.target.id==='bg')close()};
 // PIN lock: asked once per browser tab when a PIN is set. Data is not drawn until unlocked.
