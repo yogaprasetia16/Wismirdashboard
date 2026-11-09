@@ -195,9 +195,9 @@ const today=()=>ymd(new Date());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier'};
+const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan'};
 const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen'};
-let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],pos:{},cfg:{url:'',pin:''}};
+let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
 // Dates from Google Sheets can arrive as "2026-11-03T17:00:00.000Z"; turn them back into a local yyyy-mm-dd
@@ -206,7 +206,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
+let fv='tx',SY='',SSt='all',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -232,7 +232,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=6;
+const NEED_CODE=7;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -423,7 +423,7 @@ function render(){
   if(locked)return;
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&fv==='sales')||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
   $('#cta span').textContent={task:'New reminder',tx:'New transaction',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
@@ -461,9 +461,92 @@ function txFields(t={}){return[
   {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
 function addTx(){form('Add transaction',txFields(),v=>{S.tx.push({id:uid(),...v});save()})}
 function editTx(id){const t=S.tx.find(x=>x.id===id);form('Edit transaction',txFields(t),v=>{Object.assign(t,v);save()},()=>{S.tx=S.tx.filter(x=>x.id!==id);save()})}
+// ---- Sales recap (owner 2026-11-09): monthly sales per store and product.
+// Past months come from "Import sales history" (tab Penjualan: one row per month + store + SKU); months/stores
+// without imported rows use the store tablets (POS shifts for revenue, sale stock moves for pieces).
+const HMON=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'short'});
+function salesRows(){
+  const out=S.hist.map(h=>({m:String(h.bulan),st:String(h.toko||'?'),sku:String(h.sku||''),pid:'',q:+h.qty||0,v:+h.total||0,src:'imp'}));
+  const have=new Set(out.map(r=>r.m+'|'+r.st));
+  P('shift').forEach(x=>{const m=nd(x.tanggal).slice(0,7),st=String(x.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;out.push({m,st,sku:'',pid:'',q:0,v:+x.totalPenjualan||0,src:'pos'})});
+  P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;const q=(x.ke==='Sale'?1:-1)*(+x.qty||0);out.push({m,st,sku:'',pid:String(x.pid||''),q,v:0,src:'pos'})});
+  return out;
+}
+const skuName=k=>{const p=S.products.find(x=>String(x.sku||'').trim().toLowerCase()===String(k).trim().toLowerCase());return p?p.nama:''};
+const rowProd=r=>r.pid?((S.products.find(x=>x.id===r.pid)||{}).nama||r.pid):(skuName(r.sku)||r.sku||'?');
+function vSales(){
+  const all=salesRows(),stores=[...new Set(all.map(r=>r.st))].sort(),years=[...new Set(all.map(r=>r.m.slice(0,4)))].sort();
+  if(!SY||!years.includes(SY))SY=years[years.length-1]||today().slice(0,4);
+  const rs=all.filter(r=>SSt==='all'||r.st===SSt),sum=(l,k)=>l.reduce((a,r)=>a+r[k],0);
+  const by=(y,mm)=>rs.filter(r=>r.m===y+'-'+mm),py=String(+SY-1);
+  const months=[...Array(12)].map((_,i)=>String(i+1).padStart(2,'0'));
+  const yr=rs.filter(r=>r.m.startsWith(SY)),ym=new Set(yr.map(r=>r.m.slice(5))),pr=rs.filter(r=>r.m.startsWith(py)&&ym.has(r.m.slice(5))),ch=(a,b)=>b?Math.round((a-b)/b*100):null;
+  const tv=sum(yr,'v'),pv=sum(pr,'v'),c=ch(tv,pv);
+  const head=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px"><div class="seg sc" style="margin:0">${years.map(y=>`<button class="${y===SY?'on':''}" onclick="SY='${y}';render()">${y}</button>`).join('')||'<button class="on">'+SY+'</button>'}</div>
+   <div class="f" style="margin:0;min-width:150px"><select onchange="SSt=this.value;render()"><option value="all">All stores</option>${stores.map(x=>`<option ${x===SSt?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+   <button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px" onclick="importSales()">Import sales history</button></div>`;
+  if(!all.length)return head+`<div class="card">${empty('No sales yet. Import your monthly sales history (Date, Store, SKU, Sold, Revenue), or close a shift on the store tablet.')}</div>`;
+  const kpi=`<div class="card" style="display:flex;flex-wrap:wrap;gap:22px;padding:16px 18px"><div><div class="lbl">Revenue ${SY}</div><div class="kv" id="syTot">${rp(tv)}</div></div><div><div class="lbl">Pieces sold</div><div class="kv">${sum(yr,'q').toLocaleString('id-ID')}</div></div><div><div class="lbl">vs ${py} (same months)</div><div class="kv ${c==null?'':c>=0?'pos':'neg'}">${c==null?'–':(c>=0?'+':'')+c+'%'}</div></div></div>`;
+  const tb=`<div class="card" style="overflow-x:auto"><table class="stab"><thead><tr><th>Month</th><th>Pieces</th><th>Revenue</th><th>${py}</th><th>Change</th></tr></thead><tbody>${months.map(mm=>{const l=by(SY,mm),o=by(py,mm),v=sum(l,'v'),ov=sum(o,'v'),cc=ch(v,ov);if(!l.length&&!o.length)return '';
+    return `<tr data-sm="${SY}-${mm}" ${l.length?`onclick="salesMonth('${SY}-${mm}')" style="cursor:pointer"`:''}><td>${HMON(SY+'-'+mm)} ${SY}</td><td>${l.length?sum(l,'q').toLocaleString('id-ID'):'–'}</td><td><b>${l.length?rp(v):'–'}</b></td><td>${o.length?rp(ov):'–'}</td><td class="${cc==null?'':cc>=0?'pos':'neg'}">${cc==null||!l.length?'–':(cc>=0?'+':'')+cc+'%'}</td></tr>`}).join('')}</tbody></table></div>`;
+  const ps={};yr.forEach(r=>{const k=rowProd(r),o=ps[k]||(ps[k]={q:0,v:0});o.q+=r.q;o.v+=r.v});
+  const top=Object.entries(ps).sort((a,b)=>b[1].v-a[1].v||b[1].q-a[1].q).slice(0,10);
+  const st={};yr.forEach(r=>{st[r.st]=(st[r.st]||0)+r.v});
+  return head+kpi+tb+`<div class="g2"><div><div class="sub">By store · ${SY}</div><div class="card">${Object.entries(st).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row" style="cursor:default"><div class="grow t">${esc(k)}</div><b>${rp(v)}</b></div>`).join('')||empty('–')}</div></div>
+   <div><div class="sub">Top products · ${SY}</div><div class="card">${top.map(([k,o])=>`<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(k)}</div><div class="lbl">${o.q.toLocaleString('id-ID')} pcs</div></div><b>${rp(o.v)}</b></div>`).join('')||empty('–')}</div></div></div>
+   <div class="lbl" style="padding:0 6px">Past months come from the imported history; later months come from the store tablets (POS). Tap a month for the details per store and product.</div>`;
+}
+function salesMonth(m){
+  const l=salesRows().filter(r=>r.m===m&&(SSt==='all'||r.st===SSt));closePop();
+  const g={};l.forEach(r=>{const k=r.st+'|'+rowProd(r),o=g[k]||(g[k]={st:r.st,p:rowProd(r),sku:r.sku,q:0,v:0});o.q+=r.q;o.v+=r.v});
+  const rows=Object.values(g).sort((a,b)=>a.st.localeCompare(b.st)||b.v-a.v);
+  $('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Sales · ${new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</h3><div class="lbl" style="margin:-8px 6px 12px">${SSt==='all'?'All stores':esc(SSt)} · ${rp(l.reduce((a,r)=>a+r.v,0))} · ${l.reduce((a,r)=>a+r.q,0).toLocaleString('id-ID')} pcs</div>
+  <div class="card" style="overflow-x:auto"><table class="stab"><thead><tr><th>Store</th><th>Product</th><th>Pieces</th><th>Revenue</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${esc(o.st)}</td><td style="text-align:left">${esc(o.p)}${o.sku&&o.p!==o.sku?`<div class="lbl">${esc(o.sku)}</div>`:''}</td><td>${o.q}</td><td><b>${o.v?rp(o.v):'–'}</b></td></tr>`).join('')}</tbody></table></div>
+  <button class="btn sec" id="no">Close</button>`;
+  $('#no').onclick=close;$('#bg').classList.add('open');
+}
+// ---- import sales history: Date (any day of the month), Store, SKU, Sold, Revenue; rows of the same month+store+SKU are added up.
+// Importing again replaces the months+stores+SKUs it contains (so a corrected paste never double counts).
+const SCOL={m:/^(date|tanggal|tgl|bulan|month|periode|period)$/,st:/^(store|toko|channel|outlet|lokasi)$/,sku:/^(sku|kode|code|kode produk|item code|produk|product)$/,q:/^(sold|qty|terjual|pcs|jumlah|quantity|qty sold)$/,v:/^(total pendapatan|pendapatan|revenue|total|omzet|omset|sales|penjualan|nilai)$/};
+function sMonth(v){v=String(v||'').trim();let x;
+  if(x=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/))return x[3]+'-'+x[2].padStart(2,'0');
+  if(x=v.match(/^(\d{4})-(\d{1,2})(-\d{1,2})?/))return x[1]+'-'+x[2].padStart(2,'0');
+  if(x=v.match(/^(\d{1,2})[\/.-](\d{4})$/))return x[2]+'-'+x[1].padStart(2,'0');return ''}
+function salesParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!lines.length)return{rows:[],bad:0};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+  const head=cells[0].map(h=>h.toLowerCase().replace(/\s+/g,' ').trim()),map={};
+  head.forEach((h,i)=>{for(const k in SCOL)if(map[k]==null&&SCOL[k].test(h))map[k]=i});
+  const hasHead=map.m!=null&&map.sku!=null;const M=hasHead?map:{m:0,st:1,sku:2,q:3,v:4};
+  const agg={};let bad=0;
+  (hasHead?cells.slice(1):cells).forEach(c=>{const m=sMonth(c[M.m]),sku=String(c[M.sku]||'').trim(),st=String(c[M.st]||'').trim()||'Store';
+    if(!m||!sku){bad++;return}const k=m+'|'+st+'|'+sku.toLowerCase(),o=agg[k]||(agg[k]={bulan:m,toko:st,sku,qty:0,total:0});o.qty+=+impNum(c[M.q])||0;o.total+=+impNum(c[M.v])||0});
+  return{rows:Object.values(agg),bad};
+}
+const hid=r=>'h-'+r.bulan+'-'+String(r.toko).toLowerCase().replace(/\s+/g,'_')+'-'+String(r.sku).toLowerCase();
+function importSales(){
+  closePop();$('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Import sales history</h3><div class="lbl" style="margin:-8px 6px 12px">In your spreadsheet, select the cells with the header row (Date, Store, SKU, Sold, Revenue), copy, and paste them here. One row per month, store and product; rows of the same month are added up. Importing the same month again replaces it.</div>
+  <div class="f"><textarea id="stext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="sprev"></div>
+  <button class="btn" id="sgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  const prev=()=>{const {rows,bad}=salesParse($('#stext').value),b=$('#sgo');
+    if(!rows.length){$('#sprev').innerHTML=bad?`<div class="lbl neg" style="margin:0 6px 10px">No rows recognised. Check that the first columns are Date, Store, SKU, Sold, Revenue.</div>`:'';b.disabled=true;b.style.opacity=.5;b.textContent='Nothing to import yet';return}
+    const ms=rows.map(r=>r.bulan).sort(),st=[...new Set(rows.map(r=>r.toko))],unk=[...new Set(rows.map(r=>r.sku).filter(k=>!skuName(k)))],rep=rows.filter(r=>S.hist.some(h=>h.id===hid(r))).length;
+    $('#sprev').innerHTML=`<div class="card" style="padding:12px 16px"><div class="t">${rows.length} rows · ${MON(ms[0])} – ${MON(ms[ms.length-1])}</div><div class="lbl">${rp(rows.reduce((a,r)=>a+r.total,0))} · ${rows.reduce((a,r)=>a+r.qty,0).toLocaleString('id-ID')} pcs · ${st.length} stores: ${st.map(esc).join(', ')}</div>${rep?`<div class="lbl">${rep} rows replace rows imported before</div>`:''}${bad?`<div class="lbl neg">${bad} rows skipped (no date or SKU)</div>`:''}${unk.length?`<div class="lbl">${unk.length} SKUs are not in your product list yet (shown by SKU): ${unk.slice(0,12).map(esc).join(', ')}${unk.length>12?'…':''}</div>`:''}</div>`;
+    b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' rows'};
+  $('#stext').oninput=prev;$('#no').onclick=close;
+  $('#sgo').onclick=()=>{const {rows}=salesParse($('#stext').value);if(!rows.length)return;const m={};S.hist.forEach(h=>m[h.id]=h);
+    rows.forEach(r=>{const id=hid(r);m[id]={id,...r}});S.hist=Object.values(m);
+    const ys=rows.map(r=>r.bulan).sort();SY=ys[ys.length-1].slice(0,4);close();tab='tx';fv='sales';save();setStatus('Imported '+rows.length+' sales rows')};
+  $('#bg').classList.add('open');setTimeout(()=>$('#stext').focus(),50);
+}
 function vTx(){
   const list=allTx().filter(t=>txf==='all'||t.jenis===txf).sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal)));
-  return `<h1>Finance</h1><div class="seg">${[['all','All'],['Income','Income'],['Expense','Expense']].map(s=>`<button class="${txf===s[0]?'on':''}" onclick="txf='${s[0]}';render()">${s[1]}</button>`).join('')}</div>
+  const fseg=`<div class="seg" style="margin-bottom:10px">${[['tx','Transactions'],['sales','Sales']].map(x=>`<button class="${fv===x[0]?'on':''}" onclick="fv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
+  if(fv==='sales')return `<h1>Finance</h1>`+fseg+vSales();
+  return `<h1>Finance</h1>`+fseg+`<div class="seg">${[['all','All'],['Income','Income'],['Expense','Expense']].map(s=>`<button class="${txf===s[0]?'on':''}" onclick="txf='${s[0]}';render()">${s[1]}</button>`).join('')}</div>
   <div class="card">${list.length?list.map(t=>`<div class="row" onclick="${t.pos?`posShift('${esc(t.id.slice(4))}')`:`editTx('${t.id}')`}"><div class="grow"><div class="t">${esc(t.kategori)}${t.channel?' · '+esc(t.channel):''}${t.pos?' <span class="pill">POS</span>':''}</div><div class="lbl">${fmtD(t.tanggal)}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="${t.jenis==='Income'?'pos':'neg'}">${t.jenis==='Income'?'+':'−'}${rp(t.jumlah)}</b></div>`).join(''):empty('No transactions yet. Press the button above to add one.')}</div>`;
 }
 
