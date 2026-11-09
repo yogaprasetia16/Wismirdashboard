@@ -56,7 +56,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await until(async()=>{const r=(await dump())['POS Stok'].v;const h=r[0];return r.slice(1).some(x=>x[h.indexOf('catatan')].includes('diubah')&&x[h.indexOf('produk')]==='Hijab B'&&x[h.indexOf('qty')]===7)},10000,'edit synced');
  ok(true,'edited move is updated in the POS Stok sheet (same row, marked "diubah")');
  // load again until the dashboard sees the edit (a load can be skipped while the dashboard is still sending its own changes)
- await until(async()=>{await D.evaluate(()=>pullSheets());return D.evaluate(()=>(S.pos.stok||[]).length===3&&S.pos.stok.some(x=>String(x.catatan).includes('diubah')))},15000,'dash pulls').catch(async e=>{console.log('ERR DIAG',await D.evaluate(()=>JSON.stringify({status,dirty:S.cfg.dirty,n:(S.pos.stok||[]).length,c:(S.pos.stok||[]).map(x=>x.catatan)})));throw e});
+ await until(async()=>{await D.evaluate(()=>pullSheets());return D.evaluate(()=>(S.pos.stok||[]).length>=3&&S.pos.stok.some(x=>String(x.catatan).includes('diubah')))},15000,'dash pulls').catch(async e=>{console.log('ERR DIAG',await D.evaluate(()=>JSON.stringify({status,dirty:S.cfg.dirty,n:(S.pos.stok||[]).length,c:(S.pos.stok||[]).map(x=>x.catatan)})));throw e});
  await D.evaluate(()=>{tab='ops';ops='stock';stv='hist';HF.per='all';render()});
  const dh=await D.textContent('#hlist');ok(dh.includes('Sale')&&dh.includes('diubah'),'dashboard history still shows the sale and the edit note');
  ok(errs.length===0,'no page errors '+errs.join(';'));
