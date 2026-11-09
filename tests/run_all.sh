@@ -17,6 +17,7 @@ start; run "dashboard import products from a spreadsheet" node dash_import.js
 start; run "dashboard Production › Supplier recap + paid" node supplier.js
 start; run "store types, online stock source, products per store" node stores.js
 start; run "Finance › Sales: import history + monthly recap" node sales.js
+start; run "Finance › Report + Financial (sample data)" node finance_report.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js
