@@ -220,7 +220,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
+let fv='tx',SY='',SSt='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -428,7 +428,7 @@ addEventListener('resize',moveInd);
 function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind"></i>'+icons());applyTheme()}
 function topNav(){const b={task:dueTasks().length,ops:lowStock().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
 ['#side','#bot','#top'].forEach(id=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t==='theme')return toggleTheme();tab=b.dataset.t;render();scrollTo(0,0);const a=$('#app');a.classList.remove('sw');void a.offsetWidth;a.classList.add('sw')});
-$('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore}[ops]:({task:addTask,tx:addTx,prod:pt==='purch'?addPurch:pt==='manu'?addProd:null,mkt:addMkt}[tab]||addTx);if(f)f()};
+$('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore}[ops]:({task:addTask,tx:addExpense,prod:pt==='purch'?addPurch:pt==='manu'?addProd:null,mkt:addMkt}[tab]||addTx);if(f)f()};
 $('#sync').onclick=()=>{if(!syncN)pullSheets()};
 const monthTx=()=>allTx().filter(t=>String(t.tanggal).startsWith(today().slice(0,7)));
 function sums(l){let i=0,o=0;l.forEach(t=>t.jenis==='Income'?i+=+t.jumlah:o+=+t.jumlah);return{i,o}}
@@ -437,8 +437,8 @@ function render(){
   if(locked)return;
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='tx'&&fv!=='tx')||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
-  $('#cta span').textContent={task:'New reminder',tx:'New transaction',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store'}[ops]}[tab]||'New transaction';
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
+  $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
   const {i,o}=sums(monthTx());
@@ -474,7 +474,7 @@ function txFields(t={}){return[
   {k:'channel',label:'Channel',type:'select',opts:['','Store','Instagram','TikTok','Shopee','Tokopedia','WhatsApp'],val:t.channel||''},
   {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
 function addTx(){form('Add transaction',txFields(),v=>{S.tx.push({id:uid(),...v});save()})}
-function editTx(id){const t=S.tx.find(x=>x.id===id);form('Edit transaction',txFields(t),v=>{Object.assign(t,v);save()},()=>{S.tx=S.tx.filter(x=>x.id!==id);save()})}
+function editTx(id){const t=S.tx.find(x=>x.id===id);form(t.jenis==='Expense'?'Edit expense':'Edit transaction',t.jenis==='Expense'?expFields(t):txFields(t),v=>{Object.assign(t,v);save()},()=>{S.tx=S.tx.filter(x=>x.id!==id);save()})}
 // ---- Sales recap (owner 2026-11-09): monthly sales per store and product.
 // Past months come from "Import sales history" (tab Penjualan: one row per month + store + SKU); months/stores
 // without imported rows use the store tablets (POS shifts for revenue, sale stock moves for pieces).
@@ -553,7 +553,7 @@ function importSales(){
   $('#stext').oninput=prev;$('#no').onclick=close;
   $('#sgo').onclick=()=>{const {rows}=salesParse($('#stext').value);if(!rows.length)return;const m={};S.hist.forEach(h=>m[h.id]=h);
     rows.forEach(r=>{const id=hid(r);m[id]={id,...r}});S.hist=Object.values(m);
-    const ys=rows.map(r=>r.bulan).sort();SY=ys[ys.length-1].slice(0,4);close();tab='tx';fv='sales';save();setStatus('Imported '+rows.length+' sales rows')};
+    const ys=rows.map(r=>r.bulan).sort();SY=ys[ys.length-1].slice(0,4);close();tab='tx';fv='tx';txf='Income';save();setStatus('Imported '+rows.length+' sales rows')};
   $('#bg').classList.add('open');setTimeout(()=>$('#stext').focus(),50);
 }
 
@@ -653,14 +653,28 @@ function vFinancial(){
 (()=>{if(typeof document==='undefined'||!document.body||!document.body.appendChild)return;const t=document.createElement('div');t.id='vtip';document.body.appendChild(t);
  const show=e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-tip]');if(!el){t.style.display='none';return}t.innerHTML=el.dataset.tip;t.style.display='block';const r=el.getBoundingClientRect(),w=t.offsetWidth;t.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';t.style.top=Math.max(8,r.top-t.offsetHeight-6)+'px'};
  document.addEventListener('mouseover',show);document.addEventListener('focusin',show);addEventListener('scroll',()=>t.style.display='none',{passive:true})})();
+// Finance (owner 2026-11-10): Transactions = Income | Expense. Income = the sales recap (imported history + POS, see vSales);
+// Expense = expense transactions. The old "All" view and the separate Sales tab are gone.
+const ECATS=CATS.filter(c=>c!=='Sales');
+function expFields(t={}){return[
+  {k:'tanggal',label:'Date',type:'date',val:t.tanggal||today()},
+  {k:'kategori',label:'Category',type:'select',opts:ECATS,val:t.kategori||ECATS[0]},
+  {k:'jumlah',label:'Amount (Rp)',type:'number',val:t.jumlah||''},
+  {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
+function addExpense(){form('New expense',expFields(),v=>{S.tx.push({id:uid(),jenis:'Expense',channel:'',...v});save()})}
+function vExpense(){
+  const l=S.tx.filter(t=>t.jenis==='Expense').sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal))),m=today().slice(0,7);
+  const mo=l.filter(t=>String(t.tanggal).startsWith(m)).reduce((a,t)=>a+ +t.jumlah,0);
+  return `<div class="lbl" style="margin:0 4px 14px">${l.length} expenses · ${rp(mo)} this month</div>
+  <div class="card">${l.length?l.map(t=>`<div class="row" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(t.kategori)}</div><div class="lbl">${fmtD(t.tanggal)}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join(''):empty('No expenses yet. Press the button above to add one.')}</div>`;
+}
 function vTx(){
-  const list=allTx().filter(t=>txf==='all'||t.jenis===txf).sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal)));
-  const fseg=`<div class="seg sc" style="margin-bottom:10px;max-width:100%">${[['tx','Transactions'],['sales','Sales'],['report','Report'],['fin','Financial']].map(x=>`<button class="${fv===x[0]?'on':''}" onclick="fv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
-  if(fv==='sales')return `<h1>Finance</h1>`+fseg+vSales();
+  if(fv==='sales'){fv='tx';txf='Income'}
+  if(txf!=='Income'&&txf!=='Expense')txf='Income';
+  const fseg=`<div class="seg sc" style="margin-bottom:10px;max-width:100%">${[['tx','Transactions'],['report','Report'],['fin','Financial']].map(x=>`<button class="${fv===x[0]?'on':''}" onclick="fv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
   if(fv==='report')return `<h1>Finance</h1>`+fseg+vReport();
   if(fv==='fin')return `<h1>Finance</h1>`+fseg+vFinancial();
-  return `<h1>Finance</h1>`+fseg+`<div class="seg">${[['all','All'],['Income','Income'],['Expense','Expense']].map(s=>`<button class="${txf===s[0]?'on':''}" onclick="txf='${s[0]}';render()">${s[1]}</button>`).join('')}</div>
-  <div class="card">${list.length?list.map(t=>`<div class="row" onclick="${t.pos?`posShift('${esc(t.id.slice(4))}')`:`editTx('${t.id}')`}"><div class="grow"><div class="t">${esc(t.kategori)}${t.channel?' · '+esc(t.channel):''}${t.pos?' <span class="pill">POS</span>':''}</div><div class="lbl">${fmtD(t.tanggal)}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="${t.jenis==='Income'?'pos':'neg'}">${t.jenis==='Income'?'+':'−'}${rp(t.jumlah)}</b></div>`).join(''):empty('No transactions yet. Press the button above to add one.')}</div>`;
+  return `<h1>Finance</h1>`+fseg+`<div class="seg" style="margin-bottom:12px">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" onclick="txf='${s}';render()">${s}</button>`).join('')}</div>`+(txf==='Expense'?vExpense():vSales());
 }
 
 function prodFields(p={}){return[
@@ -899,14 +913,14 @@ function tog(id){
   save();
 }
 // Reminder links (owner 2026-11-10): a website or a page of this dashboard; the reminder row gets a link button
-const PAGES={'Overview':{tab:'home'},'Reminders':{tab:'task'},'Finance':{tab:'tx',fv:'tx'},'Finance › Sales':{tab:'tx',fv:'sales'},'Finance › Report':{tab:'tx',fv:'report'},'Finance › Financial':{tab:'tx',fv:'fin'},
+const PAGES={'Overview':{tab:'home'},'Reminders':{tab:'task'},'Finance › Income':{tab:'tx',fv:'tx',txf:'Income'},'Finance › Expense':{tab:'tx',fv:'tx',txf:'Expense'},'Finance › Report':{tab:'tx',fv:'report'},'Finance › Financial':{tab:'tx',fv:'fin'},
  'Production › Purchasing':{tab:'prod',pt:'purch'},'Production › Manufacturing':{tab:'prod',pt:'manu'},'Production › Supplier':{tab:'prod',pt:'supp'},'Marketing':{tab:'mkt'},
  'Operational › Stock':{tab:'ops',ops:'stock',stv:'list'},'Operational › Stock history':{tab:'ops',ops:'stock',stv:'hist'},'Operational › Staff':{tab:'ops',ops:'staff'},'Operational › Attendance':{tab:'ops',ops:'att'},'Operational › Store':{tab:'ops',ops:'store'},'Settings':{tab:'set'}};
-const pageOf=l=>{l=String(l||'').trim().toLowerCase();const k=Object.keys(PAGES).find(x=>x.toLowerCase()===l);return k?PAGES[k]:null};
+const pageOf=l=>{l=String(l||'').trim().toLowerCase();if(l==='finance › sales'||l==='finance')l='finance › income';const k=Object.keys(PAGES).find(x=>x.toLowerCase()===l);return k?PAGES[k]:null};
 // only http(s) websites; "shopee.co.id" becomes https://shopee.co.id
 const webOf=l=>{l=String(l||'').trim();if(!l||/\s/.test(l))return '';if(/^https?:\/\//i.test(l))return l;if(/^[a-z][a-z0-9+.-]*:/i.test(l))return '';return /\./.test(l)?'https://'+l:''};
 function openLink(id){const t=S.tasks.find(x=>x.id===id);if(!t)return;const pg=pageOf(t.link);
- if(pg){closePop();close();tab=pg.tab;if(pg.fv)fv=pg.fv;if(pg.pt)pt=pg.pt;if(pg.ops)ops=pg.ops;if(pg.stv)stv=pg.stv;render();scrollTo(0,0);return}
+ if(pg){closePop();close();tab=pg.tab;if(pg.fv)fv=pg.fv;if(pg.txf)txf=pg.txf;if(pg.pt)pt=pg.pt;if(pg.ops)ops=pg.ops;if(pg.stv)stv=pg.stv;render();scrollTo(0,0);return}
  const u=webOf(t.link);if(u)window.open(u,'_blank','noopener')}
 const LINKIC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
 const tFields=(t={})=>[

@@ -19,6 +19,7 @@ start; run "store types, online stock source, products per store" node stores.js
 start; run "Finance › Sales: import history + monthly recap" node sales.js
 start; run "Finance › Report + Financial (sample data)" node finance_report.js
 start; run "reminder links (website or dashboard page)" node task_link.js
+start; run "Finance tabs: Income / Expense" node finance_tabs.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js

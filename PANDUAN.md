@@ -244,12 +244,12 @@ Menjalankan toko online di tablet:
 
 Fitur ini butuh **Code.gs versi 6** (kolom baru `sumber` dan `produk` di tab Store).
 
-## 15. Rekap penjualan & impor penjualan lama (Finance › Sales)
+## 15. Rekap penjualan & impor penjualan lama (Finance › Transactions › Income)
 
 **Memasukkan penjualan tahun-tahun sebelumnya:**
 1. Di spreadsheet Anda, blok tabel penjualan **beserta baris judulnya**. Kolomnya: `date`, `Store`, `SKU`, `Sold`, `Total pendapatan`.
 2. Tekan **Ctrl+C**.
-3. Buka Dashboard › **Finance** › **Sales**, lalu tekan **Import sales history**.
+3. Buka Dashboard › **Finance** › **Transactions** › **Income**, lalu tekan **Import sales history**.
 4. Tempel dengan **Ctrl+V**. Akan muncul ringkasan: jumlah baris, periode, total, daftar toko, dan SKU yang belum ada di daftar produk.
 5. Tekan **Import**.
 
