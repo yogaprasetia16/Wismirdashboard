@@ -220,7 +220,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',FM='2026-09',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
+let fv='tx',SY='',SSt='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='all',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -557,82 +557,97 @@ function importSales(){
   $('#bg').classList.add('open');setTimeout(()=>$('#stext').focus(),50);
 }
 
-// ---- Report + Financial (owner 2026-11-09, ported from the owner's "Monthly Report" page). SAMPLE DATA for now:
-// the numbers below are made up and are replaced with real data later.
-const FD={months:['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09'],m:[.9,1.5,1.9,1,.8,.75,.85,.95,1.15],
- prods:[{n:'Gamis Syar’i Alya',p:150000,c:85000,q:312,cat:0},{n:'Hijab Pashmina Ceruty',p:35000,c:18000,q:540,cat:1},{n:'Mukena Travel Parasut',p:90000,c:52000,q:168,cat:1},
-  {n:'Koko Pria Modern',p:100000,c:58000,q:143,cat:0},{n:'Tunik Katun Rayon',p:90000,c:50000,q:121,cat:0},{n:'Khimar Instan Syar’i',p:55000,c:28000,q:205,cat:1}],
- cats:['Clothing','Hijab & mukena'],stores:[{n:'Toko A',s:34},{n:'Toko B',s:26},{n:'Online Shop',s:20},{n:'Shopee',s:12},{n:'Titip',s:8}],
- years:[{y:'2022',rev:790e6,cost:500e6,items:9600},{y:'2023',rev:980e6,cost:612e6,items:11950},{y:'2024',rev:1210e6,cost:748e6,items:14750},{y:'2025',rev:1480e6,cost:905e6,items:18050,ytd:1020e6,ytdCost:625e6,ytdItems:12440}],
- sku:[['GMS-ALY-NVY-M','Gamis Syar’i Alya','Navy / M',24,85000],['GMS-ALY-NVY-L','Gamis Syar’i Alya','Navy / L',192,85000],['GMS-ALY-SGE-M','Gamis Syar’i Alya','Sage / M',288,85000],['HJB-PSH-MCA','Hijab Pashmina Ceruty','Mocca',96,18000],
-  ['HJB-PSH-BLK','Hijab Pashmina Ceruty','Black',1240,18000],['MKN-TRV-SGE','Mukena Travel Parasut','Sage',36,52000],['MKN-TRV-ROS','Mukena Travel Parasut','Rose',256,52000],['KKO-MDN-WHT-XL','Koko Pria Modern','White / XL',44,58000],
-  ['KKO-MDN-BLK-L','Koko Pria Modern','Black / L',224,58000],['TNK-RYN-DST','Tunik Katun Rayon','Dusty',332,50000],['KHM-INS-GRY','Khimar Instan Syar’i','Grey',560,28000]],
- cash:285e6,mat:142.5e6};
-const fq=(i,k)=>Math.round(FD.prods[i].q*FD.m[k]*(1+(((i*7+k*3)%5)-2)*.04));
-const ftot=k=>{const r={rev:0,q:0,cost:0};FD.prods.forEach((x,i)=>{const q=fq(i,k);r.rev+=q*x.p;r.q+=q;r.cost+=q*x.c});return r};
-const c1=v=>v.toFixed(1).replace('.',','),jt=n=>'Rp '+(n/1e6).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})+' jt',fM=n=>n>=1e9?'Rp '+(n/1e9).toFixed(2).replace('.',',')+' M':jt(n),pc=v=>c1(v)+'%';
+// ---- Report + Financial (owner 2026-11-09, ported from the owner's "Monthly Report" page; real data since 2026-11-10):
+// sales = salesRows() (imported history + POS), cost = pieces × product COGS, categories from the product list (matched by SKU),
+// stock value = current POS stock × COGS. Cash and material value are not tracked yet.
+const c1=v=>v.toFixed(1).replace('.',','),jt=n=>'Rp '+(n/1e6).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})+' jt',fM=n=>Math.abs(n)>=1e9?'Rp '+(n/1e9).toFixed(2).replace('.',',')+' M':jt(n),pc=v=>c1(v)+'%';
 const fchg=(a,b)=>{if(!b)return '<span class="mu">–</span>';const d=(a-b)/b*100;return `<b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${c1(Math.abs(d))}%</b>`};
 const MONL=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-function fAlloc(list){return FD.stores.map(st=>{const lines=list.map(x=>{const q=Math.round(x.q*st.s/100);return{name:x.n,q,rev:q*x.p}});return{name:st.n,rev:lines.reduce((a,l)=>a+l.rev,0),units:lines.reduce((a,l)=>a+l.q,0),lines}}).sort((a,b)=>b.rev-a.rev)}
-function fSpark(v,label){const mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1,pts=v.map((x,j)=>[v.length>1?4+j*(82/(v.length-1)):45,26-(x-mn)/rg*22]),l=pts[pts.length-1];
+const prevMon=m=>{const d=new Date(m+'-01T00:00');d.setMonth(d.getMonth()-1);return ymd(d).slice(0,7)};
+// one row per sale line with product info and cost
+function finRows(){
+ const bySku={};S.products.forEach(p=>{const k=String(p.sku||'').trim().toLowerCase();if(k)bySku[k]=p});
+ return salesRows().map(r=>{const p=r.pid?S.products.find(x=>x.id===r.pid):bySku[String(r.sku).trim().toLowerCase()];
+  const cogs=p&&p.cogs!==''&&p.cogs!=null?+p.cogs||0:0;
+  return {...r,key:p?p.id:'sku:'+String(r.sku).toLowerCase(),name:p?p.nama:(r.sku||'?'),cat:(p&&String(p.kategori||'').trim())||'Uncategorized',cogs,cost:r.q*cogs,noc:!cogs&&r.q>0}});
+}
+const fSum=(l,k)=>l.reduce((a,r)=>a+r[k],0);
+function fGroup(l,key,name){const g={};l.forEach(r=>{const k=r[key],o=g[k]||(g[k]={n:name?r[name]:k,q:0,rev:0,cost:0});o.q+=r.q;o.rev+=r.v;o.cost+=r.cost});return Object.values(g).sort((a,b)=>b.rev-a.rev||b.q-a.q)}
+function fSpark(v,label){if(v.length<2)return '';const mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1,pts=v.map((x,j)=>[4+j*(82/(v.length-1)),26-(x-mn)/rg*22]),l=pts[pts.length-1];
  return `<svg class="spk" viewBox="0 0 90 30" role="img" aria-label="${label}"><polyline fill="none" stroke="var(--viz1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}"/><circle cx="${l[0].toFixed(1)}" cy="${l[1].toFixed(1)}" r="3" fill="var(--viz1)"/></svg>`}
 const rankT=(cols,rows)=>`<div style="overflow-x:auto"><table class="stab"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const fEmpty=()=>`<div class="card">${empty('No sales yet. Import your sales history in Finance › Sales, or close a shift on the store tablet.')}</div>`;
+const rkn=i=>`<span class="rkn">${i+1}</span>`;
+const prodRank=(l,tot,extra)=>rankT(['Product','Quantity','Revenue',extra||'% of revenue'],l.map((x,i)=>`<tr><td><div style="display:flex;align-items:center">${rkn(i)}<div style="flex:1"><b>${esc(x.n)}</b><div class="hb" style="max-width:240px"><i style="width:${(l[0].rev?x.rev/l[0].rev*100:0).toFixed(1)}%"></i></div></div></div></td><td>${x.q.toLocaleString('id-ID')}</td><td><b>${rp(x.rev)}</b></td><td><b>${tot?pc(x.rev/tot*100):'–'}</b></td></tr>`));
+const storeRank=(l,tot,click)=>rankT(['Store','Revenue','% of total revenue'],l.map((x,i)=>`<tr ${click?`data-fst="${esc(x.n)}" onclick="fStore(this.dataset.fst)" style="cursor:pointer"`:''}><td><div style="display:flex;align-items:center">${rkn(i)}<b>${esc(x.n)}</b></div></td><td><b>${rp(x.rev)}</b></td><td style="min-width:150px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(tot?x.rev/tot*100:0).toFixed(1)}%"></i></div><b>${tot?pc(x.rev/tot*100):'–'}</b></div></td></tr>`));
+const noCogsNote=l=>{const n=new Set(l.filter(r=>r.noc).map(r=>r.key)).size;return n?`<div class="lbl neg" style="margin:0 6px 10px">${n} product${n>1?'s have':' has'} no COGS (or the SKU is not in the product list), so cost is counted as 0 for ${n>1?'them':'it'}. Add products with SKU and COGS in Operational › Stock.</div>`:''};
+function fPeriod(all){const ms=[...new Set(all.map(r=>r.m))].sort(),last=ms[ms.length-1]||today().slice(0,7);if(FM!=='ytd'&&!ms.includes(FM))FM=last;
+ const isY=FM==='ytd',Y=last.slice(0,4),sel=isY?all.filter(r=>r.m.startsWith(Y)&&r.m<=last):all.filter(r=>r.m===FM);
+ const ym=new Set(sel.map(r=>r.m.slice(5))),py=String(+Y-1);
+ return {ms,last,isY,Y,sel,prev:isY?all.filter(r=>r.m.startsWith(py)&&ym.has(r.m.slice(5))):all.filter(r=>r.m===prevMon(FM)),
+  label:isY?'Year to date · January – '+MONL(last):MONL(FM),pl:isY?'the same months of '+py:MONL(prevMon(FM))}}
 function vReport(){
- const isY=FM==='ytd',L=FD.months.length-1,mi=isY?L:Math.max(0,FD.months.indexOf(FM)),label=isY?'Year to date · January – '+MONL(FD.months[L]):MONL(FD.months[mi]);
- const prods=FD.prods.map((x,i)=>{const q=isY?FD.months.reduce((a,_,k)=>a+fq(i,k),0):fq(i,mi);return{n:x.n,p:x.p,q,cat:x.cat,rev:q*x.p,cost:q*x.c,out:q+Math.round(q*.06)}}).sort((a,b)=>b.rev-a.rev);
- const rev=prods.reduce((a,x)=>a+x.rev,0),units=prods.reduce((a,x)=>a+x.q,0),cost=prods.reduce((a,x)=>a+x.cost,0);
- const cur=ftot(mi),prev=mi>0?ftot(mi-1):null,lo=isY?0:Math.max(0,mi-5),tr=[];for(let k=lo;k<=mi;k++)tr.push(ftot(k));
- const pl=isY?'Jan – Sep 2025':prev?MONL(FD.months[mi-1]):'no earlier month',Y=FD.years[3];
- const cR=isY?fchg(rev,Y.ytd):fchg(cur.rev,prev&&prev.rev),cU=isY?fchg(units,Y.ytdItems):fchg(cur.q,prev&&prev.q),cC=isY?fchg(cost,Y.ytdCost):fchg(cur.cost,prev&&prev.cost);
- const opts=[['ytd','Year to date (Jan – Sep 2026)']].concat(FD.months.slice().reverse().map(m=>[m,MONL(m)]));
- const kp=(l,v,sp,ch,extra)=>`<div class="card"><div class="lbl">${l}</div><div class="kpr"><div class="kn">${v}</div>${sp}</div><div class="lbl">${ch} vs ${pl}${extra||''}</div></div>`;
- const all=FD.months.map((_,k)=>ftot(k)),mx=Math.max(...all.map(z=>z.rev)),n=all.length,H=160;
- const pts=all.map((z,j)=>((j+.5)/n*100).toFixed(2)+','+(190-Math.round(z.cost/mx*H))).join(' ');
- const cols=all.map((z,j)=>`<button class="col${isY||j===mi?'':' off'}" onclick="FM='${FD.months[j]}';render()" data-tip="<b>${MONL(FD.months[j])}</b><br>Revenue ${jt(z.rev)}<br>Cost ${jt(z.cost)}" aria-label="Show ${MONL(FD.months[j])}"><div class="v">${c1(z.rev/1e6)}</div><div class="b" style="height:${Math.round(z.rev/mx*H)}px"></div></button>`).join('');
- const dots=all.map((z,j)=>`<div class="dot" style="left:${((j+.5)/n*100).toFixed(2)}%;bottom:${Math.round(z.cost/mx*H)}px"></div>`).join('');
- const cat=FD.cats.map((c,i)=>({n:c,rev:0,q:0,i}));prods.forEach(x=>{cat[x.cat].rev+=x.rev;cat[x.cat].q+=x.q});cat.sort((a,b)=>b.rev-a.rev);
- const CC=['var(--viz1)','var(--viz2)'],sh=cat.map(c=>c.rev/rev*100);
- const ring=(col,l,off)=>`<circle cx="100" cy="100" r="70" fill="none" stroke="${col}" stroke-width="26" pathLength="100" stroke-dasharray="${Math.max(0,l-.6).toFixed(2)} ${(100-l+.6).toFixed(2)}" stroke-dashoffset="${off}" transform="rotate(-90 100 100)"/>`;
- const stores=fAlloc(prods),rk=i=>`<span class="rkn">${i+1}</span>`;
- return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="t" style="font-weight:700;font-size:17px">Monthly report</div><div class="lbl">${label} <span class="tag2">Sample data</span></div></div>
+ const all=finRows();if(!all.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Monthly report</div>`+fEmpty();
+ const P=fPeriod(all),sel=P.sel,rev=fSum(sel,'v'),units=fSum(sel,'q'),cost=fSum(sel,'cost'),pr=P.prev;
+ const cm=P.isY?P.last:FM,trm=[];{let m=cm;for(let k=0;k<6;k++){trm.unshift(m);m=prevMon(m)}}
+ const mt=m=>{const l=all.filter(r=>r.m===m);return{rev:fSum(l,'v'),q:fSum(l,'q'),cost:fSum(l,'cost')}},tr=trm.filter(m=>P.ms.includes(m)).map(mt);
+ const opts=[['ytd','Year to date (Jan – '+HMON(P.last)+' '+P.Y+')']].concat(P.ms.slice().reverse().map(m=>[m,MONL(m)]));
+ const kp=(l,v,sp,ch,extra)=>`<div class="card"><div class="lbl">${l}</div><div class="kpr"><div class="kn">${v}</div>${sp}</div><div class="lbl">${ch} vs ${P.pl}${extra||''}</div></div>`;
+ // chart: the months of the selected year
+ const cy=(P.isY?P.Y:FM.slice(0,4)),cmo=P.ms.filter(m=>m.startsWith(cy)),ct=cmo.map(mt),mx=Math.max(1,...ct.map(z=>Math.max(z.rev,z.cost))),n=cmo.length,H=160;
+ const pts=ct.map((z,j)=>((j+.5)/n*100).toFixed(2)+','+(190-Math.round(z.cost/mx*H))).join(' ');
+ const cols=ct.map((z,j)=>`<button class="col${P.isY||cmo[j]===FM?'':' off'}" onclick="FM='${cmo[j]}';render()" data-tip="<b>${MONL(cmo[j])}</b><br>Revenue ${jt(z.rev)}<br>Cost ${jt(z.cost)}" aria-label="Show ${MONL(cmo[j])}"><div class="v">${c1(z.rev/1e6)}</div><div class="b" style="height:${Math.round(z.rev/mx*H)}px"></div></button>`).join('');
+ const dots=ct.map((z,j)=>`<div class="dot" style="left:${((j+.5)/n*100).toFixed(2)}%;bottom:${Math.round(z.cost/mx*H)}px"></div>`).join('');
+ // categories: top category vs the rest in the donut (two validated colours), every category in the table
+ const cat=fGroup(sel,'cat'),top=cat[0],shTop=rev&&top?top.rev/rev*100:0,CC=['var(--viz1)','var(--viz2)'];
+ const ring=(col,l,off)=>l<=0?'':`<circle cx="100" cy="100" r="70" fill="none" stroke="${col}" stroke-width="26" pathLength="100" stroke-dasharray="${Math.max(0,l-.6).toFixed(2)} ${(100-l+.6).toFixed(2)}" stroke-dashoffset="${off}" transform="rotate(-90 100 100)"/>`;
+ const prods=fGroup(sel,'key','name'),stores=fGroup(sel,'st');
+ return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="t" style="font-weight:700;font-size:17px">Monthly report</div><div class="lbl">${P.label}</div></div>
  <div class="f" style="margin:0;min-width:240px"><select onchange="FM=this.value;render()" aria-label="Filter by month">${opts.map(o=>`<option value="${o[0]}" ${o[0]===FM?'selected':''}>${o[1]}</option>`).join('')}</select></div></div>
- <div class="kp3">${kp('Total revenue',jt(rev),fSpark(tr.map(z=>z.rev),'Revenue trend'),cR)}${kp('Total products sold',rev?units.toLocaleString('id-ID')+' pcs':'0',fSpark(tr.map(z=>z.q),'Products sold trend'),cU)}${kp('Cost',jt(cost),fSpark(tr.map(z=>z.cost),'Cost trend'),cC,' · '+pc(cost/rev*100)+' of revenue')}</div>
- <div class="card viz"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><div><div class="t" style="font-weight:700">Revenue vs cost</div><div class="lbl">Year to date · values in Rp million · tap a month to show it</div></div><div class="lg"><span><i style="background:var(--viz1)"></i>Revenue</span><span><i class="ln" style="background:var(--viz2)"></i>Cost</span></div></div>
+ <div class="kp3">${kp('Total revenue',jt(rev),fSpark(tr.map(z=>z.rev),'Revenue trend'),fchg(rev,fSum(pr,'v')))}${kp('Total products sold',units.toLocaleString('id-ID')+' pcs',fSpark(tr.map(z=>z.q),'Products sold trend'),fchg(units,fSum(pr,'q')))}${kp('Cost',jt(cost),fSpark(tr.map(z=>z.cost),'Cost trend'),fchg(cost,fSum(pr,'cost')),rev?' · '+pc(cost/rev*100)+' of revenue':'')}</div>
+ ${noCogsNote(sel)}
+ <div class="card viz"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><div><div class="t" style="font-weight:700">Revenue vs cost</div><div class="lbl">${cy} · values in Rp million · tap a month to show it</div></div><div class="lg"><span><i style="background:var(--viz1)"></i>Revenue</span><span><i class="ln" style="background:var(--viz2)"></i>Cost</span></div></div>
   <div class="plot">${[0,25,50,75].map(p=>`<div class="gl" style="top:${p}%"></div>`).join('')}<div class="cols">${cols}</div><svg class="ov" viewBox="0 0 100 190" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="var(--viz2)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="${pts}"/></svg>${dots}</div>
-  <div class="xl">${FD.months.map((m,j)=>`<div>${!isY&&j===mi?'<b>'+HMON(m)+'</b>':HMON(m)}</div>`).join('')}</div></div>
- <div class="card"><div class="t" style="font-weight:700">Category ranked</div><div class="lbl" style="margin-bottom:12px">Share of total revenue · ${label}</div><div class="donut"><svg viewBox="0 0 200 200" role="img" aria-label="Revenue share by category"><circle cx="100" cy="100" r="70" fill="none" stroke="var(--seg)" stroke-width="26"/>${ring(CC[cat[0].i],sh[0],0)}${ring(CC[cat[1].i],sh[1],(-sh[0]).toFixed(2))}<text x="100" y="98" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">${Math.round(sh[0])}%</text><text x="100" y="120" text-anchor="middle" font-size="12" fill="var(--mute)">${esc(cat[0].n)}</text></svg>
-  <div style="flex:1 1 300px;min-width:0">${rankT(['Category','Quantity','Revenue','% of revenue'],cat.map(c=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:${CC[c.i]}"></i>${esc(c.n)}</td><td>${c.q.toLocaleString('id-ID')}</td><td><b>${rp(c.rev)}</b></td><td><b>${pc(c.rev/rev*100)}</b></td></tr>`))}</div></div></div>
- <div class="card"><div class="t" style="font-weight:700">Product ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · outflow = pieces that left stock (sold plus samples, returns and transfers)</div>${rankT(['Product','Quantity','Revenue','Outflow'],prods.map((x,i)=>`<tr><td><div style="display:flex;align-items:center">${rk(i)}<div style="flex:1"><b>${esc(x.n)}</b><div class="hb" style="max-width:240px"><i style="width:${(x.rev/prods[0].rev*100).toFixed(1)}%"></i></div></div></div></td><td>${x.q.toLocaleString('id-ID')}</td><td><b>${rp(x.rev)}</b></td><td class="mu">${x.out.toLocaleString('id-ID')}</td></tr>`))}</div>
- <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Tap a store to see what it sold</div>${rankT(['Store','Revenue','% of total revenue'],stores.map((x,i)=>`<tr data-fst="${esc(x.name)}" onclick="fStore('${esc(x.name)}')" style="cursor:pointer"><td><div style="display:flex;align-items:center">${rk(i)}<b>${esc(x.name)}</b></div></td><td><b>${rp(x.rev)}</b></td><td style="min-width:150px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(x.rev/rev*100).toFixed(1)}%"></i></div><b>${pc(x.rev/rev*100)}</b></div></td></tr>`))}</div>`;
+  <div class="xl">${cmo.map(m=>`<div>${!P.isY&&m===FM?'<b>'+HMON(m)+'</b>':HMON(m)}</div>`).join('')}</div></div>
+ <div class="card"><div class="t" style="font-weight:700">Category ranked</div><div class="lbl" style="margin-bottom:12px">Share of total revenue · ${P.label} · categories come from the product list (matched by SKU)</div><div class="donut"><svg viewBox="0 0 200 200" role="img" aria-label="Revenue share by category"><circle cx="100" cy="100" r="70" fill="none" stroke="var(--seg)" stroke-width="26"/>${ring(CC[0],shTop,0)}${ring(CC[1],rev?100-shTop:0,(-shTop).toFixed(2))}<text x="100" y="98" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">${Math.round(shTop)}%</text><text x="100" y="120" text-anchor="middle" font-size="12" fill="var(--mute)">${esc(top?top.n:'')}</text></svg>
+  <div style="flex:1 1 300px;min-width:0">${rankT(['Category','Quantity','Revenue','% of revenue'],cat.map((c,i)=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:${CC[i?1:0]}"></i>${esc(c.n)}</td><td>${c.q.toLocaleString('id-ID')}</td><td><b>${rp(c.rev)}</b></td><td><b>${rev?pc(c.rev/rev*100):'–'}</b></td></tr>`))}${cat.length>2?'<div class="lbl" style="margin-top:6px">Orange in the chart = all other categories together.</div>':''}</div></div></div>
+ <div class="card"><div class="t" style="font-weight:700">Product ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · ${P.label}</div>${prodRank(prods,rev)}</div>
+ <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Tap a store to see what it sold</div>${storeRank(stores,rev,true)}</div>`;
 }
 function fStore(name){
- const isY=FM==='ytd',L=FD.months.length-1,mi=isY?L:Math.max(0,FD.months.indexOf(FM));
- const prods=FD.prods.map((x,i)=>{const q=isY?FD.months.reduce((a,_,k)=>a+fq(i,k),0):fq(i,mi);return{n:x.n,p:x.p,q}});
- const st=fAlloc(prods).find(x=>x.name===name);if(!st)return;closePop();$('#sheet').oninput=null;
- $('#sheet').innerHTML=`<h3>${esc(name)}</h3><div class="lbl" style="margin:-8px 6px 12px">${isY?'Year to date':MONL(FD.months[mi])} · <span class="tag2">Sample data</span></div>
- <div class="card" style="display:flex;gap:24px;flex-wrap:wrap;padding:14px 18px"><div><div class="lbl">Revenue</div><div class="kv">${rp(st.rev)}</div></div><div><div class="lbl">Products sold</div><div class="kv">${st.units.toLocaleString('id-ID')} pcs</div></div></div>
- <div class="card">${rankT(['Product','Quantity','Revenue'],st.lines.slice().sort((a,b)=>b.rev-a.rev).map(l=>`<tr><td style="text-align:left"><b>${esc(l.name)}</b></td><td>${l.q.toLocaleString('id-ID')}</td><td><b>${rp(l.rev)}</b></td></tr>`))}</div><button class="btn sec" id="no">Close</button>`;
+ const all=finRows(),P=fPeriod(all),l=P.sel.filter(r=>r.st===name);closePop();$('#sheet').oninput=null;
+ $('#sheet').innerHTML=`<h3>${esc(name)}</h3><div class="lbl" style="margin:-8px 6px 12px">${P.label}</div>
+ <div class="card" style="display:flex;gap:24px;flex-wrap:wrap;padding:14px 18px"><div><div class="lbl">Revenue</div><div class="kv">${rp(fSum(l,'v'))}</div></div><div><div class="lbl">Products sold</div><div class="kv">${fSum(l,'q').toLocaleString('id-ID')} pcs</div></div></div>
+ <div class="card">${rankT(['Product','Quantity','Revenue'],fGroup(l,'key','name').map(x=>`<tr><td style="text-align:left"><b>${esc(x.n)}</b></td><td>${x.q.toLocaleString('id-ID')}</td><td><b>${rp(x.rev)}</b></td></tr>`))}</div><button class="btn sec" id="no">Close</button>`;
  $('#no').onclick=close;$('#bg').classList.add('open');
 }
 function vFinancial(){
- const yq=FD.prods.map((x,i)=>FD.months.reduce((a,_,k)=>a+fq(i,k),0)),yp=FD.prods.map((x,i)=>({n:x.n,p:x.p,c:x.c,q:yq[i],rev:yq[i]*x.p})).sort((a,b)=>b.rev-a.rev);
- const yRev=yp.reduce((a,x)=>a+x.rev,0),yCost=yp.reduce((a,x)=>a+x.q*x.c,0),yItems=yp.reduce((a,x)=>a+x.q,0),Y=FD.years;
- const years=Y.concat([{y:'2026 (YTD)',rev:yRev,cost:yCost,items:yItems}]),gr=i=>i===0?null:years[i].rev/(i===4?Y[3].ytd:years[i-1].rev)-1;
- const gp=i=>{const g=gr(i);return g===null?'<span class="mu">–</span>':`<b class="${g>=0?'pos':'neg'}">${g>=0?'▲':'▼'} ${c1(Math.abs(g*100))}%</b>`};
- const aRev=Y.reduce((a,y)=>a+y.rev,0)+yRev,aItems=Y.reduce((a,y)=>a+y.items,0)+yItems,fa=aRev/yRev,fqq=aItems/yItems;
- const aP=yp.map(x=>({n:x.n,q:Math.round(x.q*fqq),rev:Math.round(x.rev*fa)})),aS=fAlloc(yp).map(x=>({n:x.name,rev:Math.round(x.rev*fa)}));
- const skuV=FD.sku.reduce((a,x)=>a+x[3]*x[4],0),skuQ=FD.sku.reduce((a,x)=>a+x[3],0),maxQ=Math.max(...FD.sku.map(x=>x[3])),tv=FD.cash+FD.mat+skuV,mxY=Math.max(...years.map(y=>y.rev)),rk=i=>`<span class="rkn">${i+1}</span>`;
- const vc=(l,v)=>`<div class="card"><div class="lbl">${l}</div><div class="kn">${jt(v)}</div><div class="hb"><i style="width:${(v/tv*100).toFixed(1)}%"></i></div><div class="lbl" style="margin-top:6px">${pc(v/tv*100)} of total</div></div>`;
- return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · 2022 – September 2026 <span class="tag2">Sample data</span></div></div>
+ const all=finRows();if(!all.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Financial</div>`+fEmpty();
+ const ms=[...new Set(all.map(r=>r.m))].sort(),first=ms[0],last=ms[ms.length-1],aRev=fSum(all,'v'),aItems=fSum(all,'q');
+ // years; the last year is "year to date" when it does not reach December, compared with the same months of the year before
+ const ys=[...new Set(ms.map(m=>m.slice(0,4)))],ytd=last.slice(5)!=='12';
+ const years=ys.map((y,i)=>{const l=all.filter(r=>r.m.startsWith(y)),isL=i===ys.length-1;return{y:y+(isL&&ytd?' (YTD)':''),rev:fSum(l,'v'),cost:fSum(l,'cost'),items:fSum(l,'q'),
+  ...(()=>{if(!i)return{base:null};const mm=y=>new Set(all.filter(r=>r.m.startsWith(y)).map(r=>r.m.slice(5))),a=mm(y),b=mm(ys[i-1]),c=[...a].filter(x=>b.has(x));
+   return{base:fSum(all.filter(r=>r.m.startsWith(ys[i-1])&&c.includes(r.m.slice(5))),'v'),cur:fSum(all.filter(r=>r.m.startsWith(y)&&c.includes(r.m.slice(5))),'v')}})()}});
+ // growth compares only the months that have data in both years (a partial first year or a missing month never inflates it)
+ const gp=y=>{if(!y.base)return '<span class="mu">–</span>';const g=y.cur/y.base-1;return `<b class="${g>=0?'pos':'neg'}">${g>=0?'▲':'▼'} ${c1(Math.abs(g*100))}%</b>`};
+ const mxY=Math.max(1,...years.map(y=>y.rev));
+ // valuation: current stock (all warehouses and stores) at COGS
+ const st=posStock(),sku=S.products.map(p=>({p,q:Math.max(0,posTotal(st,p.id)),c:+p.cogs||0})).filter(x=>x.q>0).sort((a,b)=>b.q*b.c-a.q*a.c||b.q-a.q);
+ const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q));
+ return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
  <div class="sub">Total earning</div><div class="kp3"><div class="card"><div class="lbl">Total revenue</div><div class="kn">${fM(aRev)}</div><div class="lbl">All time</div></div><div class="card"><div class="lbl">Items sold</div><div class="kn">${aItems.toLocaleString('id-ID')} pcs</div><div class="lbl">All time</div></div></div>
- <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${rankT(['Store','Revenue','% of total revenue'],aS.map((x,i)=>`<tr><td><div style="display:flex;align-items:center">${rk(i)}<b>${esc(x.n)}</b></div></td><td><b>${rp(x.rev)}</b></td><td style="min-width:150px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(x.rev/aRev*100).toFixed(1)}%"></i></div><b>${pc(x.rev/aRev*100)}</b></div></td></tr>`))}</div>
- <div class="card"><div class="t" style="font-weight:700">Product ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${rankT(['Product','Quantity','Revenue','% of revenue'],aP.map((x,i)=>`<tr><td><div style="display:flex;align-items:center">${rk(i)}<div style="flex:1"><b>${esc(x.n)}</b><div class="hb" style="max-width:240px"><i style="width:${(x.rev/aP[0].rev*100).toFixed(1)}%"></i></div></div></div></td><td>${x.q.toLocaleString('id-ID')}</td><td><b>${rp(x.rev)}</b></td><td><b>${pc(x.rev/aRev*100)}</b></td></tr>`))}</div>
- <div class="card viz"><div class="t" style="font-weight:700">Yearly growth</div><div class="lbl">Revenue per year in Rp billion (M) · 2026 is year to date, its growth is compared with the same months of 2025</div>
-  <div class="plot" style="height:200px">${[0,25,50,75].map(p=>`<div class="gl" style="top:${p}%"></div>`).join('')}<div class="cols">${years.map((y,i)=>`<div class="col" style="cursor:default" data-tip="<b>${y.y}</b><br>Revenue ${fM(y.rev)}<br>Cost ${fM(y.cost)}"><div class="v">${(y.rev/1e9).toFixed(2).replace('.',',')}</div><div class="b" style="height:${Math.round(y.rev/mxY*160)}px;${i===4?'':'background:var(--viz1s)'}"></div></div>`).join('')}</div></div>
-  <div class="xl">${years.map((y,i)=>`<div><b>${y.y}</b><br>${gp(i)}</div>`).join('')}</div>
-  <div style="margin-top:14px">${rankT(['Year','Revenue','Cost','Gross profit','Items sold','Growth'],years.map((y,i)=>i).reverse().map(i=>{const y=years[i];return `<tr><td style="text-align:left"><b>${y.y}</b></td><td><b>${fM(y.rev)}</b></td><td>${fM(y.cost)}</td><td>${fM(y.rev-y.cost)}</td><td>${y.items.toLocaleString('id-ID')}</td><td>${gp(i)}</td></tr>`}))}</div></div>
- <div class="sub">Valuation</div><div class="kp3"><div class="card"><div class="lbl">Total valuation</div><div class="kn">${fM(tv)}</div><div class="lbl">Cash + material + product</div></div>${vc('Cash',FD.cash)}${vc('Material value',FD.mat)}${vc('Product value',skuV)}</div>
- <div class="card"><div class="t" style="font-weight:700">Product quantity per SKU</div><div class="lbl" style="margin-bottom:8px">${skuQ.toLocaleString('id-ID')} pcs · ${rp(skuV)} · stock valued at cost</div>${rankT(['SKU','Product','Variant','Quantity','Unit cost','Stock value'],FD.sku.map(x=>`<tr><td style="text-align:left" class="mu">${x[0]}</td><td style="text-align:left"><b>${esc(x[1])}</b></td><td style="text-align:left" class="mu">${esc(x[2])}</td><td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(x[3]/maxQ*100).toFixed(1)}%"></i></div><b>${x[3].toLocaleString('id-ID')}</b></div></td><td class="mu">${rp(x[4])}</td><td><b>${rp(x[3]*x[4])}</b></td></tr>`))}</div>`;
+ <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${storeRank(fGroup(all,'st'),aRev,false)}</div>
+ <div class="card"><div class="t" style="font-weight:700">Product ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${prodRank(fGroup(all,'key','name'),aRev)}</div>
+ <div class="card viz"><div class="t" style="font-weight:700">Yearly growth</div><div class="lbl">Revenue per year in Rp billion (M)${ytd?' · '+last.slice(0,4)+' is year to date':''} · growth compares the months that have data in both years</div>
+  <div class="plot" style="height:200px">${[0,25,50,75].map(p=>`<div class="gl" style="top:${p}%"></div>`).join('')}<div class="cols">${years.map((y,i)=>`<div class="col" style="cursor:default" data-tip="<b>${y.y}</b><br>Revenue ${fM(y.rev)}<br>Cost ${fM(y.cost)}"><div class="v">${(y.rev/1e9).toFixed(2).replace('.',',')}</div><div class="b" style="height:${Math.round(y.rev/mxY*160)}px;${i===years.length-1?'':'background:var(--viz1s)'}"></div></div>`).join('')}</div></div>
+  <div class="xl">${years.map(y=>`<div><b>${y.y}</b><br>${gp(y)}</div>`).join('')}</div>
+  ${noCogsNote(all)}
+  <div style="margin-top:14px">${rankT(['Year','Revenue','Cost','Gross profit','Items sold','Growth'],years.slice().reverse().map(y=>`<tr><td style="text-align:left"><b>${y.y}</b></td><td><b>${fM(y.rev)}</b></td><td>${fM(y.cost)}</td><td>${fM(y.rev-y.cost)}</td><td>${y.items.toLocaleString('id-ID')}</td><td>${gp(y)}</td></tr>`))}</div></div>
+ <div class="sub">Valuation</div><div class="kp3"><div class="card"><div class="lbl">Total valuation</div><div class="kn">${fM(skuV)}</div><div class="lbl">Product value only for now</div></div>
+  <div class="card"><div class="lbl">Cash</div><div class="kn mu">–</div><div class="lbl">Not tracked yet</div></div><div class="card"><div class="lbl">Material value</div><div class="kn mu">–</div><div class="lbl">Not tracked yet</div></div>
+  <div class="card"><div class="lbl">Product value</div><div class="kn">${fM(skuV)}</div><div class="lbl">Current stock × COGS</div></div></div>
+ <div class="card"><div class="t" style="font-weight:700">Product quantity per SKU</div><div class="lbl" style="margin-bottom:8px">${skuQ.toLocaleString('id-ID')} pcs · ${rp(skuV)} · current stock in all warehouses and stores, valued at COGS</div>${sku.length?rankT(['SKU','Product','Category','Quantity','Unit cost','Stock value'],sku.map(x=>`<tr><td style="text-align:left" class="mu">${esc(x.p.sku||'–')}</td><td style="text-align:left"><b>${esc(x.p.nama)}</b></td><td style="text-align:left" class="mu">${esc(x.p.kategori||'–')}</td><td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(x.q/maxQ*100).toFixed(1)}%"></i></div><b>${x.q.toLocaleString('id-ID')}</b></div></td><td class="mu">${x.c?rp(x.c):'<span class="neg">no COGS</span>'}</td><td><b>${rp(x.q*x.c)}</b></td></tr>`)):empty('No stock yet. Stock comes from the store tablets (POS).')}</div>`;
 }
 // hover / tap tooltip for chart marks ([data-tip])
 (()=>{if(typeof document==='undefined'||!document.body||!document.body.appendChild)return;const t=document.createElement('div');t.id='vtip';document.body.appendChild(t);
