@@ -27,7 +27,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  // Report
  await D.evaluate(()=>{tab='tx';fv='report';FM='';render()});
  const seg=await D.$$eval('#app .seg:first-of-type button',b=>b.map(x=>x.textContent));
- ok(seg.join()==='Transactions,Sales,Report,Financial','Finance tabs: '+seg.join(', '));
+ ok(seg.join()==='Transactions,Report,Financial','Finance tabs: '+seg.join(', '));
  const t=await D.textContent('#app');
  ok(t.includes('February 2026')&&!t.includes('Sample data'),'report opens on the latest month with data, no "Sample data" tag');
  const k=await D.$$eval('.kp3 .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));

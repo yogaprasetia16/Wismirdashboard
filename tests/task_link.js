@@ -16,7 +16,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const labels=await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent));
  ok(labels.join()==='Reminder,Division,Date,Link (optional),Repeat,Repeat every,Unit','form has a Link field after Date: '+labels.join(', '));
  const sug=await D.$$eval('#dl-link option',o=>o.map(x=>x.value));
- ok(sug.includes('Finance › Sales')&&sug.includes('Operational › Stock')&&sug.includes('Production › Supplier'),'Link suggests dashboard pages ('+sug.length+')');
+ ok(sug.includes('Finance › Income')&&sug.includes('Finance › Expense')&&sug.includes('Operational › Stock')&&sug.includes('Production › Supplier'),'Link suggests dashboard pages ('+sug.length+')');
  await D.click('#no');
  await add('Daily discount shopee','seller.shopee.co.id');
  await add('Check supplier bill','Production › Supplier');

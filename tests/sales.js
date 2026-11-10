@@ -28,7 +28,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  ok(pv.includes('6 rows')&&pv.includes('November 2024')&&pv.includes('November 2025')&&pv.includes('1 rows skipped'),'preview: 6 rows (duplicates added up), period, 1 bad row skipped: '+pv.replace(/\s+/g,' '));
  ok(pv.includes('bb02')&&pv.includes('cc03')&&!pv.includes('aa01,'),'preview lists SKUs not in the product list');
  await D.click('#sgo');await D.waitForTimeout(200);
- ok(await D.evaluate(()=>S.hist.length===6&&fv==='sales'&&SY==='2025'),'imported 6 rows, opens Sales on the latest year');
+ ok(await D.evaluate(()=>S.hist.length===6&&fv==='tx'&&txf==='Income'&&SY==='2025'),'imported 6 rows, opens Income on the latest year');
  ok((await D.textContent('#syTot')).replace(/\s/g,' ')==='Rp 3.450.000','2025 revenue Rp 3.450.000');
  const nov=await D.$eval('tr[data-sm="2025-11"]',e=>[...e.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|'));
  ok(nov==='Nov 2025|23|Rp 3.450.000|Rp 2.400.000|+44%','Nov 2025 vs Nov 2024 (12+4+1 pcs, Rp 2.400.000 last year): '+nov);
