@@ -102,7 +102,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 9;
+const CODE_VERSION = 10;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -229,15 +229,14 @@ function doPost(e) {
     // Dari Dashboard: tulis ulang tab dashboard saja. Tab POS tidak pernah disentuh di sini.
     // Perangkat lain sudah menyimpan sejak perangkat ini terakhir memuat data: tolak, perangkat ini akan menggabungkan dulu.
     if (typeof body.base === 'string' && body.base !== dashVer()) return out({ ok: false, conflict: true, ver: dashVer() });
-    Object.keys(HEADERS).forEach(function (name) {
-      if (!body.data || !body.data[name]) return; // tab yang tidak dikirim tidak dikosongkan
-      const items = body.data[name], sh = sheetFor(name), cols = colsFor(name);
-      if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, cols.length).clearContent();
-      if (items.length) {
-        const x = rowsFrom(name, items);
-        const rg = sh.getRange(2, 1, x.vals.length, cols.length);
-        rg.setNumberFormats(x.fmts); rg.setValues(x.vals);
-      }
+    // Semua baris disiapkan dulu; kalau ada yang gagal, belum ada tab yang disentuh.
+    const todo = Object.keys(HEADERS).filter(function (n) { return body.data && body.data[n]; }) // tab yang tidak dikirim tidak dikosongkan
+      .map(function (n) { return { name: n, n: body.data[n].length, x: body.data[n].length ? rowsFrom(n, body.data[n]) : null }; });
+    todo.forEach(function (t) {
+      const sh = sheetFor(t.name), cols = colsFor(t.name), last = sh.getLastRow();
+      // tulis data baru di atas data lama, baru hapus sisa baris di bawahnya: tab tidak pernah kosong di tengah jalan
+      if (t.n) { const rg = sh.getRange(2, 1, t.n, cols.length); rg.setNumberFormats(t.x.fmts); rg.setValues(t.x.vals); }
+      if (last > t.n + 1) sh.getRange(t.n + 2, 1, last - t.n - 1, cols.length).clearContent();
     });
     const ver = String(Date.now());
     PropertiesService.getScriptProperties().setProperty('dashVer', ver);

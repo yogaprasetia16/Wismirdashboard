@@ -247,7 +247,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=9;
+const NEED_CODE=10;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -255,12 +255,17 @@ function keepMissing(rows,old){const m={};(old||[]).forEach(o=>m[o.id]=o);return
 function setBase(ver){S.cfg.ver=ver==null?S.cfg.ver:String(ver);S.base=snap()}
 // Apply this device's edits (added / changed / deleted rows, by id) on top of fresh Sheet data
 // A tab the Sheet only just got (Code.gs updated late) arrives empty: keep this device's rows and send them
+// Safety net (2026-11-11): a tab that comes back EMPTY from the Sheet while this device holds many rows of it that it had
+// already seen on the Sheet means the Sheet lost them (cleared by mistake or a failed write): keep them here and send them back.
+let emptied=[],rescued='';
+const lostTab=(n,d)=>{const k=Object.keys(SHEET).find(x=>SHEET[x]===n);return !d.length&&(S[k]||[]).length>=10&&(((S.base||{})[n])||[]).length>=10};
 const newTab=(n,d)=>!(S.cfg.tabs||['Keuangan','Stok','Tugas','Production','Marketing','Purchasing','Staff','Store']).includes(n)&&!d.length&&(S[Object.keys(SHEET).find(k=>SHEET[k]===n)]||[]).length;
 function mergeInto(server){
   const base=S.base||{};
   for(const k in SHEET){
     const n=SHEET[k],srv=keepMissing((server[n]||[]).map(normRow),S[k]);
     if(!server[n]||newTab(n,server[n]))continue;
+    if(lostTab(n,server[n])){emptied.push(n);continue}
     const b={};(base[n]||[]).forEach(x=>b[x.id]=JSON.stringify(x));
     const mine={};S[k].forEach(x=>mine[x.id]=x);
     const gone=new Set(Object.keys(b).filter(id=>!mine[id]));
@@ -290,7 +295,7 @@ async function _pushSheets(tries=0){
   try{
     const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,data:sent,base:S.cfg.ver})});
     const j=await r.json();
-    if(j.ok){if(j.ver)S.cfg.ver=String(j.ver);S.base=sent;if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();setStatus('Synced '+hhmm());if(S.cfg.dirty)save.t=setTimeout(pushSheets,1200)}
+    if(j.ok){if(j.ver)S.cfg.ver=String(j.ver);S.base=sent;if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();setStatus(rescued?rescued+' · sent back '+hhmm():'Synced '+hhmm());rescued='';if(S.cfg.dirty)save.t=setTimeout(pushSheets,1200)}
     else if(j.conflict&&tries<3){
       // Another device saved in the meantime: load its data, keep both sets of changes, send again
       setStatus('Merging changes from another device…');
@@ -319,7 +324,8 @@ async function _pullSheets(){
     const busy=S.cfg.pulled&&S.cfg.dirty; // edited while loading: keep local, send it instead
     let kept=0;
     if(!busy){
-      for(const k in SHEET){const d=j.data[SHEET[k]];if(d&&newTab(SHEET[k],d)){kept++;continue}if(d)S[k]=keepMissing(d.map(normRow),S[k])}
+      emptied=[];
+      for(const k in SHEET){const d=j.data[SHEET[k]];if(d&&(newTab(SHEET[k],d)||lostTab(SHEET[k],d))){if(!newTab(SHEET[k],d))emptied.push(SHEET[k]);kept++;continue}if(d)S[k]=keepMissing(d.map(normRow),S[k])}
       S.cfg.tabs=Object.keys(j.data);if(kept)kmN++;
       S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
       S.cfg.pulled=1;S.cfg.dirty=0;setBase(j.ver);
@@ -328,7 +334,8 @@ async function _pullSheets(){
     S.cfg.codeOld=(+j.v||0)<NEED_CODE;
     // device-only values (older Code.gs): mark as unsent, so they go up before the next load and land once Code.gs is updated
     if(!busy&&(S.cfg.codeOld||kept)&&kmN)S.cfg.dirty=(S.cfg.dirty||0)+1;
-    save(false);setStatus('Data loaded from Sheets '+hhmm());
+    if(emptied.length)rescued='The Sheet tab '+emptied.join(', ')+' came back empty: kept this device\'s rows';
+    save(false);setStatus(emptied.length?'The Sheet tab '+emptied.join(', ')+' came back empty: kept this device\'s rows and sent them back to the Sheet '+hhmm():'Data loaded from Sheets '+hhmm());
     if(!busy)runRecurring();
     if(!busy&&migratePos())save(); // sends the merged lists back to Sheets
     if(busy||kept)pushSheets(); // kept: rows of a tab the Sheet only just got go up now
