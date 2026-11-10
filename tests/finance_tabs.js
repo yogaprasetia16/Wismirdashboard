@@ -18,7 +18,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await D.click('#cta');
  const f=await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent));
  ok(f.join()==='Date,Category,Amount (Rp),Note','expense form: '+f.join(', '));
- ok(!(await D.$$eval('#dl-kategori option',o=>o.map(x=>x.value))).includes('Sales'),'expense category suggestions leave out Sales');
+ ok(!(await D.$$eval('#sheet .cmbo',o=>o.map(x=>x.dataset.v))).includes('Sales'),'expense category suggestions leave out Sales');
  await D.fill('#sheet [data-k=kategori]','rent');await D.fill('#sheet [data-k=jumlah]','2500000');await D.fill('#sheet [data-k=catatan]','Toko A');await D.click('#ok');
  ok(await D.evaluate(()=>S.tx.length===1&&S.tx[0].jenis==='Expense'&&S.tx[0].kategori==='Rent'),'expense saved as Expense (category capitalised)');
  ok((await D.textContent('#app')).includes('Rent'),'expense shows in the recap');
