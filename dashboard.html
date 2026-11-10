@@ -209,18 +209,18 @@ const today=()=>ymd(new Date());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan'};
+const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring'};
 const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen'};
-let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],pos:{},cfg:{url:'',pin:''}};
+let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
 // Dates from Google Sheets can arrive as "2026-11-03T17:00:00.000Z"; turn them back into a local yyyy-mm-dd
 const nd=v=>{if(v==null||v==='')return '';const s=String(v);if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const d=new Date(s);return isNaN(d)?s:ymd(d)};
-const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn'];
+const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',EY='',ECat='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -246,7 +246,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=8;
+const NEED_CODE=9;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -328,6 +328,7 @@ async function _pullSheets(){
     // device-only values (older Code.gs): mark as unsent, so they go up before the next load and land once Code.gs is updated
     if(!busy&&(S.cfg.codeOld||kept)&&kmN)S.cfg.dirty=(S.cfg.dirty||0)+1;
     save(false);setStatus('Data loaded from Sheets '+hhmm());
+    if(!busy)runRecurring();
     if(!busy&&migratePos())save(); // sends the merged lists back to Sheets
     if(busy||kept)pushSheets(); // kept: rows of a tab the Sheet only just got go up now
   }catch(e){setStatus('Could not connect to Google Sheets.')}
@@ -428,7 +429,7 @@ addEventListener('resize',moveInd);
 function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind"></i>'+icons());applyTheme()}
 function topNav(){const b={task:dueTasks().length,ops:lowStock().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
 ['#side','#bot','#top'].forEach(id=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t==='theme')return toggleTheme();tab=b.dataset.t;render();scrollTo(0,0);const a=$('#app');a.classList.remove('sw');void a.offsetWidth;a.classList.add('sw')});
-$('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore}[ops]:({task:addTask,tx:addExpense,prod:pt==='purch'?addPurch:pt==='manu'?addProd:null,mkt:addMkt}[tab]||addTx);if(f)f()};
+$('#cta').onclick=()=>{const f=tab==='ops'?{stock:addProduct,staff:addStaff,store:addStore,exp:addExpense}[ops]:({task:addTask,tx:addExpense,prod:pt==='purch'?addPurch:pt==='manu'?addProd:null,mkt:addMkt}[tab]||addTx);if(f)f()};
 $('#sync').onclick=()=>{if(!syncN)pullSheets()};
 const monthTx=()=>allTx().filter(t=>String(t.tanggal).startsWith(today().slice(0,7)));
 function sums(l){let i=0,o=0;l.forEach(t=>t.jenis==='Income'?i+=+t.jumlah:o+=+t.jumlah);return{i,o}}
@@ -438,7 +439,7 @@ function render(){
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
   $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
-  $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store'}[ops]}[tab]||'New transaction';
+  $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store',exp:'New expense'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
   const {i,o}=sums(monthTx());
@@ -841,8 +842,50 @@ function vMkt(){
   <div class="card">${S.mkt.length?[...S.mkt].sort((a,b)=>(b.start||'').localeCompare(a.start||'')).map(c=>{const roi=+c.spent?Math.round((+c.revenue-+c.spent)/+c.spent*100):null;return `<div class="row" onclick="editMkt('${c.id}')"><div class="grow"><div class="t">${esc(c.name)}</div><div class="lbl">${esc(c.channel)} · ${c.start?fmtD(c.start):''}${c.end?' – '+fmtD(c.end):''}</div><div class="lbl">Spent ${rp(c.spent)} of ${rp(c.budget)} · Revenue ${rp(c.revenue)}</div></div><div style="text-align:right"><span class="pill">${esc(c.status)}</span>${roi!==null?`<div class="${roi>=0?'pos':'neg'}" style="font-weight:700;margin-top:4px">${roi>=0?'+':''}${roi}%</div>`:''}</div></div>`}).join(''):empty('No campaigns yet. Press the button above to add one.')}</div>`;
 }
 
+
+// ---- Operational > Expense (owner 2026-11-10): enter the store's monthly expenses (same data as Finance > Expense)
+// and recurring expenses (tab Recurring: id, kategori, jumlah, catatan, repeat, next). A recurring expense adds an
+// expense on its next date (id r-<recurring id>-<date>, so two devices never add it twice) and moves "next" on.
+const REPS2=['Monthly','Weekly','Daily','Yearly'];
+function recStep(d,r){const x=new Date(d+'T00:00');if(r==='Daily')x.setDate(x.getDate()+1);else if(r==='Weekly')x.setDate(x.getDate()+7);else if(r==='Yearly')x.setFullYear(x.getFullYear()+1);else{const day=x.getDate();x.setDate(1);x.setMonth(x.getMonth()+1);x.setDate(Math.min(day,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()))}return ymd(x)}
+function runRecurring(){
+  if(S.cfg.url&&!S.cfg.pulled)return false; // never add from a device that has not loaded the Sheet yet
+  let ch=false;const T=today(),have=new Set(S.tx.map(t=>t.id));
+  (S.rec||[]).forEach(r=>{let d=nd(r.next),n=0;if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
+    while(d<=T&&n++<400){const id='r-'+r.id+'-'+d;if(!have.has(id)){S.tx.push({id,jenis:'Expense',channel:'',tanggal:d,kategori:ecap(r.kategori),jumlah:+r.jumlah||0,catatan:r.catatan||''});have.add(id)}d=recStep(d,r.repeat)}
+    if(d!==nd(r.next)){r.next=d;ch=true}});
+  if(ch)save();return ch;
+}
+function vOpsExp(){
+  const l=expList(),T=today().slice(0,7),ms=[...new Set(l.map(t=>String(nd(t.tanggal)).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)).concat([T]))].sort().reverse();
+  if(!OM||!ms.includes(OM))OM=T;
+  const ml=l.filter(t=>String(nd(t.tanggal)).startsWith(OM)).sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal))),tot=ml.reduce((a,t)=>a+ +t.jumlah,0);
+  const nRec=(S.rec||[]).length;
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:190px"><select onchange="OM=this.value;render()" aria-label="Month">${ms.map(m=>`<option value="${m}" ${m===OM?'selected':''}>${MON(m)}</option>`).join('')}</select></div>
+   <div class="lbl">${ml.length} expenses · <b>${rp(tot)}</b></div>
+   <button class="btn sec" id="recBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="recSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>Recurring${nRec?` · ${nRec}`:''}</button></div>
+  <div class="card">${ml.length?ml.map(t=>`<div class="row" data-eid="${esc(t.id)}" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}${String(t.id).startsWith('r-')?' <span class="mu" title="Recurring">↻</span>':''}</div><div class="lbl">${fmtD(nd(t.tanggal))}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join(''):empty('No expenses in '+MON(OM)+' yet. Press the button above to add one.')}</div>
+  <div class="lbl" style="padding:0 6px">Tap an expense to change or delete it. The full recap is in Finance › Transactions › Expense.</div>`;
+}
+const recLbl=r=>({Monthly:'Every month',Weekly:'Every week',Daily:'Every day',Yearly:'Every year'}[r.repeat]||r.repeat);
+function recFields(r={}){return[
+  {k:'kategori',label:'Category',type:'text',val:r.kategori?ecap(r.kategori):'',list:expCats()},
+  {k:'jumlah',label:'Amount (Rp)',type:'number',val:r.jumlah||''},
+  {k:'catatan',label:'Note',type:'text',val:r.catatan||''},
+  {k:'repeat',label:'Repeat',type:'select',opts:REPS2,val:r.repeat||'Monthly'},
+  {k:'next',label:'Next date',type:'date',val:r.next?nd(r.next):today()}]}
+function recSheet(){
+  closePop();$('#sheet').oninput=null;const l=[...(S.rec||[])].sort((a,b)=>String(nd(a.next)).localeCompare(String(nd(b.next))));
+  $('#sheet').innerHTML=`<h3>Recurring expenses</h3><div class="lbl" style="margin:-8px 6px 12px">Added to the expenses automatically on their date.</div>
+  <div class="card">${l.length?l.map(r=>`<div class="row" data-rid="${esc(r.id)}" onclick="editRec('${r.id}')"><div class="grow"><div class="t">${esc(ecap(r.kategori))}</div><div class="lbl">${recLbl(r)} · next ${fmtD(nd(r.next))} ${String(nd(r.next)).slice(0,4)}${r.catatan?' · '+esc(r.catatan):''}</div></div><b>${rp(r.jumlah)}</b></div>`).join(''):empty('No recurring expenses yet.')}</div>
+  <button class="btn" id="recAdd">+ Add recurring expense</button><button class="btn sec" id="no" style="margin-top:8px">Close</button>`;
+  $('#no').onclick=close;$('#recAdd').onclick=addRec;$('#bg').classList.add('open');
+}
+const cleanR=v=>({...v,kategori:ecap(v.kategori),jumlah:+v.jumlah||0,next:v.next||today()});
+function addRec(){form('New recurring expense',recFields(),v=>{S.rec.push({id:uid(),...cleanR(v)});runRecurring();save();setTimeout(recSheet,0)})}
+function editRec(id){const r=S.rec.find(x=>x.id===id);if(!r)return;form('Edit recurring expense',recFields(r),v=>{Object.assign(r,cleanR(v));runRecurring();save();setTimeout(recSheet,0)},()=>{S.rec=S.rec.filter(x=>x.id!==id);save();setTimeout(recSheet,0)})}
 function vOps(){
-  return `<h1>Operational</h1><div class="seg sc">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store']].map(s=>`<button class="${ops===s[0]?'on':''}" onclick="ops='${s[0]}';render()">${s[1]}</button>`).join('')}</div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore}[ops]||vStock)();
+  return `<h1>Operational</h1><div class="seg sc">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense']].map(s=>`<button class="${ops===s[0]?'on':''}" onclick="ops='${s[0]}';render()">${s[1]}</button>`).join('')}</div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp}[ops]||vStock)();
 }
 const posEmpty=what=>`<div class="card">${empty(S.cfg.url?'No '+what+' yet. It appears here once the store tablet (POS) is connected to the same Google Sheet.':'Connect Google Sheets in Settings to see '+what+' from the store tablet (POS).')}</div>`;
 function vAtt(){
@@ -979,7 +1022,7 @@ function tog(id){
 // Reminder links (owner 2026-11-10): a website or a page of this dashboard; the reminder row gets a link button
 const PAGES={'Overview':{tab:'home'},'Reminders':{tab:'task'},'Finance › Income':{tab:'tx',fv:'tx',txf:'Income'},'Finance › Expense':{tab:'tx',fv:'tx',txf:'Expense'},'Finance › Report':{tab:'tx',fv:'report'},'Finance › Financial':{tab:'tx',fv:'fin'},
  'Production › Purchasing':{tab:'prod',pt:'purch'},'Production › Manufacturing':{tab:'prod',pt:'manu'},'Production › Supplier':{tab:'prod',pt:'supp'},'Marketing':{tab:'mkt'},
- 'Operational › Stock':{tab:'ops',ops:'stock',stv:'list'},'Operational › Stock history':{tab:'ops',ops:'stock',stv:'hist'},'Operational › Staff':{tab:'ops',ops:'staff'},'Operational › Attendance':{tab:'ops',ops:'att'},'Operational › Store':{tab:'ops',ops:'store'},'Settings':{tab:'set'}};
+ 'Operational › Stock':{tab:'ops',ops:'stock',stv:'list'},'Operational › Stock history':{tab:'ops',ops:'stock',stv:'hist'},'Operational › Staff':{tab:'ops',ops:'staff'},'Operational › Attendance':{tab:'ops',ops:'att'},'Operational › Store':{tab:'ops',ops:'store'},'Operational › Expense':{tab:'ops',ops:'exp'},'Settings':{tab:'set'}};
 const pageOf=l=>{l=String(l||'').trim().toLowerCase();if(l==='finance › sales'||l==='finance')l='finance › income';const k=Object.keys(PAGES).find(x=>x.toLowerCase()===l);return k?PAGES[k]:null};
 // only http(s) websites; "shopee.co.id" becomes https://shopee.co.id
 const webOf=l=>{l=String(l||'').trim();if(!l||/\s/.test(l))return '';if(/^https?:\/\//i.test(l))return l;if(/^[a-z][a-z0-9+.-]*:/i.test(l))return '';return /\./.test(l)?'https://'+l:''};
@@ -1085,7 +1128,7 @@ function showLock(){
   setTimeout(()=>i.focus(),50);
 }
 function start(){
-  initNav();render();
+  initNav();runRecurring();render();
   setTimeout(()=>document.querySelectorAll('nav').forEach(n=>n.classList.add('ready')),80);
   if(S.cfg.url)pullSheets();
 }

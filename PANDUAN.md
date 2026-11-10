@@ -294,3 +294,28 @@ Catatan:
 - Klik satu bulan untuk melihat daftar pengeluarannya. Klik satu pengeluaran untuk mengubah atau menghapusnya.
 - Klik nama kategori di bagian **By category** untuk memfilter rekap.
 - Pengeluaran baru: tekan **+ New expense**. Kategori bisa diketik bebas, dan dashboard menyarankan kategori yang sudah pernah dipakai.
+
+## 18. Input pengeluaran toko & pengeluaran berulang (Operational › Expense)
+
+**Mencatat pengeluaran:**
+1. Buka Dashboard › **Operational** › **Expense**.
+2. Tekan **+ New expense**, lalu isi:
+   - **Date**: tanggal pengeluaran.
+   - **Category**: pilih kategori yang pernah dipakai, atau ketik kategori baru.
+   - **Amount**: jumlahnya.
+   - **Note**: catatan, boleh dikosongkan.
+3. Tekan **Save**.
+
+Di atas daftar ada pilihan bulan, dan untuk setiap bulan terlihat total pengeluarannya. Untuk mengubah tanggal, kategori, jumlah, atau catatan, ketuk pengeluarannya. Untuk menghapus, tekan **Delete** dua kali.
+
+**Pengeluaran berulang (sewa, gaji, dll.):**
+1. Tekan tombol **Recurring** di kanan atas. Daftar pengeluaran berulang akan muncul.
+2. Tekan **+ Add recurring expense**, lalu isi:
+   - **Category**, **Amount**, dan **Note**.
+   - **Repeat**: setiap bulan, minggu, hari, atau tahun.
+   - **Next date**: tanggal tagihan berikutnya.
+3. Tekan **Save**.
+
+Pada tanggalnya, dashboard otomatis mencatat pengeluaran tersebut dan memberinya tanda ↻. Kalau Next date diisi tanggal yang sudah lewat, semua tanggal yang terlewat ikut dicatat. Untuk mengubah atau menghapus pengeluaran berulang, ketuk namanya di daftar Recurring.
+
+Fitur ini butuh **Code.gs versi 9** (tab baru **Recurring**).
