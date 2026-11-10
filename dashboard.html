@@ -105,7 +105,7 @@ nav svg{width:21px;height:21px}
 nav button{position:relative;z-index:1}
 nav button.on{color:var(--dark)}
 #side{display:none}
-#bot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0));background:var(--dark);border-radius:99px;padding:7px;display:flex;gap:4px;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#bot{touch-action:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0));background:var(--dark);border-radius:99px;padding:7px;display:flex;gap:4px;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 #bot button{width:50px;height:46px;border-radius:99px}
 @media (min-width:700px){.g2{grid-template-columns:1fr 1fr}.hero{grid-template-columns:1.2fr 1fr;align-items:center}}
 @media (min-width:900px){
@@ -125,7 +125,7 @@ html[data-theme=dark]{--viz1:#3987e5;--viz2:#d95926;--viz1s:#1c5cab;--ink:#eef2f
 .ind{position:absolute;left:0;top:0;width:0;height:0;border-radius:99px;background:var(--amber);z-index:0;pointer-events:none}
 nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,height .38s}
 #bot{gap:2px}#bot button{width:38px}
-.seg.sc{display:flex;overflow-x:auto;max-width:100%}.seg.sc button{white-space:nowrap;padding:8px 14px}
+.seg.sc{display:flex;overflow-x:auto;max-width:100%;position:relative}.seg.sc button{white-space:nowrap;padding:8px 14px}
 #app.sw>*{animation:swp .32s ease-out}
 @keyframes swp{from{opacity:0;transform:translateX(18px)}}
 @media (prefers-reduced-motion:reduce){#app.sw>*{animation:none}nav.ready .ind{transition:none}}
@@ -174,6 +174,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .tag2{font-size:11.5px;font-weight:600;border:1px solid var(--line);border-radius:99px;padding:2px 9px;color:var(--mute)}
 #vtip{position:fixed;z-index:80;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;max-width:240px}
 .lnk{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--green);display:grid;place-items:center;cursor:pointer;flex:none}.lnk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.lnk:hover{background:var(--seg)}
+.cmb .cmbl{margin-top:6px;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:4px}.cmbo{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 10px;border-radius:10px;font:inherit;color:var(--ink);cursor:pointer}.cmbo:hover{background:var(--seg)}.cmbo.on{background:var(--thbg);color:var(--green);font-weight:600}
 .stab{width:100%;border-collapse:collapse;font-size:13px}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .sc2{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 12px;cursor:pointer;min-width:0;transition:transform .15s,box-shadow .15s}
@@ -424,6 +425,12 @@ const MOON='<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',SUN='<circ
 let theme=S.cfg.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 function applyTheme(){document.documentElement.dataset.theme=theme;document.querySelectorAll('[data-t=theme] svg').forEach(v=>v.innerHTML=theme==='dark'?SUN:MOON)}
 function toggleTheme(){theme=theme==='dark'?'light':'dark';S.cfg.theme=theme;persist();applyTheme()}
+function moveTo(n,b){const i=n.querySelector('.ind');if(!b||!i)return;const w=b.offsetWidth,h=b.offsetHeight,d=n.id==='bot'?Math.min(w,h):0;i.style.width=(d||w)+'px';i.style.height=(d||h)+'px';i.style.transform=`translate(${b.offsetLeft+(d?(w-d)/2:0)}px,${b.offsetTop+(d?(h-d)/2:0)}px)`}
+(()=>{const bar=$('#bot');if(!bar||!bar.addEventListener)return;let hov=null,moved=false,x0=0;
+  const at=e=>{const t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY);const b=el&&el.closest&&el.closest('#bot button[data-t]');return b&&b.dataset.t!=='theme'?b:null};
+  bar.addEventListener('touchstart',e=>{hov=at(e);moved=false;x0=e.touches[0].clientX},{passive:true});
+  bar.addEventListener('touchmove',e=>{if(Math.abs(e.touches[0].clientX-x0)>8)moved=true;if(!moved)return;e.preventDefault();const b=at(e);if(b&&b!==hov){hov=b;moveTo(bar,b);bar.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}},{passive:false});
+  bar.addEventListener('touchend',()=>{if(moved&&hov&&hov.dataset.t!==tab){tab=hov.dataset.t;render();scrollTo(0,0)}else if(moved)render();hov=null})})();
 function moveInd(){document.querySelectorAll('nav').forEach(n=>{const b=n.querySelector('button.on'),i=n.querySelector('.ind');if(!b||!i)return;const w=b.offsetWidth,h=b.offsetHeight,d=n.id==='bot'?Math.min(w,h):0;/* phone bar: always a circle, even when the buttons are narrower than tall */i.style.width=(d||w)+'px';i.style.height=(d||h)+'px';i.style.transform=`translate(${b.offsetLeft+(d?(w-d)/2:0)}px,${b.offsetTop+(d?(h-d)/2:0)}px)`})}
 addEventListener('resize',moveInd);
 function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind"></i>'+icons());applyTheme()}
@@ -448,6 +455,8 @@ function render(){
   $('#app').innerHTML=(S.cfg.url&&S.cfg.codeOld?`<div class="card" style="padding:14px 18px;margin-bottom:16px"><b class="neg">Update Code.gs</b><div class="lbl">The Google Sheets script (Apps Script) is an older version, so some new fields are kept on this device only. Open Code.gs on GitHub, Copy raw file, paste it in Apps Script, then Deploy › Manage deployments › Edit › New version › Deploy.</div></div>`:'')+
   (tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`);
   if(pop)showKpi(pop);
+  // scrolling tab rows (phone): keep the active tab in view
+  document.querySelectorAll('#app .seg.sc').forEach(r=>{const b=r.querySelector('button.on');if(b&&r.scrollWidth>r.clientWidth)r.scrollLeft=Math.max(0,b.offsetLeft-(r.clientWidth-b.offsetWidth)/2)});
 }
 const empty=t=>`<div class="empty">${t}</div>`;
 function vHome(){
@@ -661,10 +670,10 @@ function vFinancial(){
 const ECATS=CATS.filter(c=>c!=='Sales');
 const ecap=t=>{t=String(t||'').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Other'};
 const expList=()=>S.tx.filter(t=>t.jenis==='Expense');
-const expCats=()=>{const m={};expList().forEach(t=>{const k=ecap(t.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});ECATS.forEach(c=>{m[c.toLowerCase()]=m[c.toLowerCase()]||c});return Object.values(m).sort((a,b)=>a.localeCompare(b))};
+const expCats=()=>{const m={};expList().forEach(t=>{const k=ecap(t.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});(S.rec||[]).forEach(r=>{const k=ecap(r.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});if(!Object.keys(m).length)ECATS.forEach(c=>{m[c.toLowerCase()]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))};
 function expFields(t={}){return[
   {k:'tanggal',label:'Date',type:'date',val:t.tanggal||today()},
-  {k:'kategori',label:'Category',type:'text',val:t.kategori?ecap(t.kategori):'',list:expCats()},
+  {k:'kategori',label:'Category',type:'combo',val:t.kategori?ecap(t.kategori):'',opts:expCats()},
   {k:'jumlah',label:'Amount (Rp)',type:'number',val:t.jumlah||''},
   {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
 const cleanE=v=>({...v,kategori:ecap(v.kategori)});
@@ -869,7 +878,7 @@ function vOpsExp(){
 }
 const recLbl=r=>({Monthly:'Every month',Weekly:'Every week',Daily:'Every day',Yearly:'Every year'}[r.repeat]||r.repeat);
 function recFields(r={}){return[
-  {k:'kategori',label:'Category',type:'text',val:r.kategori?ecap(r.kategori):'',list:expCats()},
+  {k:'kategori',label:'Category',type:'combo',val:r.kategori?ecap(r.kategori):'',opts:expCats()},
   {k:'jumlah',label:'Amount (Rp)',type:'number',val:r.jumlah||''},
   {k:'catatan',label:'Note',type:'text',val:r.catatan||''},
   {k:'repeat',label:'Repeat',type:'select',opts:REPS2,val:r.repeat||'Monthly'},
@@ -1087,7 +1096,7 @@ addEventListener('click',e=>{if(pop&&!e.composedPath().some(n=>n.id==='pp'||n.id
 addEventListener('resize',()=>{if(pop)closePop()});
 function form(title,fields,onSave,onDel,delLabel){
   closePop();
-  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='checks'?chkHtml(f):f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
+  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='checks'?chkHtml(f):f.type==='combo'?cmbHtml(f):f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
   `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?`<button class="btn del" id="rm">${delLabel||'Delete'}</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
   const sync=()=>$('#sheet').querySelectorAll('[data-showif]').forEach(w=>{const [k,v]=w.dataset.showif.split('=');const e=$('#sheet [data-k="'+k+'"]');w.style.display=e&&e.value===v?'':'none'});
   sync();$('#sheet').querySelectorAll('.ckl .ckb input').forEach((x,i)=>{if(!i)ckCount(x)});
@@ -1101,6 +1110,12 @@ function form(title,fields,onSave,onDel,delLabel){
   if(onDel){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm'+(delLabel?'':' delete');return}if(onDel()!==false)close()}}
 }
 const err=m=>{$('#err').textContent=m};
+// combo field (owner 2026-11-10): type to search the list or to write a new value; tap a list item to pick it
+function cmbHtml(f){return `<div class="cmb"><input data-k="${f.k}" value="${esc(f.val)}" placeholder="Search or type a new one" autocomplete="off" oninput="cmbF(this)"><div class="cmbl">${f.opts.map(o=>`<button type="button" class="cmbo${String(o).toLowerCase()===String(f.val).toLowerCase()?' on':''}" data-v="${esc(o)}" onclick="cmbP(this)">${esc(o)}</button>`).join('')}<div class="lbl cmbn" style="display:none;padding:8px 10px"></div></div></div>`}
+function cmbF(el){const w=el.closest('.cmb'),q=el.value.trim().toLowerCase();let n=0,ex=false;
+  w.querySelectorAll('.cmbo').forEach(b=>{const v=b.dataset.v.toLowerCase(),show=!q||v.includes(q);b.style.display=show?'':'none';if(show)n++;if(v===q)ex=true;b.classList.toggle('on',v===q)});
+  const m=w.querySelector('.cmbn');m.style.display=q&&!ex?'':'none';m.textContent='New category: '+el.value.trim()+(n?'':' (no match in the list)')}
+function cmbP(b){const w=b.closest('.cmb'),i=w.querySelector('input');i.value=b.dataset.v;cmbF(i);w.querySelectorAll('.cmbo').forEach(x=>x.style.display='')}
 // checklist field: all ticked is saved as '' (= every product, also ones added later)
 function chkHtml(f){const on=id=>!f.val||f.val.includes(id);
   return `<div class="ckl" data-k="${f.k}" data-checks><div class="ckh"><input placeholder="Search" oninput="ckFilter(this)"><button type="button" class="btn sec" onclick="ckAll(this,true)">All</button><button type="button" class="btn sec" onclick="ckAll(this,false)">None</button><span class="lbl ckn"></span></div><div class="ckb">${f.opts.length?f.opts.map(o=>`<label class="ck" data-q="${esc((o[1]+' '+o[2]).toLowerCase())}"><input type="checkbox" value="${esc(o[0])}" ${on(o[0])?'checked':''} onchange="ckCount(this)"><span>${esc(o[1])}${o[2]?`<small>${esc(o[2])}</small>`:''}</span></label>`).join(''):'<div class="lbl" style="padding:10px">No products yet.</div>'}</div></div>`}

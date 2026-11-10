@@ -27,7 +27,7 @@ const txt=s=>s.replace(/\s/g,' ');
  await D.click('#cta');await D.fill('#sheet [data-k=kategori]','Porter');await D.fill('#sheet [data-k=jumlah]','30000');await D.fill('#sheet [data-k=catatan]','angkut barang');await D.click('#ok');
  let t=txt(await D.textContent('#app'));
  ok(t.includes('2 expenses')&&t.includes('Rp 9.614.000')&&t.includes('Store rent')&&t.includes('angkut barang'),'this month: 2 expenses, total, notes');
- const sug=await D.evaluate(()=>{addExpense();const o=[...document.querySelectorAll('#dl-kategori option')].map(x=>x.value);close();return o});
+ const sug=await D.evaluate(()=>{addExpense();const o=[...document.querySelectorAll('#sheet .cmbo')].map(x=>x.dataset.v);close();return o});
  ok(sug.includes('Store rent')&&sug.includes('Porter'),'category suggests the categories used before');
  // edit every field
  const id=await D.evaluate(()=>S.tx.find(x=>x.kategori==='Porter').id);
