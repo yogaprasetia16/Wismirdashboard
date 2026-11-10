@@ -173,6 +173,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .donut{display:flex;flex-wrap:wrap;gap:20px;align-items:center}.donut svg{width:170px;height:170px;flex:none}
 .tag2{font-size:11.5px;font-weight:600;border:1px solid var(--line);border-radius:99px;padding:2px 9px;color:var(--mute)}
 #vtip{position:fixed;z-index:80;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;max-width:240px}
+.lnk{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--green);display:grid;place-items:center;cursor:pointer;flex:none}.lnk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.lnk:hover{background:var(--seg)}
 .stab{width:100%;border-collapse:collapse;font-size:13px}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .sc2{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 12px;cursor:pointer;min-width:0;transition:transform .15s,box-shadow .15s}
@@ -245,7 +246,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=7;
+const NEED_CODE=8;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -882,20 +883,33 @@ function tog(id){
   else S.tasks=S.tasks.filter(x=>x.id!==id);
   save();
 }
+// Reminder links (owner 2026-11-10): a website or a page of this dashboard; the reminder row gets a link button
+const PAGES={'Overview':{tab:'home'},'Reminders':{tab:'task'},'Finance':{tab:'tx',fv:'tx'},'Finance › Sales':{tab:'tx',fv:'sales'},'Finance › Report':{tab:'tx',fv:'report'},'Finance › Financial':{tab:'tx',fv:'fin'},
+ 'Production › Purchasing':{tab:'prod',pt:'purch'},'Production › Manufacturing':{tab:'prod',pt:'manu'},'Production › Supplier':{tab:'prod',pt:'supp'},'Marketing':{tab:'mkt'},
+ 'Operational › Stock':{tab:'ops',ops:'stock',stv:'list'},'Operational › Stock history':{tab:'ops',ops:'stock',stv:'hist'},'Operational › Staff':{tab:'ops',ops:'staff'},'Operational › Attendance':{tab:'ops',ops:'att'},'Operational › Store':{tab:'ops',ops:'store'},'Settings':{tab:'set'}};
+const pageOf=l=>{l=String(l||'').trim().toLowerCase();const k=Object.keys(PAGES).find(x=>x.toLowerCase()===l);return k?PAGES[k]:null};
+// only http(s) websites; "shopee.co.id" becomes https://shopee.co.id
+const webOf=l=>{l=String(l||'').trim();if(!l||/\s/.test(l))return '';if(/^https?:\/\//i.test(l))return l;if(/^[a-z][a-z0-9+.-]*:/i.test(l))return '';return /\./.test(l)?'https://'+l:''};
+function openLink(id){const t=S.tasks.find(x=>x.id===id);if(!t)return;const pg=pageOf(t.link);
+ if(pg){closePop();close();tab=pg.tab;if(pg.fv)fv=pg.fv;if(pg.pt)pt=pg.pt;if(pg.ops)ops=pg.ops;if(pg.stv)stv=pg.stv;render();scrollTo(0,0);return}
+ const u=webOf(t.link);if(u)window.open(u,'_blank','noopener')}
+const LINKIC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
 const tFields=(t={})=>[
   {k:'judul',label:'Reminder',type:'text',val:t.judul||''},
   {k:'div',label:'Division',type:'select',opts:DIVS,val:t.div||'Operational'},
   {k:'tempo',label:'Date',type:'date',val:t.tempo||''},
-  
+  {k:'link',label:'Link (optional)',type:'text',val:t.link||'',ph:'A website, e.g. seller.shopee.co.id, or a page below',list:Object.keys(PAGES)},
   {k:'repeat',label:'Repeat',type:'select',opts:REPS,val:t.repeat||'None'},
   {k:'every',label:'Repeat every',type:'number',val:t.every||1,showIf:'repeat=Custom'},
   {k:'unit',label:'Unit',type:'select',opts:['days','weeks','months'],val:t.unit||'days',showIf:'repeat=Custom'}];
-const fixT=v=>{if(v.repeat!=='None'&&!v.tempo)v.tempo=today();if(v.repeat==='Custom')v.every=Math.max(1,+v.every||1);return v};
-function addTask(d){form('New reminder',tFields({div:typeof d==='string'?d:'Operational'}),v=>{S.tasks.push({id:uid(),selesai:'',...fixT(v)});rd=v.div;save()})}
-function editTask(id){const t=S.tasks.find(x=>x.id===id);form('Edit reminder',tFields(t),v=>{Object.assign(t,fixT(v));save()},()=>{S.tasks=S.tasks.filter(x=>x.id!==id);save()})}
+const fixT=v=>{v.link=String(v.link||'').trim();if(v.repeat!=='None'&&!v.tempo)v.tempo=today();if(v.repeat==='Custom')v.every=Math.max(1,+v.every||1);return v};
+const badLink=v=>{const l=String(v.link||'').trim();return l&&!pageOf(l)&&!webOf(l)};
+const LINKERR='Enter a website (for example seller.shopee.co.id) or choose a page from the list.';
+function addTask(d){form('New reminder',tFields({div:typeof d==='string'?d:'Operational'}),v=>{if(badLink(v))return err(LINKERR),false;S.tasks.push({id:uid(),selesai:'',...fixT(v)});rd=v.div;save()})}
+function editTask(id){const t=S.tasks.find(x=>x.id===id);form('Edit reminder',tFields(t),v=>{if(badLink(v))return err(LINKERR),false;Object.assign(t,fixT(v));save()},()=>{S.tasks=S.tasks.filter(x=>x.id!==id);save()})}
 function taskRow(t,showDiv=true){
   const late=t.tempo&&t.tempo<today(),fut=t.tempo&&t.tempo>today();
-  return `<div class="row${fut?' fut':''}"><button class="chk" onclick="tog('${t.id}')" aria-label="Mark done"></button><div class="grow" onclick="editTask('${t.id}')"><div class="t">${esc(t.judul)}</div><div class="lbl${late?' neg':''}">${showDiv?esc(t.div||'Operational')+' · ':''}${t.tempo?(t.tempo===today()?'Today':fmtD(t.tempo)):'No date'}${t.repeat&&t.repeat!=='None'?' · ↻ '+repLbl(t):''}</div></div></div>`;
+  return `<div class="row${fut?' fut':''}"><button class="chk" onclick="tog('${t.id}')" aria-label="Mark done"></button><div class="grow" onclick="editTask('${t.id}')"><div class="t">${esc(t.judul)}</div><div class="lbl${late?' neg':''}">${showDiv?esc(t.div||'Operational')+' · ':''}${t.tempo?(t.tempo===today()?'Today':fmtD(t.tempo)):'No date'}${t.repeat&&t.repeat!=='None'?' · ↻ '+repLbl(t):''}</div></div>${pageOf(t.link)||webOf(t.link)?`<button class="lnk" data-link="${t.id}" onclick="event.stopPropagation();openLink('${t.id}')" title="${esc(pageOf(t.link)?'Open '+t.link:webOf(t.link))}" aria-label="Open link">${LINKIC}</button>`:''}</div>`;
 }
 let rd=null;
 const curDiv=()=>rd||DIVS.find(d=>openTasks().some(t=>(t.div||'Operational')===d))||'Finance';
