@@ -266,3 +266,13 @@ Catatan:
 - Bulan yang tidak ada di data impor diambil dari tablet kasir (POS).
 
 Fitur ini butuh **Code.gs versi 7** (tab baru **Penjualan**).
+
+## 16. Link di reminder
+
+Di form reminder ada kolom **Link (optional)**. Isinya bisa salah satu dari dua:
+- **Alamat website**, misalnya `seller.shopee.co.id`. Tidak perlu mengetik `https://`.
+- **Halaman dashboard** dari daftar pilihan, misalnya `Production › Supplier` atau `Operational › Stock`.
+
+Reminder yang punya link akan menampilkan **tombol link bulat** di sebelah kanan. Tekan tombol itu untuk langsung membuka website (di tab baru) atau halaman dashboard yang dituju.
+
+Fitur ini butuh **Code.gs versi 8** (kolom baru `link` di tab Tugas).

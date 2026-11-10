@@ -16,7 +16,7 @@ const HEADERS = {
   // Stok & Staff = daftar produk & karyawan untuk dashboard DAN POS (diatur dari dashboard).
   // stokToko tidak dipakai lagi (stok toko dihitung dari POS); kolomnya dibiarkan supaya urutan tidak bergeser.
   Stok: ['id', 'nama', 'varian', 'stokToko', 'stokOnline', 'min', 'harga', 'kategori', 'aktif', 'sku', 'cogs', 'brand'],
-  Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit'],
+  Tugas: ['id', 'judul', 'tempo', 'selesai', 'div', 'repeat', 'jam', 'every', 'unit', 'link'],
   Purchasing: ['id', 'date', 'name', 'category', 'qty', 'total'],
   Staff: ['id', 'joined', 'name', 'aktif'],
   // sumber = toko asal stok untuk toko online; produk = daftar id produk (JSON), kosong = semua produk
@@ -100,7 +100,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 7;
+const CODE_VERSION = 8;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
