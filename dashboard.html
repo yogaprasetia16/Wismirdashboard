@@ -424,7 +424,7 @@ const MOON='<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',SUN='<circ
 let theme=S.cfg.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 function applyTheme(){document.documentElement.dataset.theme=theme;document.querySelectorAll('[data-t=theme] svg').forEach(v=>v.innerHTML=theme==='dark'?SUN:MOON)}
 function toggleTheme(){theme=theme==='dark'?'light':'dark';S.cfg.theme=theme;persist();applyTheme()}
-function moveInd(){document.querySelectorAll('nav').forEach(n=>{const b=n.querySelector('button.on'),i=n.querySelector('.ind');if(!b||!i)return;i.style.width=b.offsetWidth+'px';i.style.height=b.offsetHeight+'px';i.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`})}
+function moveInd(){document.querySelectorAll('nav').forEach(n=>{const b=n.querySelector('button.on'),i=n.querySelector('.ind');if(!b||!i)return;const w=b.offsetWidth,h=b.offsetHeight,d=n.id==='bot'?Math.min(w,h):0;/* phone bar: always a circle, even when the buttons are narrower than tall */i.style.width=(d||w)+'px';i.style.height=(d||h)+'px';i.style.transform=`translate(${b.offsetLeft+(d?(w-d)/2:0)}px,${b.offsetTop+(d?(h-d)/2:0)}px)`})}
 addEventListener('resize',moveInd);
 function initNav(){['#side','#bot'].forEach(id=>$(id).innerHTML='<i class="ind"></i>'+icons());applyTheme()}
 function topNav(){const b={task:dueTasks().length,ops:lowStock().length};return TABS.map(t=>`<button data-t="${t[0]}">${t[1]}${b[t[0]]?`<span class="bd">${b[t[0]]}</span>`:''}</button>`).join('')}
