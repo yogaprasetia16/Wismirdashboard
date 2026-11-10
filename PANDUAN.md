@@ -276,3 +276,21 @@ Di form reminder ada kolom **Link (optional)**. Isinya bisa salah satu dari dua:
 Reminder yang punya link akan menampilkan **tombol link bulat** di sebelah kanan. Tekan tombol itu untuk langsung membuka website (di tab baru) atau halaman dashboard yang dituju.
 
 Fitur ini butuh **Code.gs versi 8** (kolom baru `link` di tab Tugas).
+
+## 17. Pengeluaran & impor pengeluaran lama (Finance › Transactions › Expense)
+
+**Memasukkan pengeluaran tahun-tahun sebelumnya:**
+1. Di spreadsheet Anda, blok tabel pengeluaran **beserta baris judulnya** (`Tanggal`, `Kategori`, `Jumlah`, `Catatan`), lalu tekan **Ctrl+C**.
+2. Buka Dashboard › **Finance** › **Transactions** › **Expense**, lalu tekan **Import expenses**.
+3. Tempel dengan **Ctrl+V**. Akan muncul ringkasan: jumlah baris, periode, total, dan daftar kategori.
+4. Tekan **Import**.
+
+Catatan:
+- Satu baris = satu pengeluaran. Dua baris yang sama persis tetap dihitung dua kali.
+- Kalau baris yang sama di-import lagi, datanya **diganti**, tidak dobel. Jadi aman untuk mengoreksi data. Perubahan yang sempat Anda buat di dashboard pada baris tersebut akan tertimpa oleh data impor.
+
+**Membaca rekap:**
+- Pilih tahun, dan bila perlu satu kategori. Rekap menampilkan total pengeluaran, jumlah catatan, dan perbandingan dengan bulan yang sama tahun lalu. Kenaikan pengeluaran ditandai merah.
+- Klik satu bulan untuk melihat daftar pengeluarannya. Klik satu pengeluaran untuk mengubah atau menghapusnya.
+- Klik nama kategori di bagian **By category** untuk memfilter rekap.
+- Pengeluaran baru: tekan **+ New expense**. Kategori bisa diketik bebas, dan dashboard menyarankan kategori yang sudah pernah dipakai.

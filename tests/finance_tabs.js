@@ -18,11 +18,11 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await D.click('#cta');
  const f=await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent));
  ok(f.join()==='Date,Category,Amount (Rp),Note','expense form: '+f.join(', '));
- ok(!(await D.$$eval('#sheet [data-k=kategori] option',o=>o.map(x=>x.value))).includes('Sales'),'expense categories leave out Sales');
- await D.selectOption('#sheet [data-k=kategori]','Rent');await D.fill('#sheet [data-k=jumlah]','2500000');await D.fill('#sheet [data-k=catatan]','Toko A');await D.click('#ok');
- const row=await D.textContent('#app');
- ok(row.includes('Rent')&&row.replace(/\s/g,' ').includes('−Rp 2.500.000')&&await D.evaluate(()=>S.tx.length===1&&S.tx[0].jenis==='Expense'),'expense saved as Expense and listed');
- await D.click('.row >> text=Rent');
+ ok(!(await D.$$eval('#dl-kategori option',o=>o.map(x=>x.value))).includes('Sales'),'expense category suggestions leave out Sales');
+ await D.fill('#sheet [data-k=kategori]','rent');await D.fill('#sheet [data-k=jumlah]','2500000');await D.fill('#sheet [data-k=catatan]','Toko A');await D.click('#ok');
+ ok(await D.evaluate(()=>S.tx.length===1&&S.tx[0].jenis==='Expense'&&S.tx[0].kategori==='Rent'),'expense saved as Expense (category capitalised)');
+ ok((await D.textContent('#app')).includes('Rent'),'expense shows in the recap');
+ await D.click('tr[data-em]');await D.click('#sheet .row >> text=Rent');
  ok((await D.textContent('#sheet h3'))==='Edit expense'&&(await D.$$('#sheet .f')).length===4,'editing uses the same four fields');
  await D.click('#no');
  // an old link / old state to Sales lands on Income

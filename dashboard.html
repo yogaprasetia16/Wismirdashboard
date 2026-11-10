@@ -220,7 +220,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='tx',SY='',SSt='all',EY='',ECat='all',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -474,7 +474,7 @@ function txFields(t={}){return[
   {k:'channel',label:'Channel',type:'select',opts:['','Store','Instagram','TikTok','Shopee','Tokopedia','WhatsApp'],val:t.channel||''},
   {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
 function addTx(){form('Add transaction',txFields(),v=>{S.tx.push({id:uid(),...v});save()})}
-function editTx(id){const t=S.tx.find(x=>x.id===id);form(t.jenis==='Expense'?'Edit expense':'Edit transaction',t.jenis==='Expense'?expFields(t):txFields(t),v=>{Object.assign(t,v);save()},()=>{S.tx=S.tx.filter(x=>x.id!==id);save()})}
+function editTx(id){const t=S.tx.find(x=>x.id===id);form(t.jenis==='Expense'?'Edit expense':'Edit transaction',t.jenis==='Expense'?expFields(t):txFields(t),v=>{Object.assign(t,t.jenis==='Expense'?cleanE(v):v);save()},()=>{S.tx=S.tx.filter(x=>x.id!==id);save()})}
 // ---- Sales recap (owner 2026-11-09): monthly sales per store and product.
 // Past months come from "Import sales history" (tab Penjualan: one row per month + store + SKU); months/stores
 // without imported rows use the store tablets (POS shifts for revenue, sale stock moves for pieces).
@@ -655,18 +655,82 @@ function vFinancial(){
  document.addEventListener('mouseover',show);document.addEventListener('focusin',show);addEventListener('scroll',()=>t.style.display='none',{passive:true})})();
 // Finance (owner 2026-11-10): Transactions = Income | Expense. Income = the sales recap (imported history + POS, see vSales);
 // Expense = expense transactions. The old "All" view and the separate Sales tab are gone.
+// ---- Expense (owner 2026-11-10): expense transactions (S.tx, jenis Expense) with a monthly recap like Income.
+// Category is free text with suggestions (the owner's own categories: store rent, staff, ads, porter, ...).
 const ECATS=CATS.filter(c=>c!=='Sales');
+const ecap=t=>{t=String(t||'').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Other'};
+const expList=()=>S.tx.filter(t=>t.jenis==='Expense');
+const expCats=()=>{const m={};expList().forEach(t=>{const k=ecap(t.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});ECATS.forEach(c=>{m[c.toLowerCase()]=m[c.toLowerCase()]||c});return Object.values(m).sort((a,b)=>a.localeCompare(b))};
 function expFields(t={}){return[
   {k:'tanggal',label:'Date',type:'date',val:t.tanggal||today()},
-  {k:'kategori',label:'Category',type:'select',opts:ECATS,val:t.kategori||ECATS[0]},
+  {k:'kategori',label:'Category',type:'text',val:t.kategori?ecap(t.kategori):'',list:expCats()},
   {k:'jumlah',label:'Amount (Rp)',type:'number',val:t.jumlah||''},
   {k:'catatan',label:'Note',type:'text',val:t.catatan||''}]}
-function addExpense(){form('New expense',expFields(),v=>{S.tx.push({id:uid(),jenis:'Expense',channel:'',...v});save()})}
+const cleanE=v=>({...v,kategori:ecap(v.kategori)});
+function addExpense(){form('New expense',expFields(),v=>{S.tx.push({id:uid(),jenis:'Expense',channel:'',...cleanE(v)});save()})}
 function vExpense(){
-  const l=S.tx.filter(t=>t.jenis==='Expense').sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal))),m=today().slice(0,7);
-  const mo=l.filter(t=>String(t.tanggal).startsWith(m)).reduce((a,t)=>a+ +t.jumlah,0);
-  return `<div class="lbl" style="margin:0 4px 14px">${l.length} expenses · ${rp(mo)} this month</div>
-  <div class="card">${l.length?l.map(t=>`<div class="row" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(t.kategori)}</div><div class="lbl">${fmtD(t.tanggal)}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join(''):empty('No expenses yet. Press the button above to add one.')}</div>`;
+  const all=expList().map(t=>({t,m:String(nd(t.tanggal)).slice(0,7),c:ecap(t.kategori),v:+t.jumlah||0})).filter(x=>/^\d{4}-\d{2}$/.test(x.m));
+  const cats=[...new Set(all.map(x=>x.c))].sort(),years=[...new Set(all.map(x=>x.m.slice(0,4)))].sort();
+  if(!EY||!years.includes(EY))EY=years[years.length-1]||today().slice(0,4);
+  if(ECat!=='all'&&!cats.includes(ECat))ECat='all';
+  const rs=all.filter(x=>ECat==='all'||x.c===ECat),py=String(+EY-1),sum=l=>l.reduce((a,x)=>a+x.v,0);
+  const head=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px"><div class="seg sc" style="margin:0">${years.map(y=>`<button class="${y===EY?'on':''}" onclick="EY='${y}';render()">${y}</button>`).join('')||'<button class="on">'+EY+'</button>'}</div>
+   <div class="f" style="margin:0;min-width:170px"><select onchange="ECat=this.value;render()" aria-label="Category"><option value="all">All categories</option>${cats.map(c=>`<option ${c===ECat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+   <button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px" onclick="importExpenses()">Import expenses</button></div>`;
+  if(!all.length)return head+`<div class="card">${empty('No expenses yet. Press the button above to add one, or import your past expenses (Date, Category, Amount, Note).')}</div>`;
+  const yr=rs.filter(x=>x.m.startsWith(EY)),ym=new Set(yr.map(x=>x.m.slice(5))),pr=rs.filter(x=>x.m.startsWith(py)&&ym.has(x.m.slice(5)));
+  const tv=sum(yr),pv=sum(pr),ch=pv?Math.round((tv-pv)/pv*100):null;
+  const months=[...Array(12)].map((_,i)=>String(i+1).padStart(2,'0'));
+  const by=(y,mm)=>rs.filter(x=>x.m===y+'-'+mm);
+  // more spending is shown in red, less in green
+  const cc=c=>c==null?'':c>0?'neg':'pos';
+  const kpi=`<div class="card" style="display:flex;flex-wrap:wrap;gap:22px;padding:16px 18px"><div><div class="lbl">Expenses ${EY}</div><div class="kv" id="eyTot">${rp(tv)}</div></div><div><div class="lbl">Entries</div><div class="kv">${yr.length.toLocaleString('id-ID')}</div></div><div><div class="lbl">vs ${py} (same months)</div><div class="kv ${cc(ch)}">${ch==null?'–':(ch>=0?'+':'')+ch+'%'}</div></div></div>`;
+  const tb=`<div class="card" style="overflow-x:auto"><table class="stab"><thead><tr><th>Month</th><th>Entries</th><th>Expenses</th><th>${py}</th><th>Change</th></tr></thead><tbody>${months.map(mm=>{const l=by(EY,mm),o=by(py,mm),v=sum(l),ov=sum(o),c=ov&&l.length?Math.round((v-ov)/ov*100):null;if(!l.length&&!o.length)return '';
+    return `<tr data-em="${EY}-${mm}" ${l.length?`onclick="expMonth('${EY}-${mm}')" style="cursor:pointer"`:''}><td>${HMON(EY+'-'+mm)} ${EY}</td><td>${l.length||'–'}</td><td><b>${l.length?rp(v):'–'}</b></td><td>${o.length?rp(ov):'–'}</td><td class="${cc(c)}">${c==null?'–':(c>=0?'+':'')+c+'%'}</td></tr>`}).join('')}</tbody></table></div>`;
+  const g={};yr.forEach(x=>{g[x.c]=(g[x.c]||0)+x.v});const gl=Object.entries(g).sort((a,b)=>b[1]-a[1]),mx=gl.length?gl[0][1]:1;
+  return head+kpi+tb+`<div class="sub">By category · ${EY}</div><div class="card">${gl.map(([k,v])=>`<div class="row" style="cursor:pointer" onclick="ECat='${esc(k).replace(/'/g,"\\'")}';render()"><div class="grow"><div class="t">${esc(k)}</div><div class="hb" style="max-width:320px"><i style="width:${(v/mx*100).toFixed(1)}%"></i></div></div><div style="text-align:right"><b>${rp(v)}</b><div class="lbl">${tv?Math.round(v/tv*100):0}%</div></div></div>`).join('')}</div>
+   <div class="lbl" style="padding:0 6px">Tap a month to see and edit its expenses, or a category to filter.</div>`;
+}
+function expMonth(m){
+  const l=expList().filter(t=>String(nd(t.tanggal)).startsWith(m)&&(ECat==='all'||ecap(t.kategori)===ECat)).sort((a,b)=>String(a.tanggal).localeCompare(String(b.tanggal)));closePop();
+  $('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Expenses · ${MON(m)}</h3><div class="lbl" style="margin:-8px 6px 12px">${ECat==='all'?'All categories':esc(ECat)} · ${l.length} entries · ${rp(l.reduce((a,t)=>a+ +t.jumlah,0))}</div>
+  <div class="card">${l.map(t=>`<div class="row" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}</div><div class="lbl">${fmtD(nd(t.tanggal))}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join('')}</div>
+  <button class="btn sec" id="no">Close</button>`;
+  $('#no').onclick=close;$('#bg').classList.add('open');
+}
+// ---- import expenses: Tanggal/Date, Kategori/Category, Jumlah/Amount, Catatan/Note (header in Indonesian or English).
+// Each row is one expense. Ids come from the row itself, so importing the same rows again replaces them (no double counting).
+const ECOL={d:/^(tanggal|tgl|date|day)$/,c:/^(kategori|category|jenis|type)$/,v:/^(jumlah|amount|nominal|total|biaya|expense|pengeluaran)$/,n:/^(catatan|note|notes|keterangan|ket|description|deskripsi)$/};
+function eDate(v){v=String(v||'').trim();let x;if(x=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/))return x[3]+'-'+x[2].padStart(2,'0')+'-'+x[1].padStart(2,'0');if(x=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return x[1]+'-'+x[2].padStart(2,'0')+'-'+x[3].padStart(2,'0');return ''}
+const ehash=t=>{let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return h.toString(36)};
+function expParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!lines.length)return{rows:[],bad:0};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+  const head=cells[0].map(h=>h.toLowerCase().replace(/\s+/g,' ').trim()),map={};
+  head.forEach((h,i)=>{for(const k in ECOL)if(map[k]==null&&ECOL[k].test(h))map[k]=i});
+  const hasHead=map.d!=null&&map.v!=null,M=hasHead?map:{d:0,c:1,v:2,n:3},seen={},rows=[];let bad=0;
+  (hasHead?cells.slice(1):cells).forEach(c=>{const d=eDate(c[M.d]),v=+impNum(c[M.v])||0;if(!d||!v){bad++;return}
+    const r={tanggal:d,kategori:ecap(c[M.c]),jumlah:v,catatan:String(c[M.n]||'').trim()},k=[r.tanggal,r.kategori.toLowerCase(),r.jumlah,r.catatan].join('|');seen[k]=(seen[k]||0)+1;
+    rows.push({id:'x'+ehash(k)+'-'+seen[k],jenis:'Expense',channel:'',...r})});
+  return{rows,bad};
+}
+function importExpenses(){
+  closePop();$('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Import expenses</h3><div class="lbl" style="margin:-8px 6px 12px">In your spreadsheet, select the cells with the header row (Tanggal, Kategori, Jumlah, Catatan), copy, and paste them here. Importing the same rows again replaces them.</div>
+  <div class="f"><textarea id="etext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="eprev"></div>
+  <button class="btn" id="ego" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  const prev=()=>{const {rows,bad}=expParse($('#etext').value),b=$('#ego');
+    if(!rows.length){$('#eprev').innerHTML=bad?`<div class="lbl neg" style="margin:0 6px 10px">No rows recognised. Check that the columns are Date, Category, Amount, Note.</div>`:'';b.disabled=true;b.style.opacity=.5;b.textContent='Nothing to import yet';return}
+    const ds=rows.map(r=>r.tanggal).sort(),cs=[...new Set(rows.map(r=>r.kategori))].sort(),rep=rows.filter(r=>S.tx.some(t=>t.id===r.id)).length;
+    $('#eprev').innerHTML=`<div class="card" style="padding:12px 16px"><div class="t">${rows.length} expenses · ${fmtD(ds[0])} ${ds[0].slice(0,4)} – ${fmtD(ds[ds.length-1])} ${ds[ds.length-1].slice(0,4)}</div><div class="lbl">${rp(rows.reduce((a,r)=>a+r.jumlah,0))} · ${cs.length} categories: ${cs.map(esc).join(', ')}</div>${rep?`<div class="lbl">${rep} rows replace rows imported before</div>`:''}${bad?`<div class="lbl neg">${bad} rows skipped (no date or amount)</div>`:''}</div>`;
+    b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' expenses'};
+  $('#etext').oninput=prev;$('#no').onclick=close;
+  $('#ego').onclick=()=>{const {rows}=expParse($('#etext').value);if(!rows.length)return;const ids=new Set(rows.map(r=>r.id));
+    S.tx=S.tx.filter(t=>!ids.has(t.id)).concat(rows);const ds=rows.map(r=>r.tanggal).sort();EY=ds[ds.length-1].slice(0,4);ECat='all';
+    close();tab='tx';fv='tx';txf='Expense';save();setStatus('Imported '+rows.length+' expenses')};
+  $('#bg').classList.add('open');setTimeout(()=>$('#etext').focus(),50);
 }
 function vTx(){
   if(fv==='sales'){fv='tx';txf='Income'}
