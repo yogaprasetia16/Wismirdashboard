@@ -319,3 +319,17 @@ Di atas daftar ada pilihan bulan, dan untuk setiap bulan terlihat total pengelua
 Pada tanggalnya, dashboard otomatis mencatat pengeluaran tersebut dan memberinya tanda ↻. Kalau Next date diisi tanggal yang sudah lewat, semua tanggal yang terlewat ikut dicatat. Untuk mengubah atau menghapus pengeluaran berulang, ketuk namanya di daftar Recurring.
 
 Fitur ini butuh **Code.gs versi 9** (tab baru **Recurring**).
+
+## 19. Pembelian & impor pembelian lama (Production › Purchasing)
+
+- Kategori pembelian ada dua: **Textile** (kain) dan **Item** (kancing, plastik, kantong, handtag, dll.).
+- Jumlah boleh pakai koma, misalnya `1108,1` meter.
+- Daftar pembelian bisa dipilih per tahun dan dikelompokkan per bulan. Setiap bulan menampilkan totalnya.
+
+**Impor pembelian lama:**
+1. Di Google Sheet lama, blok tabel pembelian **beserta baris judulnya** (`date`, `category`, `name`, `quantity`, `total payment`), lalu tekan **Ctrl+C**.
+2. Buka Dashboard › **Production** › **Purchasing**, lalu tekan **Import purchases**.
+3. Tempel tabelnya, cek ringkasan yang muncul, lalu tekan **Import**.
+4. Biarkan dashboard tetap terbuka sampai tombol **Sync** berhenti berputar.
+
+Kalau Anda impor ulang baris yang sama, datanya diganti dan tidak dobel.

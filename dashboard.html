@@ -222,7 +222,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -792,16 +792,54 @@ function editMkt(id){const c=S.mkt.find(x=>x.id===id);form('Edit campaign',mktFi
 function purchFields(p={}){return[
   {k:'date',label:'Order date',type:'date',val:p.date||today()},
   {k:'name',label:'Name',type:'text',val:p.name||''},
-  {k:'category',label:'Category',type:'select',opts:['Textile','Item','Karmila product'],val:p.category||'Textile'},
-  {k:'qty',label:'Quantity',type:'number',val:p.qty||'',ph:'1',opt:true},
+  {k:'category',label:'Category',type:'select',opts:['Textile','Item'].concat(p.category&&!['Textile','Item'].includes(p.category)?[p.category]:[]),val:p.category||'Textile'},
+  {k:'qty',label:'Quantity',type:'text',im:'decimal',val:p.qty!=null&&p.qty!==''?String(p.qty).replace('.',','):'',ph:'1',opt:true},
   {k:'total',label:'Total payment (Rp)',type:'number',val:p.total||''}]}
-function addPurch(){form('New purchase',purchFields(),v=>{v.qty=+v.qty||1;S.purch.push({id:uid(),...v});save()})}
-function editPurch(id){const p=S.purch.find(x=>x.id===id);form('Edit purchase',purchFields(p),v=>{v.qty=+v.qty||1;Object.assign(p,v);save()},()=>{S.purch=S.purch.filter(x=>x.id!==id);save()})}
+function addPurch(){form('New purchase',purchFields(),v=>{v.qty=pQty(v.qty)||1;S.purch.push({id:uid(),...v});save()})}
+function editPurch(id){const p=S.purch.find(x=>x.id===id);form('Edit purchase',purchFields(p),v=>{v.qty=pQty(v.qty)||1;Object.assign(p,v);save()},()=>{S.purch=S.purch.filter(x=>x.id!==id);save()})}
 function vPurch(){
-  const m=today().slice(0,7),mo=S.purch.filter(p=>(p.date||'').startsWith(m)).reduce((a,p)=>a+ +p.total,0);
-  const l=[...S.purch].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  return `<div class="lbl" style="margin:0 4px 14px">${S.purch.length} purchases · ${rp(mo)} this month</div>
-  <div class="card">${l.length?l.map(p=>`<div class="row" onclick="editPurch('${p.id}')"><div class="grow"><div class="t">${esc(p.name)} × ${p.qty}</div><div class="lbl">${esc(p.category)} · ${p.date?fmtD(p.date):''}</div></div><b>${rp(p.total)}</b></div>`).join(''):empty('No purchases yet. Press the button above to add one.')}</div>`;
+  const all=[...S.purch].map(p=>({...p,date:nd(p.date)})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const ys=[...new Set(all.map(p=>String(p.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
+  if(!PY||!ys.includes(PY))PY=ys[ys.length-1]||today().slice(0,4);
+  const l=all.filter(p=>String(p.date||'').startsWith(PY)),m=today().slice(0,7),mo=S.purch.filter(p=>String(nd(p.date)).startsWith(m)).reduce((a,p)=>a+ +p.total,0);
+  const g={};l.forEach(p=>{const k=String(p.date).slice(0,7);(g[k]=g[k]||[]).push(p)});
+  const yt=l.reduce((a,p)=>a+ +p.total,0);
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px">${ys.length>1?`<div class="seg sc" style="margin:0">${ys.map(y=>`<button class="${y===PY?'on':''}" onclick="PY='${y}';render()">${y}</button>`).join('')}</div>`:''}<button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importPurch()">Import purchases</button></div>
+  <div class="lbl" style="margin:0 4px 10px">${l.length} purchases in ${PY} · ${rp(yt)} · ${rp(mo)} this month</div>
+  ${l.length?Object.keys(g).sort().reverse().map(k=>`<div class="dayh"><span>${MON(k)}</span><b>${rp(g[k].reduce((a,p)=>a+ +p.total,0))}</b></div><div class="card">${g[k].map(p=>`<div class="row" data-pid="${esc(p.id)}" onclick="editPurch('${p.id}')"><div class="grow"><div class="t">${esc(p.name)} × ${String(p.qty).replace('.',',')}</div><div class="lbl">${esc(p.category)} · ${p.date?fmtD(p.date):''}</div></div><b>${rp(p.total)}</b></div>`).join('')}</div>`).join(''):`<div class="card">${empty('No purchases yet. Press the button above to add one, or import your past purchases.')}</div>`}`;
+}
+// ---- import purchases (owner 2026-11-11): date, category (Textile / Item), name, quantity, total payment.
+// One purchase per row; ids come from the row content, so importing the same rows again replaces them.
+const PCOL={d:/^(date|tanggal|tgl|order date)$/,c:/^(category|kategori|jenis)$/,n:/^(name|nama|item|barang|product|produk)$/,q:/^(quantity|qty|jumlah|kuantitas)$/,v:/^(total payment|total|payment|bayar|harga|total bayar|nominal)$/};
+// quantity keeps decimals: "1108,1" = 1108.1 metres; "1.500" (thousands) = 1500
+const pQty=v=>{v=String(v||'').trim().replace(/\s/g,'');if(/^\d{1,3}(\.\d{3})+$/.test(v))v=v.replace(/\./g,'');else v=v.replace(',','.');const n=parseFloat(v);return isNaN(n)?0:n};
+function purchParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!lines.length)return{rows:[],bad:0};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+  const head=cells[0].map(h=>h.toLowerCase().replace(/\s+/g,' ').trim()),map={};
+  head.forEach((h,i)=>{for(const k in PCOL)if(map[k]==null&&PCOL[k].test(h))map[k]=i});
+  const hasHead=map.d!=null&&map.n!=null,M=hasHead?map:{d:0,c:1,n:2,q:3,v:4},seen={},rows=[];let bad=0;
+  (hasHead?cells.slice(1):cells).forEach(c=>{const d=eDate(c[M.d]),name=String(c[M.n]||'').trim(),v=+impNum(c[M.v])||0;if(!d||!name){bad++;return}
+    const cat=/^text/i.test(c[M.c]||'')?'Textile':/^item/i.test(c[M.c]||'')?'Item':ecap(c[M.c]||'Item'),q=pQty(c[M.q])||1;
+    const r={date:d,name,category:cat,qty:q,total:v},k=[d,cat,name.toLowerCase(),q,v].join('|');seen[k]=(seen[k]||0)+1;rows.push({id:'p'+ehash(k)+'-'+seen[k],...r})});
+  return{rows,bad};
+}
+function importPurch(){
+  closePop();$('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Import purchases</h3><div class="lbl" style="margin:-8px 6px 12px">In your spreadsheet, select the cells with the header row (date, category, name, quantity, total payment), copy, and paste them here. Importing the same rows again replaces them.</div>
+  <div class="f"><textarea id="ptext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="pprev"></div>
+  <button class="btn" id="pgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  const prev=()=>{const {rows,bad}=purchParse($('#ptext').value),b=$('#pgo');
+    if(!rows.length){$('#pprev').innerHTML=bad?`<div class="lbl neg" style="margin:0 6px 10px">No rows recognised. Check that the columns are date, category, name, quantity, total payment.</div>`:'';b.disabled=true;b.style.opacity=.5;b.textContent='Nothing to import yet';return}
+    const ds=rows.map(r=>r.date).sort(),by=c=>rows.filter(r=>r.category===c),rep=rows.filter(r=>S.purch.some(p=>p.id===r.id)).length,sum=l=>l.reduce((a,r)=>a+r.total,0);
+    $('#pprev').innerHTML=`<div class="card" style="padding:12px 16px"><div class="t">${rows.length} purchases · ${fmtD(ds[0])} ${ds[0].slice(0,4)} – ${fmtD(ds[ds.length-1])} ${ds[ds.length-1].slice(0,4)}</div><div class="lbl">${rp(sum(rows))} · Textile ${by('Textile').length} (${rp(sum(by('Textile')))}) · Item ${by('Item').length} (${rp(sum(by('Item')))})</div>${rep?`<div class="lbl">${rep} rows replace rows imported before</div>`:''}${bad?`<div class="lbl neg">${bad} rows skipped (no date or name)</div>`:''}</div>`;
+    b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' purchases'};
+  $('#ptext').oninput=prev;$('#no').onclick=close;
+  $('#pgo').onclick=()=>{const {rows}=purchParse($('#ptext').value);if(!rows.length)return;const ids=new Set(rows.map(r=>r.id));
+    S.purch=S.purch.filter(p=>!ids.has(p.id)).concat(rows);const ds=rows.map(r=>r.date).sort();PY=ds[ds.length-1].slice(0,4);
+    close();tab='prod';pt='purch';save();setStatus('Imported '+rows.length+' purchases')};
+  $('#bg').classList.add('open');setTimeout(()=>$('#ptext').focus(),50);
 }
 function vProd(){
   const col=(k,name,add,fn)=>`<div class="bcol${pt===k?' show':''}"><div class="bh"><div class="sub">${name}</div><button class="addd" onclick="${add}()" aria-label="New ${name}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>${fn()}</div>`;
@@ -1108,7 +1146,7 @@ addEventListener('click',e=>{if(pop&&!e.composedPath().some(n=>n.id==='pp'||n.id
 addEventListener('resize',()=>{if(pop)closePop()});
 function form(title,fields,onSave,onDel,delLabel){
   closePop();
-  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='checks'?chkHtml(f):f.type==='combo'?cmbHtml(f):f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="decimal"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
+  $('#sheet').innerHTML=`<h3>${title}</h3>`+fields.map(f=>`<div class="f"${f.showIf?` data-showif="${f.showIf}" style="display:none"`:''}><label>${f.label}</label>${f.type==='checks'?chkHtml(f):f.type==='combo'?cmbHtml(f):f.type==='calc'?`<input id="calc" readonly value="${esc(f.val)}">`:f.type==='select'?`<select data-k="${f.k}">${f.opts.map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`:`<input data-k="${f.k}" type="${f.type}" value="${esc(f.val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'||f.im?'inputmode="'+(f.im||'decimal')+'"':''}${f.list?` list="dl-${f.k}" autocomplete="off"`:''}>${f.list?`<datalist id="dl-${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`:''}`}</div>`).join('')+
   `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${onDel?`<button class="btn del" id="rm">${delLabel||'Delete'}</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
   const sync=()=>$('#sheet').querySelectorAll('[data-showif]').forEach(w=>{const [k,v]=w.dataset.showif.split('=');const e=$('#sheet [data-k="'+k+'"]');w.style.display=e&&e.value===v?'':'none'});
   sync();$('#sheet').querySelectorAll('.ckl .ckb input').forEach((x,i)=>{if(!i)ckCount(x)});
