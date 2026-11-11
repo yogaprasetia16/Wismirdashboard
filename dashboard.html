@@ -175,6 +175,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 #vtip{position:fixed;z-index:80;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;max-width:240px}
 .lnk{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--green);display:grid;place-items:center;cursor:pointer;flex:none}.lnk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.lnk:hover{background:var(--seg)}
 .cmb .cmbl{margin-top:6px;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:4px}.cmbo{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 10px;border-radius:10px;font:inherit;color:var(--ink);cursor:pointer}.cmbo:hover{background:var(--seg)}.cmbo.on{background:var(--thbg);color:var(--green);font-weight:600}
+.dayh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:16px 6px 8px;font-size:12.5px;font-weight:600;color:var(--mute)}.dayh b{color:var(--ink);font-size:13px}.dayh+.card{margin-bottom:0}
 .stab{width:100%;border-collapse:collapse;font-size:13px}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .sc2{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 12px;cursor:pointer;min-width:0;transition:transform .15s,box-shadow .15s}
@@ -712,7 +713,7 @@ function expMonth(m){
   const l=expList().filter(t=>String(nd(t.tanggal)).startsWith(m)&&(ECat==='all'||ecap(t.kategori)===ECat)).sort((a,b)=>String(a.tanggal).localeCompare(String(b.tanggal)));closePop();
   $('#sheet').oninput=null;
   $('#sheet').innerHTML=`<h3>Expenses · ${MON(m)}</h3><div class="lbl" style="margin:-8px 6px 12px">${ECat==='all'?'All categories':esc(ECat)} · ${l.length} entries · ${rp(l.reduce((a,t)=>a+ +t.jumlah,0))}</div>
-  <div class="card">${l.map(t=>`<div class="row" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}</div><div class="lbl">${fmtD(nd(t.tanggal))}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join('')}</div>
+  ${expDays(l.slice().reverse())}
   <button class="btn sec" id="no">Close</button>`;
   $('#no').onclick=close;$('#bg').classList.add('open');
 }
@@ -872,6 +873,10 @@ function runRecurring(){
     if(d!==nd(r.next)){r.next=d;ch=true}});
   if(ch)save();return ch;
 }
+// expense list grouped per day, newest day first (owner 2026-11-11, like the POS stock history): day header with the day's total
+const DAYL=d=>{const x=new Date(d+'T00:00'),t=today(),y=(()=>{const z=new Date();z.setDate(z.getDate()-1);return ymd(z)})();return (d===t?'Today · ':d===y?'Yesterday · ':'')+x.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})};
+function expDays(l){const g={};l.forEach(t=>{const d=String(nd(t.tanggal));(g[d]=g[d]||[]).push(t)});
+  return Object.keys(g).sort().reverse().map(d=>`<div class="dayh" data-day="${d}"><span>${DAYL(d)}</span><b>−${rp(g[d].reduce((a,t)=>a+ +t.jumlah,0))}</b></div><div class="card">${g[d].map(t=>`<div class="row" data-eid="${esc(t.id)}" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}${String(t.id).startsWith('r-')?' <span class="mu" title="Recurring">↻</span>':''}</div>${t.catatan?`<div class="lbl">${esc(t.catatan)}</div>`:''}</div><b class="neg">−${rp(t.jumlah)}</b></div>`).join('')}</div>`).join('')}
 function vOpsExp(){
   const l=expList(),T=today().slice(0,7),ms=[...new Set(l.map(t=>String(nd(t.tanggal)).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)).concat([T]))].sort().reverse();
   if(!OM||!ms.includes(OM))OM=T;
@@ -880,7 +885,7 @@ function vOpsExp(){
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:190px"><select onchange="OM=this.value;render()" aria-label="Month">${ms.map(m=>`<option value="${m}" ${m===OM?'selected':''}>${MON(m)}</option>`).join('')}</select></div>
    <div class="lbl">${ml.length} expenses · <b>${rp(tot)}</b></div>
    <button class="btn sec" id="recBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="recSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>Recurring${nRec?` · ${nRec}`:''}</button></div>
-  <div class="card">${ml.length?ml.map(t=>`<div class="row" data-eid="${esc(t.id)}" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}${String(t.id).startsWith('r-')?' <span class="mu" title="Recurring">↻</span>':''}</div><div class="lbl">${fmtD(nd(t.tanggal))}${t.catatan?' · '+esc(t.catatan):''}</div></div><b class="neg">−${rp(t.jumlah)}</b></div>`).join(''):empty('No expenses in '+MON(OM)+' yet. Press the button above to add one.')}</div>
+  ${ml.length?expDays(ml):`<div class="card">${empty('No expenses in '+MON(OM)+' yet. Press the button above to add one.')}</div>`}
   <div class="lbl" style="padding:0 6px">Tap an expense to change or delete it. The full recap is in Finance › Transactions › Expense.</div>`;
 }
 const recLbl=r=>({Monthly:'Every month',Weekly:'Every week',Daily:'Every day',Yearly:'Every year'}[r.repeat]||r.repeat);
