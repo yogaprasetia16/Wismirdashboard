@@ -24,7 +24,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await L.evaluate(()=>pullSheets());
  await until(async()=>await nexp()===30,15000,'sent back');
  ok(await L.evaluate(()=>S.tx.filter(t=>t.jenis==='Expense').length===30),'laptop kept its 30 expenses');
- ok((await L.evaluate(()=>status)).includes('came back empty'),'laptop says the tab came back empty and was sent back: '+(await L.evaluate(()=>status)));
+ await until(()=>L.evaluate(()=>/came back empty/.test(status)&&/sent back/.test(status)),8000,'status').catch(()=>{});const st=await L.evaluate(()=>status);ok(st.includes('came back empty')&&st.includes('sent back'),'laptop says the tab came back empty and was sent back: '+st);
  ok(await nexp()===30,'the 30 expenses are back on the Sheet');
  await P.evaluate(()=>pullSheets());await sleep(1500);
  ok(await P.evaluate(()=>S.tx.filter(t=>t.jenis==='Expense').length===30),'second device still has them after loading');

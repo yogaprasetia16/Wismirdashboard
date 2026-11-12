@@ -8,7 +8,7 @@ const ui={ButtonSet:{OK_CANCEL:1},Button:{OK:'OK',CANCEL:'C'},alert:m=>alerts.pu
  createMenu:n=>{const m={items:[],addItem(a,f){this.items.push(a+':'+f);return this},addToUi(){menu=this.items}};return m}};
 const SS={getSheets:()=>list.slice(),getSheetByName:n=>list.find(s=>s.n===n)||null,insertSheet(n){const s=new Sh(n);list.push(s);return s},deleteSheet(s){list.splice(list.indexOf(s),1)},setSpreadsheetTimeZone(){}};
 const ctx={SpreadsheetApp:{getActiveSpreadsheet:()=>SS,getUi:()=>ui},PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v}})},
- Logger:{log(){}},ContentService:{MimeType:{},createTextOutput:t=>({t,setMimeType(){return this}})},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},Object,JSON,Number,String,Error,Date};
+ Logger:{log(){}},ContentService:{MimeType:{},createTextOutput:t=>({t,setMimeType(){return this}})},LockService:{getScriptLock:()=>({waitLock(){},tryLock(){return true},releaseLock(){}})},Object,JSON,Number,String,Error,Date};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('path').join(__dirname,'..','Code.gs'),'utf8'),ctx);
 ok(!/GANTI-PIN|const PIN\s*=/.test(fs.readFileSync(require('path').join(__dirname,'..','Code.gs'),'utf8')),'no PIN written in the code');
 const g=pin=>JSON.parse(vm.runInContext(`doGet({parameter:{pin:${JSON.stringify(pin)}}}).t`,ctx));

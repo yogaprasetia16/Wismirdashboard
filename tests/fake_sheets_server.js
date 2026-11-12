@@ -23,7 +23,7 @@ Sheet.prototype.getRange=function(r,c,nr=1,nc=1){const sh=this;const each=fn=>{f
 const PROPS={PIN:'9999'};const SS={sheets:{},getSheetByName(n){return this.sheets[n]||null},insertSheet(n){return this.sheets[n]=new Sheet(n)},getSpreadsheetTimeZone(){return 'Asia/Jakarta'}};
 const ctx={SpreadsheetApp:{getActiveSpreadsheet:()=>SS,getActive:()=>SS},
  ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({t,setMimeType(){return this}})},
- LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
+ LockService:{getScriptLock:()=>({waitLock(){},tryLock(){return true},releaseLock(){}})},
  Utilities:{formatDate:(d,tz,f)=>{const s=new Date(d.getTime()+7*3600e3).toISOString();return f==='HH:mm'?s.slice(11,16):s.slice(0,10)}},
  PropertiesService:{getScriptProperties:()=>({getProperty:k=>PROPS[k]||null,setProperty:(k,v)=>{PROPS[k]=v}})},
  console,Date,JSON,Number,String,Object,Math,isFinite};
