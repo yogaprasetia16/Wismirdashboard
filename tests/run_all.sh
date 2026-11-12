@@ -29,6 +29,7 @@ start; run "expense list grouped per day" node exp_days.js
 start; run "Production › Purchasing: import + year/month list" node purchases.js
 start; run "saves send only changed tabs" node sync_changed.js
 start; run "Production › Manufacturing: import + SKU names" node manufacturing.js
+start; run "Production › Supplier: import past payments" node supplier_import.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js

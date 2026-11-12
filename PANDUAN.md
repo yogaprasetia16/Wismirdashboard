@@ -347,3 +347,18 @@ Kalau Anda impor ulang baris yang sama, datanya diganti dan tidak dobel.
 4. Tekan **Import**, lalu biarkan dashboard tetap terbuka sampai **Sync** selesai.
 
 Order hasil impor otomatis berstatus **Done**. Totalnya dihitung dari qtt product × Cost/product. Kalau data yang sama diimpor ulang, baris lama diganti, jadi tidak dobel.
+
+## 21. Riwayat pembayaran supplier (Production › Supplier)
+
+Rekap supplier untuk bulan-bulan baru dihitung otomatis dari barang masuk dan keluar ke Supplier di tablet POS. Untuk bulan-bulan sebelum ada POS, Anda bisa mengimpor riwayat pembayarannya. Cukup tanggal bayar dan jumlahnya saja.
+
+1. Di Google Sheet lama, blok tabel pembayaran **beserta baris judulnya** (`Tanggal`, `Jumlah`), lalu tekan **Ctrl+C**.
+2. Buka Dashboard › **Production** › **Supplier**, lalu tekan **Import payments**.
+3. Tempel tabelnya. Akan muncul ringkasan bulan mana saja yang dibayar.
+4. Tekan **Import**, lalu biarkan dashboard terbuka sampai **Sync** selesai.
+
+Aturan pembacaan:
+- Pembayaran dihitung untuk **bulan sebelum** tanggal bayarnya. Contoh: bayar 5 Juli 2026 dicatat sebagai pembayaran untuk Juni 2026.
+- Kalau dalam satu bulan ada beberapa kali bayar, jumlahnya dijumlahkan.
+- Bulan hasil impor tampil dengan centang hijau dan tanda **imported**, tanpa rincian produk.
+- Impor ulang hanya mengganti bulan-bulan tersebut, jadi data tidak dobel.
