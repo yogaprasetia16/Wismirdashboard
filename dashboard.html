@@ -222,7 +222,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -911,17 +911,60 @@ function suppMonths(){
   });
   return Object.values(by).map(M=>{const items=Object.values(M.items).map(i=>({...i,net:i.inn-i.out,val:(i.inn-i.out)*i.cogs})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
     return {m:M.m,items,total:items.reduce((a,i)=>a+i.val,0),inn:items.reduce((a,i)=>a+i.inn,0),out:items.reduce((a,i)=>a+i.out,0),noCogs:items.filter(i=>!i.cogs&&i.net).length,paid:S.supp.find(x=>x.bulan===M.m)}})
+   .concat(S.supp.filter(x=>/^\d{4}-\d{2}$/.test(String(x.bulan))&&!by[x.bulan]).map(x=>({m:String(x.bulan),items:[],total:+x.total||0,inn:0,out:0,noCogs:0,paid:x,imported:true})))
    .sort((a,b)=>b.m.localeCompare(a.m));
 }
 const CHK='<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12l5 5 9-10"/></svg>';
 function vSupp(){
-  const l=suppMonths();
-  return `<div class="card">${l.length?l.map(x=>`<div class="row" data-supp="${x.m}" onclick="suppSheet('${x.m}')">${x.paid?`<span class="th" style="background:var(--green);border-radius:50%" title="Paid">${CHK}</span>`:`<span class="th" style="border-radius:50%;background:none;border:2px solid var(--line)"></span>`}<div class="grow"><div class="t">${MON(x.m)}</div><div class="lbl">${x.paid?'Paid'+(x.paid.paidOn?' '+fmtD(x.paid.paidOn):''):'Pay in '+MON(nextMon(x.m))} · in ${x.inn} · out ${x.out}</div></div><b>${rp(x.total)}</b></div>`).join(''):empty(S.cfg.url?'No supplier stock yet. Stock in from "Supplier" and stock out to "Supplier" on the store tablet (POS) appear here per month.':'Connect Google Sheets in Settings to see supplier stock from the store tablet (POS).')}</div>`;
+  const all=suppMonths(),ys=[...new Set(all.map(x=>x.m.slice(0,4)))].sort();
+  if(!SPY||!ys.includes(SPY))SPY=ys[ys.length-1]||today().slice(0,4);
+  const l=all.filter(x=>x.m.startsWith(SPY)),paidY=l.filter(x=>x.paid).reduce((a,x)=>a+(+x.paid.total||0),0);
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px">${ys.length>1?`<div class="seg sc" style="margin:0">${ys.map(y=>`<button class="${y===SPY?'on':''}" onclick="SPY='${y}';render()">${y}</button>`).join('')}</div>`:''}<button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importSuppPay()">Import payments</button></div>
+  ${l.length?`<div class="lbl" style="margin:0 4px 10px">${SPY} · ${rp(paidY)} paid</div>`:''}
+  <div class="card">${l.length?l.map(x=>`<div class="row" data-supp="${x.m}" onclick="suppSheet('${x.m}')">${x.paid?`<span class="th" style="background:var(--green);border-radius:50%" title="Paid">${CHK}</span>`:`<span class="th" style="border-radius:50%;background:none;border:2px solid var(--line)"></span>`}<div class="grow"><div class="t">${MON(x.m)}</div><div class="lbl">${x.paid?'Paid'+(x.paid.paidOn?' '+fmtD(nd(x.paid.paidOn))+' '+String(nd(x.paid.paidOn)).slice(0,4):''):'Pay in '+MON(nextMon(x.m))}${x.imported?' · imported':' · in '+x.inn+' · out '+x.out}</div></div><b>${rp(x.paid&&x.imported?x.paid.total:x.total)}</b></div>`).join(''):empty(S.cfg.url||S.supp.length?'No supplier stock yet. Stock in from "Supplier" and stock out to "Supplier" on the store tablet (POS) appear here per month. Past payments can be imported.':'Connect Google Sheets in Settings to see supplier stock from the store tablet (POS).')}</div>`;
+}
+// ---- import past supplier payments (owner 2026-11-12): date + amount only, no products. A payment pays the month BEFORE
+// the month it was paid in (goods taken in June are paid in July); payments in the same month are added up.
+const SPCOL={d:/^(tanggal|tgl|date|tanggal bayar|payment date|paid on)$/,v:/^(jumlah|amount|nominal|total|pembayaran|payment|bayar|nilai|nilai pembayaran)$/};
+function suppPayParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!lines.length)return{rows:[],bad:0};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+  const head=cells[0].map(h=>h.toLowerCase().replace(/\s+/g,' ').trim()),map={};
+  head.forEach((h,i)=>{for(const k in SPCOL)if(map[k]==null&&SPCOL[k].test(h))map[k]=i});
+  const hasHead=map.d!=null&&map.v!=null,M=hasHead?map:{d:0,v:1},g={};let bad=0,n=0;
+  (hasHead?cells.slice(1):cells).forEach(c=>{const d=eDate(c[M.d]),v=+impNum(c[M.v])||0;if(!d||!v){bad++;return}n++;
+    const m=prevMon(d.slice(0,7)),o=g[m]||(g[m]={id:'sup-'+m,bulan:m,total:0,paidOn:d,n:0});o.total+=v;o.n++;if(d>o.paidOn)o.paidOn=d});
+  return{rows:Object.values(g).sort((a,b)=>a.bulan.localeCompare(b.bulan)),bad,n};
+}
+function importSuppPay(){
+  closePop();$('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>Import supplier payments</h3><div class="lbl" style="margin:-8px 6px 12px">Paste your past payments with the header row (date, amount). Each payment counts for the month before it was paid (paid in July = goods of June); payments in the same month are added up. These months show as paid, without product details. Importing again replaces those months.</div>
+  <div class="f"><textarea id="stp" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="stpv"></div>
+  <button class="btn" id="stgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  const prev=()=>{const {rows,bad,n}=suppPayParse($('#stp').value),b=$('#stgo');
+    if(!rows.length){$('#stpv').innerHTML=bad?`<div class="lbl neg" style="margin:0 6px 10px">No rows recognised. The columns should be: date, amount.</div>`:'';b.disabled=true;b.style.opacity=.5;b.textContent='Nothing to import yet';return}
+    const rep=rows.filter(r=>S.supp.some(x=>x.bulan===r.bulan)).length;
+    $('#stpv').innerHTML=`<div class="card" style="padding:12px 16px"><div class="t">${n} payments → ${rows.length} months · ${MON(rows[0].bulan)} – ${MON(rows[rows.length-1].bulan)}</div><div class="lbl">${rp(rows.reduce((a,r)=>a+r.total,0))} paid</div><div class="lbl" style="margin-top:4px">${rows.slice(-6).reverse().map(r=>`${MON(r.bulan)}: ${rp(r.total)} (paid ${fmtD(r.paidOn)} ${r.paidOn.slice(0,4)}${r.n>1?', '+r.n+' payments':''})`).join('<br>')}${rows.length>6?'<br>…':''}</div>${rep?`<div class="lbl">${rep} months replace payments recorded before</div>`:''}${bad?`<div class="lbl neg">${bad} rows skipped (no date or amount)</div>`:''}</div>`;
+    b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' months'};
+  $('#stp').oninput=prev;$('#no').onclick=close;
+  $('#stgo').onclick=()=>{const {rows}=suppPayParse($('#stp').value);if(!rows.length)return;const ms=new Set(rows.map(r=>r.bulan));
+    S.supp=S.supp.filter(x=>!ms.has(x.bulan)).concat(rows.map(r=>({id:r.id,bulan:r.bulan,total:r.total,paidOn:r.paidOn})));SPY=rows[rows.length-1].bulan.slice(0,4);
+    close();tab='prod';pt='supp';save();setStatus('Imported '+rows.length+' months of supplier payments')};
+  $('#bg').classList.add('open');setTimeout(()=>$('#stp').focus(),50);
 }
 function suppSheet(m){
   const x=suppMonths().find(y=>y.m===m);if(!x)return;closePop();
-  const pd=x.paid,diff=pd&&Math.round(+pd.total)!==Math.round(x.total);
+  const pd=x.paid,diff=pd&&!x.imported&&Math.round(+pd.total)!==Math.round(x.total);
   $('#sheet').oninput=null;
+  if(x.imported){
+    $('#sheet').innerHTML=`<h3>Supplier · ${MON(m)}</h3><div class="lbl" style="margin:-8px 6px 12px">Imported payment · no product details</div>
+    <div class="card"><div class="row" style="cursor:default"><div class="grow"><div class="lbl">Paid${pd.paidOn?' on '+fmtD(nd(pd.paidOn))+' '+String(nd(pd.paidOn)).slice(0,4):''}</div><div class="kv" id="sTot">${rp(pd.total)}</div></div></div></div>
+    <button class="btn del" id="sPaid">Remove this payment</button><button class="btn sec" id="no" style="margin-top:8px">Close</button>`;
+    $('#no').onclick=close;let arm=false;
+    $('#sPaid').onclick=()=>{if(!arm){arm=true;$('#sPaid').textContent='Tap again to remove';return}S.supp=S.supp.filter(y=>y.bulan!==m);close();save()};
+    $('#bg').classList.add('open');return;
+  }
   $('#sheet').innerHTML=`<h3>Supplier · ${MON(m)}</h3><div class="lbl" style="margin:-8px 6px 12px">Stock in from Supplier minus stock out to Supplier, × COGS · ${pd?'Paid'+(pd.paidOn?' on '+fmtD(pd.paidOn):''):'pay in '+MON(nextMon(m))}</div>
   <div class="card" style="overflow-x:auto"><table class="stab"><thead><tr><th>Product</th><th>In</th><th>Out</th><th>Net</th><th>COGS</th><th>Total</th></tr></thead><tbody>${x.items.map(i=>`<tr><td>${esc(i.name)}${i.sku?`<div class="lbl">${esc(i.sku)}</div>`:''}</td><td>${i.inn}</td><td>${i.out}</td><td><b>${i.net}</b></td><td>${i.cogs?rp(i.cogs):'<span class="neg">no COGS</span>'}</td><td><b>${rp(i.val)}</b></td></tr>`).join('')}</tbody></table></div>
   <div class="card"><div class="row" style="cursor:default"><div class="grow"><div class="lbl">Total to pay</div><div class="kv" id="sTot">${rp(x.total)}</div></div><button class="btn sec" id="sCopy" style="width:auto;margin:0;padding:10px 18px">Copy</button></div></div>
