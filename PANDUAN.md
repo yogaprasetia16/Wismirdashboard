@@ -333,3 +333,17 @@ Fitur ini butuh **Code.gs versi 9** (tab baru **Recurring**).
 4. Biarkan dashboard tetap terbuka sampai tombol **Sync** berhenti berputar.
 
 Kalau Anda impor ulang baris yang sama, datanya diganti dan tidak dobel.
+
+## 20. Produksi & impor produksi lama (Production › Manufacturing)
+
+- Di data lama, produk ditulis dengan **kode SKU** (misalnya wg001). Dashboard otomatis menampilkannya sebagai **nama produk**, asalkan produk dengan SKU itu sudah ada di Operational › Stock. Pencocokan ini juga berlaku untuk produk yang baru ditambahkan nanti.
+- Saat menambah order baru, kolom **Product** menampilkan daftar nama produk. Pilih dari daftar, atau ketik untuk mencari.
+- Urutan daftar: order yang masih **Ongoing** tampil paling atas. Di bawahnya, order yang sudah **Done** dikelompokkan per tahun dan per bulan, lengkap dengan jumlah pcs dan biayanya.
+
+**Impor produksi lama:**
+1. Di Google Sheet lama, blok tabel produksi **beserta baris judulnya**: `Tanggal`, `Product`, `qtt product`, `material`, `qtt material`, `Cost/product`. Lalu tekan **Ctrl+C**.
+2. Buka Dashboard › **Production** › **Manufacturing**, lalu tekan **Import orders**.
+3. Tempel tabelnya. Di ringkasan, cek SKU mana saja yang sudah cocok dengan produk.
+4. Tekan **Import**, lalu biarkan dashboard tetap terbuka sampai **Sync** selesai.
+
+Order hasil impor otomatis berstatus **Done**. Totalnya dihitung dari qtt product × Cost/product. Kalau data yang sama diimpor ulang, baris lama diganti, jadi tidak dobel.
