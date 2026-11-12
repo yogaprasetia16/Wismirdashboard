@@ -30,6 +30,7 @@ start; run "Production › Purchasing: import + year/month list" node purchases.
 start; run "saves send only changed tabs" node sync_changed.js
 start; run "Production › Manufacturing: import + SKU names" node manufacturing.js
 start; run "Production › Supplier: import past payments" node supplier_import.js
+start; run "Production: one year dropdown for all columns" node prod_year.js
 start; run "install as app / offline" node pwa.js
 start; run "POS menu, price sheet, sounds, printer" node pos_ui.js
 start; run "POS stock history: no sales, owner edits" node pos_stock.js
