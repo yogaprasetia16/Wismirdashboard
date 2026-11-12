@@ -102,7 +102,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 10;
+const CODE_VERSION = 11;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -179,6 +179,10 @@ function doGet(e) {
   const pin = getPin();
   if (!pin) return out({ ok: false, error: NO_PIN });
   if (p.pin !== pin) return out({ ok: false, error: 'PIN salah' });
+  // Baca setelah penyimpanan yang sedang berjalan selesai (penyimpanan memegang kunci yang sama), jadi tidak pernah
+  // membaca tab yang baru setengah ditulis (penyebab data "hilang-timbul" di HP, 2026-11-12).
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(25000)) return out({ ok: false, error: 'Sheet sedang menyimpan, coba lagi sebentar' });
   try {
     const data = {};
     if (p.pos) {
@@ -196,6 +200,8 @@ function doGet(e) {
     return out({ ok: true, v: CODE_VERSION, ver: dashVer(), data: data });
   } catch (err) {
     return out({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
   }
 }
 

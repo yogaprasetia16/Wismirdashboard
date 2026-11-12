@@ -248,7 +248,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=10;
+const NEED_CODE=11;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -292,9 +292,11 @@ async function _pushSheets(tries=0){
   if(!S.cfg.pulled)return pullSheets();
   clearTimeout(save.t);
   setStatus('Sending to Google Sheets…');
-  const d0=S.cfg.dirty,sent=snap();
+  const d0=S.cfg.dirty,sent=snap(),B0=S.base||{},data={};
+  for(const n in sent)if(JSON.stringify(sent[n])!==JSON.stringify(B0[n]))data[n]=sent[n];
+  if(!Object.keys(data).length){if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();return setStatus('Synced '+hhmm())}
   try{
-    const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,data:sent,base:S.cfg.ver})});
+    const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,data,base:S.cfg.ver})});
     const j=await r.json();
     if(j.ok){if(j.ver)S.cfg.ver=String(j.ver);S.base=sent;if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();setStatus(rescued?rescued+' · sent back '+hhmm():'Synced '+hhmm());rescued='';if(S.cfg.dirty)save.t=setTimeout(pushSheets,1200)}
     else if(j.conflict&&tries<3){
@@ -326,10 +328,12 @@ async function _pullSheets(){
     let kept=0;
     if(!busy){
       emptied=[];
-      for(const k in SHEET){const d=j.data[SHEET[k]];if(d&&(newTab(SHEET[k],d)||lostTab(SHEET[k],d))){if(!newTab(SHEET[k],d))emptied.push(SHEET[k]);kept++;continue}if(d)S[k]=keepMissing(d.map(normRow),S[k])}
+      const srvTab={};
+      for(const k in SHEET){const d=j.data[SHEET[k]];if(d&&(newTab(SHEET[k],d)||lostTab(SHEET[k],d))){if(!newTab(SHEET[k],d))emptied.push(SHEET[k]);kept++;srvTab[SHEET[k]]=d.map(normRow);continue}if(d){const km0=kmN;S[k]=keepMissing(d.map(normRow),S[k]);if(kmN>km0)srvTab[SHEET[k]]=d.map(normRow)}}
       S.cfg.tabs=Object.keys(j.data);if(kept)kmN++;
       S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-      S.cfg.pulled=1;S.cfg.dirty=0;setBase(j.ver);
+      S.cfg.pulled=1;S.cfg.dirty=0;setBase(j.ver);Object.assign(S.base,srvTab); // base = what the Sheet has
+
     }
     for(const k in POSK){const d=j.data[POSK[k]];if(d)S.pos[k]=d}
     S.cfg.codeOld=(+j.v||0)<NEED_CODE;
