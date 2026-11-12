@@ -23,12 +23,12 @@ const PASTE=['Tanggal\tProduct\tqtt product\tmaterial\tqtt material\tCost/produc
  ok(a.qty===1099&&a.matQty===3277&&a.unitCost===27000&&a.total===29673000&&a.status==='Done','numbers read: 1.099 pcs, 3.277,0 m, Rp27.000, total, Done');
  ok(await D.evaluate(()=>S.prod.find(p=>p.date==='2025-06-04').matQty===1108.1),'decimal material quantity 1.108,1 = 1108.1');
  ok(await D.evaluate(()=>S.prod.find(p=>p.name==='permak').material===''),'material "0" stored as empty');
- await D.click('[onclick="MY=\'2025\';render()"]');
+ await D.evaluate(()=>{PRY='2025';render()});
  const t=txt(await D.textContent('#app'));
  ok(t.includes('Gamis Alpha × 1.099')&&t.includes('Tunik Beta × 1.071')&&t.includes('AA01'),'SKUs shown as product names (with the SKU below)');
  ok(t.includes('4 orders done in 2025')&&t.includes('January 2025')&&t.includes('June 2025'),'2025 grouped per month');
  // a product added later matches too
- await D.evaluate(()=>{S.products.push({id:'pc',nama:'Blouse Gamma',sku:'CC03',min:3});save();MY='2026';render()});
+ await D.evaluate(()=>{S.products.push({id:'pc',nama:'Blouse Gamma',sku:'CC03',min:3});save();PRY='2026';render()});
  ok(txt(await D.textContent('#app')).includes('Blouse Gamma × 76'),'a product added after the import is matched as well');
  // the Product field offers product names, editing keeps working
  await D.evaluate(()=>addProd());
@@ -40,5 +40,5 @@ const PASTE=['Tanggal\tProduct\tqtt product\tmaterial\tqtt material\tCost/produc
  await D.click('text=Import orders');await D.fill('#mtext',PASTE);ok(txt(await D.textContent('#mprev')).includes('5 rows replace'),'re-import replaces');await D.click('#mgo');
  ok(await D.evaluate(()=>S.prod.length===6),'no double rows after re-import');
  await until(async()=>{const o=await dump();return o.Production&&o.Production.v.length===7},10000,'synced');ok(true,'saved in the Production tab');
- await D.evaluate(()=>{MY='2025';render()});await D.screenshot({path:'manufacturing.png'});
+ await D.evaluate(()=>{PRY='2025';render()});await D.screenshot({path:'manufacturing.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

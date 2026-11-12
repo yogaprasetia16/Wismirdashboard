@@ -222,7 +222,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -784,11 +784,11 @@ function editProd(id){const p=S.prod.find(x=>x.id===id);form('Edit production or
 function vManu(){
   const all=[...S.prod].map(p=>({...p,date:nd(p.date)})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const ys=[...new Set(all.map(p=>String(p.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
-  if(!MY||!ys.includes(MY))MY=ys[ys.length-1]||today().slice(0,4);
+  MY=PRY||today().slice(0,4);
   const on=all.filter(p=>p.status!=='Done'),l=all.filter(p=>String(p.date||'').startsWith(MY)&&p.status==='Done'),g={};l.forEach(p=>{const k=String(p.date).slice(0,7);(g[k]=g[k]||[]).push(p)});
   const sum=x=>x.reduce((a,p)=>a+ +p.total,0),pcs=x=>x.reduce((a,p)=>a+(+p.qty||0),0);
   const row=p=>{const sp=skuProd(p.name);return `<div class="row" data-mid="${esc(p.id)}" onclick="editProd('${p.id}')"><div class="grow"><div class="t">${esc(manuName(p.name))} × ${(+p.qty||0).toLocaleString('id-ID')}</div><div class="lbl">${p.date?fmtD(p.date)+' · ':''}${sp?esc(sp.sku)+' · ':''}${esc(p.material)}${p.matQty?' × '+String(p.matQty).replace('.',','):''}</div></div><div style="text-align:right">${p.status==='Done'?'':'<span class="pill warn">Ongoing</span>'}<div><b>${rp(p.total)}</b></div><div class="lbl">${rp(p.unitCost)} / pc</div></div></div>`};
-  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px">${ys.length>1?`<div class="seg sc" style="margin:0">${ys.map(y=>`<button class="${y===MY?'on':''}" onclick="MY='${y}';render()">${y}</button>`).join('')}</div>`:''}<button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importManu()">Import orders</button></div>
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px"><button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importManu()">Import orders</button></div>
   ${on.length?`<div class="dayh"><span>Ongoing</span><b>${rp(sum(on))}</b></div><div class="card">${on.map(row).join('')}</div>`:''}
   <div class="lbl" style="margin:12px 4px 4px">${l.length} orders done in ${MY} · ${pcs(l).toLocaleString('id-ID')} pcs · ${rp(sum(l))}</div>
   ${l.length?Object.keys(g).sort().reverse().map(k=>`<div class="dayh"><span>${MON(k)} · ${pcs(g[k]).toLocaleString('id-ID')} pcs</span><b>${rp(sum(g[k]))}</b></div><div class="card">${g[k].map(row).join('')}</div>`).join(''):(on.length?'':`<div class="card">${empty('No production orders yet. Press the button above to add one, or import your past orders.')}</div>`)}`;
@@ -821,7 +821,7 @@ function importManu(){
     b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' orders'};
   $('#mtext').oninput=prev;$('#no').onclick=close;
   $('#mgo').onclick=()=>{const {rows}=manuParse($('#mtext').value);if(!rows.length)return;const ids=new Set(rows.map(r=>r.id));
-    S.prod=S.prod.filter(p=>!ids.has(p.id)).concat(rows);const ds=rows.map(r=>r.date).sort();MY=ds[ds.length-1].slice(0,4);
+    S.prod=S.prod.filter(p=>!ids.has(p.id)).concat(rows);const ds=rows.map(r=>r.date).sort();PRY=ds[ds.length-1].slice(0,4);
     close();tab='prod';pt='manu';save();setStatus('Imported '+rows.length+' production orders')};
   $('#bg').classList.add('open');setTimeout(()=>$('#mtext').focus(),50);
 }
@@ -850,11 +850,11 @@ function editPurch(id){const p=S.purch.find(x=>x.id===id);form('Edit purchase',p
 function vPurch(){
   const all=[...S.purch].map(p=>({...p,date:nd(p.date)})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const ys=[...new Set(all.map(p=>String(p.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
-  if(!PY||!ys.includes(PY))PY=ys[ys.length-1]||today().slice(0,4);
+  PY=PRY||today().slice(0,4);
   const l=all.filter(p=>String(p.date||'').startsWith(PY)),m=today().slice(0,7),mo=S.purch.filter(p=>String(nd(p.date)).startsWith(m)).reduce((a,p)=>a+ +p.total,0);
   const g={};l.forEach(p=>{const k=String(p.date).slice(0,7);(g[k]=g[k]||[]).push(p)});
   const yt=l.reduce((a,p)=>a+ +p.total,0);
-  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px">${ys.length>1?`<div class="seg sc" style="margin:0">${ys.map(y=>`<button class="${y===PY?'on':''}" onclick="PY='${y}';render()">${y}</button>`).join('')}</div>`:''}<button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importPurch()">Import purchases</button></div>
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px"><button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importPurch()">Import purchases</button></div>
   <div class="lbl" style="margin:0 4px 10px">${l.length} purchases in ${PY} · ${rp(yt)} · ${rp(mo)} this month</div>
   ${l.length?Object.keys(g).sort().reverse().map(k=>`<div class="dayh"><span>${MON(k)}</span><b>${rp(g[k].reduce((a,p)=>a+ +p.total,0))}</b></div><div class="card">${g[k].map(p=>`<div class="row" data-pid="${esc(p.id)}" onclick="editPurch('${p.id}')"><div class="grow"><div class="t">${esc(p.name)} × ${String(p.qty).replace('.',',')}</div><div class="lbl">${esc(p.category)} · ${p.date?fmtD(p.date):''}</div></div><b>${rp(p.total)}</b></div>`).join('')}</div>`).join(''):`<div class="card">${empty('No purchases yet. Press the button above to add one, or import your past purchases.')}</div>`}`;
 }
@@ -887,13 +887,15 @@ function importPurch(){
     b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' purchases'};
   $('#ptext').oninput=prev;$('#no').onclick=close;
   $('#pgo').onclick=()=>{const {rows}=purchParse($('#ptext').value);if(!rows.length)return;const ids=new Set(rows.map(r=>r.id));
-    S.purch=S.purch.filter(p=>!ids.has(p.id)).concat(rows);const ds=rows.map(r=>r.date).sort();PY=ds[ds.length-1].slice(0,4);
+    S.purch=S.purch.filter(p=>!ids.has(p.id)).concat(rows);const ds=rows.map(r=>r.date).sort();PRY=ds[ds.length-1].slice(0,4);
     close();tab='prod';pt='purch';save();setStatus('Imported '+rows.length+' purchases')};
   $('#bg').classList.add('open');setTimeout(()=>$('#ptext').focus(),50);
 }
+function prodYears(){const y=new Set([today().slice(0,4)]);S.purch.forEach(p=>y.add(String(nd(p.date)).slice(0,4)));S.prod.forEach(p=>y.add(String(nd(p.date)).slice(0,4)));suppMonths().forEach(x=>y.add(x.m.slice(0,4)));return [...y].filter(v=>/^\d{4}$/.test(v)).sort().reverse()}
 function vProd(){
+  const yrs=prodYears();if(!PRY||!yrs.includes(PRY))PRY=today().slice(0,4);
   const col=(k,name,add,fn)=>`<div class="bcol${pt===k?' show':''}"><div class="bh"><div class="sub">${name}</div><button class="addd" onclick="${add}()" aria-label="New ${name}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>${fn()}</div>`;
-  return `<h1>Production</h1><div class="seg dvt">${[['purch','Purchasing'],['manu','Manufacturing'],['supp','Supplier']].map(s=>`<button class="${pt===s[0]?'on':''}" onclick="pt='${s[0]}';render()">${s[1]}</button>`).join('')}</div><div class="board b3">${col('purch','Purchasing','addPurch',vPurch)}${col('manu','Manufacturing','addProd',vManu)}<div class="bcol${pt==='supp'?' show':''}"><div class="bh"><div class="sub">Supplier</div><span class="addd" style="visibility:hidden" aria-hidden="true"></span></div>${vSupp()}</div></div>`;
+  return `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h1 style="margin:0">Production</h1><div class="f" style="margin:0"><select id="prodYear" aria-label="Year" onchange="PRY=this.value;render()" style="padding:8px 34px 8px 14px;font-weight:600">${yrs.map(y=>`<option ${y===PRY?'selected':''}>${y}</option>`).join('')}</select></div></div><div class="seg dvt">${[['purch','Purchasing'],['manu','Manufacturing'],['supp','Supplier']].map(s=>`<button class="${pt===s[0]?'on':''}" onclick="pt='${s[0]}';render()">${s[1]}</button>`).join('')}</div><div class="board b3">${col('purch','Purchasing','addPurch',vPurch)}${col('manu','Manufacturing','addProd',vManu)}<div class="bcol${pt==='supp'?' show':''}"><div class="bh"><div class="sub">Supplier</div><span class="addd" style="visibility:hidden" aria-hidden="true"></span></div>${vSupp()}</div></div>`;
 }
 // ---- Supplier recap: stock in from "Supplier" minus stock returned to "Supplier" (POS stock moves), per product per month,
 // valued at COGS. A month is paid in the following month; "Mark as paid" is kept in the Supplier tab (one row per month).
@@ -917,9 +919,9 @@ function suppMonths(){
 const CHK='<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12l5 5 9-10"/></svg>';
 function vSupp(){
   const all=suppMonths(),ys=[...new Set(all.map(x=>x.m.slice(0,4)))].sort();
-  if(!SPY||!ys.includes(SPY))SPY=ys[ys.length-1]||today().slice(0,4);
+  SPY=PRY||today().slice(0,4);
   const l=all.filter(x=>x.m.startsWith(SPY)),paidY=l.filter(x=>x.paid).reduce((a,x)=>a+(+x.paid.total||0),0);
-  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px">${ys.length>1?`<div class="seg sc" style="margin:0">${ys.map(y=>`<button class="${y===SPY?'on':''}" onclick="SPY='${y}';render()">${y}</button>`).join('')}</div>`:''}<button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importSuppPay()">Import payments</button></div>
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px"><button class="btn sec" style="width:auto;margin:0 0 0 auto;padding:8px 14px;font-size:12.5px" onclick="importSuppPay()">Import payments</button></div>
   ${l.length?`<div class="lbl" style="margin:0 4px 10px">${SPY} · ${rp(paidY)} paid</div>`:''}
   <div class="card">${l.length?l.map(x=>`<div class="row" data-supp="${x.m}" onclick="suppSheet('${x.m}')">${x.paid?`<span class="th" style="background:var(--green);border-radius:50%" title="Paid">${CHK}</span>`:`<span class="th" style="border-radius:50%;background:none;border:2px solid var(--line)"></span>`}<div class="grow"><div class="t">${MON(x.m)}</div><div class="lbl">${x.paid?'Paid'+(x.paid.paidOn?' '+fmtD(nd(x.paid.paidOn))+' '+String(nd(x.paid.paidOn)).slice(0,4):''):'Pay in '+MON(nextMon(x.m))}${x.imported?' · imported':' · in '+x.inn+' · out '+x.out}</div></div><b>${rp(x.paid&&x.imported?x.paid.total:x.total)}</b></div>`).join(''):empty(S.cfg.url||S.supp.length?'No supplier stock yet. Stock in from "Supplier" and stock out to "Supplier" on the store tablet (POS) appear here per month. Past payments can be imported.':'Connect Google Sheets in Settings to see supplier stock from the store tablet (POS).')}</div>`;
 }
@@ -949,7 +951,7 @@ function importSuppPay(){
     b.disabled=false;b.style.opacity=1;b.textContent='Import '+rows.length+' months'};
   $('#stp').oninput=prev;$('#no').onclick=close;
   $('#stgo').onclick=()=>{const {rows}=suppPayParse($('#stp').value);if(!rows.length)return;const ms=new Set(rows.map(r=>r.bulan));
-    S.supp=S.supp.filter(x=>!ms.has(x.bulan)).concat(rows.map(r=>({id:r.id,bulan:r.bulan,total:r.total,paidOn:r.paidOn})));SPY=rows[rows.length-1].bulan.slice(0,4);
+    S.supp=S.supp.filter(x=>!ms.has(x.bulan)).concat(rows.map(r=>({id:r.id,bulan:r.bulan,total:r.total,paidOn:r.paidOn})));PRY=rows[rows.length-1].bulan.slice(0,4);
     close();tab='prod';pt='supp';save();setStatus('Imported '+rows.length+' months of supplier payments')};
   $('#bg').classList.add('open');setTimeout(()=>$('#stp').focus(),50);
 }

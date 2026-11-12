@@ -22,14 +22,14 @@ const PASTE=['date\tcategory\tname\tquantity\ttotal payment','06/09/2024\tTextil
  const pv=txt(await D.textContent('#pprev'));
  ok(pv.includes('5 purchases')&&pv.includes('Rp 41.370.150')&&pv.includes('Textile 2')&&pv.includes('Item 3'),'preview: 5 purchases, total, per category: '+pv);
  await D.click('#pgo');await D.waitForTimeout(200);
- ok(await D.evaluate(()=>S.purch.length===5&&PY==='2025'),'imported 5, opens 2025');
+ ok(await D.evaluate(()=>S.purch.length===5&&PRY==='2025'),'imported 5, opens 2025');
  const g=await D.evaluate(()=>S.purch.find(p=>p.name==='gazella b'));
  ok(g.qty===1108.1&&g.total===34905150&&g.date==='2025-05-20','decimal quantity kept (1108,1 = 1108.1), amount and date read');
  const h=await D.evaluate(()=>S.purch.find(p=>p.name==='handtag'));ok(h.total===4150000,'"Rp4.150.000" read as 4150000');
  const t=txt(await D.textContent('#app'));
  ok(t.includes('3 purchases in 2025')&&t.includes('May 2026')===false&&t.includes('May 2025')&&t.includes('February 2025'),'2025 grouped per month');
  ok(t.includes('gazella b × 1108,1'),'quantity shown with a comma: '+(t.match(/gazella b × [\d,]+/)||[''])[0]);
- await D.click('[onclick="PY=\'2024\';render()"]');ok(txt(await D.textContent('#app')).includes('2 purchases in 2024'),'year pills switch to 2024');
+ await D.evaluate(()=>{PRY='2024';render()});ok(txt(await D.textContent('#app')).includes('2 purchases in 2024'),'year pills switch to 2024');
  // edit keeps decimals
  const id=await D.evaluate(()=>S.purch.find(p=>p.name==='linen a').id);await D.click('[data-pid="'+id+'"]');await D.fill('#sheet [data-k=qty]','70,5');await D.click('#ok');
  ok(await D.evaluate(id=>S.purch.find(p=>p.id===id).qty===70.5,id),'editing keeps a decimal quantity (70,5)');
@@ -38,5 +38,5 @@ const PASTE=['date\tcategory\tname\tquantity\ttotal payment','06/09/2024\tTextil
  ok(await D.evaluate(()=>S.purch.length===5),'no double rows after re-import');
  await until(async()=>{const o=await dump();return o.Purchasing&&o.Purchasing.v.length===6},10000,'synced');
  const pr=(await dump()).Purchasing.v;ok(pr[0].join()==='id,date,name,category,qty,total'&&pr.slice(1).some(r=>r[1]==='2025-05-20'&&r[4]===1108.1),'saved in the Purchasing tab');
- await D.evaluate(()=>{PY='2025';render()});await D.screenshot({path:'purchases.png'});
+ await D.evaluate(()=>{PRY='2025';render()});await D.screenshot({path:'purchases.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
