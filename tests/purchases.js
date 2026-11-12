@@ -16,7 +16,7 @@ const PASTE=['date\tcategory\tname\tquantity\ttotal payment','06/09/2024\tTextil
  await until(()=>D.evaluate(()=>S.cfg.pulled===1),10000,'dash');
  await D.evaluate(()=>{tab='prod';pt='purch';render()});
  await D.evaluate(()=>addPurch());
- ok((await D.$$eval('#sheet [data-k=category] option',o=>o.map(x=>x.value))).join()==='Textile,Item','category options: Textile, Item (no Karmila product)');
+ ok((await D.$$eval('#sheet [data-k=category] option',o=>o.map(x=>x.value))).join()==='Textile,Item,Zakat,Dividen','category options: Textile, Item, Zakat, Dividen (no Karmila product)');
  await D.click('#no');
  await D.click('text=Import purchases');await D.fill('#ptext',PASTE);
  const pv=txt(await D.textContent('#pprev'));

@@ -322,7 +322,7 @@ Fitur ini butuh **Code.gs versi 9** (tab baru **Recurring**).
 
 ## 19. Pembelian & impor pembelian lama (Production › Purchasing)
 
-- Kategori pembelian ada dua: **Textile** (kain) dan **Item** (kancing, plastik, kantong, handtag, dll.).
+- Kategori pembelian: **Textile** (kain), **Item** (kancing, plastik, kantong, handtag, dll.), **Zakat**, dan **Dividen**.
 - Jumlah boleh pakai koma, misalnya `1108,1` meter.
 - Daftar pembelian bisa dipilih per tahun dan dikelompokkan per bulan. Setiap bulan menampilkan totalnya.
 
