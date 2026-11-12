@@ -793,10 +793,12 @@ function mktFields(c={}){return[
   {k:'revenue',label:'Revenue generated (Rp)',type:'number',val:c.revenue||''}]}
 function addMkt(){form('New campaign',mktFields(),v=>{S.mkt.push({id:uid(),...v});save()})}
 function editMkt(id){const c=S.mkt.find(x=>x.id===id);form('Edit campaign',mktFields(c),v=>{Object.assign(c,v);save()},()=>{S.mkt=S.mkt.filter(x=>x.id!==id);save()})}
+// purchase categories (owner 2026-11-11: Textile, Item; 2026-11-12: + Zakat, Dividen)
+const PCATS=['Textile','Item','Zakat','Dividen'];
 function purchFields(p={}){return[
   {k:'date',label:'Order date',type:'date',val:p.date||today()},
   {k:'name',label:'Name',type:'text',val:p.name||''},
-  {k:'category',label:'Category',type:'select',opts:['Textile','Item'].concat(p.category&&!['Textile','Item'].includes(p.category)?[p.category]:[]),val:p.category||'Textile'},
+  {k:'category',label:'Category',type:'select',opts:PCATS.concat(p.category&&!PCATS.includes(p.category)?[p.category]:[]),val:p.category||'Textile'},
   {k:'qty',label:'Quantity',type:'text',im:'decimal',val:p.qty!=null&&p.qty!==''?String(p.qty).replace('.',','):'',ph:'1',opt:true},
   {k:'total',label:'Total payment (Rp)',type:'number',val:p.total||''}]}
 function addPurch(){form('New purchase',purchFields(),v=>{v.qty=pQty(v.qty)||1;S.purch.push({id:uid(),...v});save()})}
@@ -825,7 +827,7 @@ function purchParse(text){
   head.forEach((h,i)=>{for(const k in PCOL)if(map[k]==null&&PCOL[k].test(h))map[k]=i});
   const hasHead=map.d!=null&&map.n!=null,M=hasHead?map:{d:0,c:1,n:2,q:3,v:4},seen={},rows=[];let bad=0;
   (hasHead?cells.slice(1):cells).forEach(c=>{const d=eDate(c[M.d]),name=String(c[M.n]||'').trim(),v=+impNum(c[M.v])||0;if(!d||!name){bad++;return}
-    const cat=/^text/i.test(c[M.c]||'')?'Textile':/^item/i.test(c[M.c]||'')?'Item':ecap(c[M.c]||'Item'),q=pQty(c[M.q])||1;
+    const cat=/^text/i.test(c[M.c]||'')?'Textile':/^item/i.test(c[M.c]||'')?'Item':/^zakat/i.test(c[M.c]||'')?'Zakat':/^divid/i.test(c[M.c]||'')?'Dividen':ecap(c[M.c]||'Item'),q=pQty(c[M.q])||1;
     const r={date:d,name,category:cat,qty:q,total:v},k=[d,cat,name.toLowerCase(),q,v].join('|');seen[k]=(seen[k]||0)+1;rows.push({id:'p'+ehash(k)+'-'+seen[k],...r})});
   return{rows,bad};
 }
