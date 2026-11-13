@@ -1101,9 +1101,57 @@ function vStock(){
   const seg=`<div class="seg">${[['list','Products'],['hist','History']].map(x=>`<button class="${stv===x[0]?'on':''}" onclick="stv='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`;
   return seg+(stv==='hist'?vHist():vProducts());
 }
+// ---- Import stock count (owner 2026-11-13): an opname for every product and location in the pasted list, as of a count date.
+// For each product × location: system stock = POS stock moves up to the end of that date (without this import's own earlier
+// rows); one "Koreksi opname" move of the difference is written to POS Stok (id op-<date>-<product>-<location>, so importing
+// again replaces it; a difference of 0 voids an earlier one). Moves already entered on the tablets stay as they are.
+const SCQ=/^(jumlah|qty|stok|stock|quantity|jml|stok fisik|fisik|count)$/,SCL=/^(lokasi|location|toko|store|gudang|warehouse|tempat)$/,SCP=/^(sku|kode|code|kode produk|produk|product|nama|name|nama produk|item)$/;
+const findProd=v=>{v=String(v||'').trim().toLowerCase();if(!v)return null;return skuProd(v)||S.products.find(p=>String(p.nama||'').trim().toLowerCase()===v)||null};
+function countParse(text,date){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(lines.length<2)return{rows:[],miss:[],missLoc:[],bad:0};
+  const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const cells=lines.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim())),head=cells[0].map(h=>h.trim()),hl=head.map(h=>h.toLowerCase());
+  const locs=posLocs(),locOf=v=>locs.find(l=>l.toLowerCase()===String(v||'').trim().toLowerCase());
+  const pCols=hl.map((h,i)=>SCP.test(h)?i:-1).filter(i=>i>=0),lc=hl.findIndex(h=>SCL.test(h)),qc=hl.findIndex(h=>SCQ.test(h));
+  const wide=head.map((h,i)=>({i,l:locOf(h)})).filter(x=>x.l&&!pCols.includes(x.i));
+  const out={},miss=new Set(),missLoc=new Set();let bad=0;
+  const put=(prodTxt,loc,q)=>{const p=prodTxt.map(findProd).find(Boolean);if(!p){const k=prodTxt.find(Boolean);if(k)miss.add(k);else bad++;return}
+    const l=locOf(loc);if(!l){if(loc)missLoc.add(loc);return}const n=mNum(q);if(String(q).trim()===''||isNaN(n)){bad++;return}out[p.id+'|'+l]={p,l,count:n}};
+  cells.slice(1).forEach(c=>{const pt=pCols.map(i=>c[i]);if(lc>=0&&qc>=0)put(pt,c[lc],c[qc]);else wide.forEach(w=>{if(String(c[w.i]||'').trim()!=='')put(pt,head[w.i],c[w.i])})});
+  if(!(lc>=0&&qc>=0))hl.forEach((h,i)=>{if(!pCols.includes(i)&&!SCQ.test(h)&&!wide.some(w=>w.i===i)&&h)missLoc.add(head[i])});
+  const rows=Object.values(out).map(x=>{const id='op-'+date+'-'+x.p.id+'-'+x.l.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+    let sys=0;P('stok').forEach(m=>{if(m.status==='void'||String(m.id)===id||String(nd(m.tanggal))>date)return;const q=+m.qty||0;if(m.ke===x.l)sys+=q;if(m.dari===x.l)sys-=q});
+    return{...x,id,sys,diff:x.count-sys,had:P('stok').some(m=>String(m.id)===id&&m.status!=='void')}});
+  return{rows,miss:[...miss],missLoc:[...missLoc],bad};
+}
+function importCount(){
+  closePop();$('#sheet').oninput=null;
+  if(!S.cfg.url){$('#sheet').innerHTML=`<h3>Import stock count</h3><div class="lbl" style="margin:0 6px 12px">Connect Google Sheets in Settings first: the stock count is saved as stock moves for the store tablets.</div><button class="btn sec" id="no">Close</button>`;$('#no').onclick=close;$('#bg').classList.add('open');return}
+  $('#sheet').innerHTML=`<h3>Import stock count</h3><div class="lbl" style="margin:-8px 6px 12px">An opname for every product and store/warehouse in your list: the stock is set to your count on the count date (the difference is recorded as "Stock count"). Stock moves already entered on the tablets stay. Paste with the header row: SKU or product, then one column per store/warehouse (names as in Operational › Store), or columns Location and Qty. Importing again replaces the count of that date.</div>
+  <div class="f"><label>Count date</label><input id="scDate" type="date" value="${today()}"></div>
+  <div class="f"><textarea id="sctext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="scprev"></div>
+  <div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="scgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  const prev=()=>{const d=$('#scDate').value||today(),{rows,miss,missLoc,bad}=countParse($('#sctext').value,d),b=$('#scgo');
+    if(!rows.length){$('#scprev').innerHTML=($('#sctext').value.trim()?`<div class="lbl neg" style="margin:0 6px 10px">No rows recognised. Use SKU or product in the first column and store/warehouse names (as in Operational › Store) as the other headers.${missLoc.length?' Unknown locations: '+missLoc.map(esc).join(', '):''}</div>`:'');b.disabled=true;b.style.opacity=.5;b.textContent='Nothing to import yet';return}
+    const up=rows.filter(r=>r.diff>0),dn=rows.filter(r=>r.diff<0),same=rows.filter(r=>!r.diff),locs=[...new Set(rows.map(r=>r.l))];
+    $('#scprev').innerHTML=`<div class="card" style="padding:12px 16px"><div class="t">${new Set(rows.map(r=>r.p.id)).size} products × ${locs.length} locations (${locs.map(esc).join(', ')}) · ${rows.reduce((a,r)=>a+r.count,0).toLocaleString('id-ID')} pcs counted</div>
+     <div class="lbl">${up.length} go up · ${dn.length} go down · ${same.length} already right</div>
+     <div class="lbl" style="margin-top:4px">${rows.filter(r=>r.diff).slice(0,8).map(r=>`${esc(r.p.nama)} · ${esc(r.l)}: ${r.sys} → <b>${r.count}</b> (${r.diff>0?'+':''}${r.diff})`).join('<br>')}${rows.filter(r=>r.diff).length>8?'<br>…':''}</div>
+     ${miss.length?`<div class="lbl neg">Not in the product list (skipped): ${miss.slice(0,15).map(esc).join(', ')}${miss.length>15?'…':''}</div>`:''}${missLoc.length?`<div class="lbl neg">Unknown store/warehouse (skipped): ${missLoc.map(esc).join(', ')}</div>`:''}${bad?`<div class="lbl neg">${bad} cells skipped (not a number)</div>`:''}</div>`;
+    b.disabled=false;b.style.opacity=1;b.textContent='Import stock count ('+rows.filter(r=>r.diff||r.had).length+' changes)'};
+  $('#sctext').oninput=prev;$('#scDate').onchange=prev;$('#no').onclick=close;
+  $('#scgo').onclick=async()=>{const d=$('#scDate').value||today(),{rows}=countParse($('#sctext').value,d),t=String(new Date(d+'T23:59:00').getTime());
+    const mv=rows.filter(r=>r.diff||r.had).map(r=>({id:r.id,tanggal:d,jam:'23:59',produk:r.p.nama,dari:r.diff>0?'Koreksi opname':r.l,ke:r.diff>0?r.l:'Koreksi opname',qty:Math.abs(r.diff),oleh:'Dashboard',catatan:'Opname (import): system '+r.sys+', counted '+r.count,status:r.diff?'ok':'void',jenis:'',ref:'',pid:r.p.id,t}));
+    if(!mv.length){close();return setStatus('Stock count: everything was already right')}
+    const b=$('#scgo');b.disabled=true;b.textContent='Saving…';
+    try{const j=await (await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,action:'upsert',rows:{'POS Stok':mv}})})).json();
+      if(!j.ok)throw new Error(j.error||'failed');close();setStatus('Stock count saved: '+mv.length+' changes');tab='ops';ops='stock';stv='list';await pullSheets()}
+    catch(e){b.disabled=false;b.textContent='Try again';err('Could not save to Google Sheets ('+(e.message||e)+'). Nothing was changed.')}};
+  $('#bg').classList.add('open');setTimeout(()=>$('#sctext').focus(),50);
+}
 function vProducts(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button></div><div class="card" style="overflow-x:auto">${l.length?`<table class="stab ptab"><thead><tr><th>Product</th>${L.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<tr class="${off?'fut':''}" data-pid="${esc(p.id)}" onclick="editProduct('${p.id}')"><td><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · '+esc(p.sku):''}${off?' · Hidden from cashier':''}</div></td>${L.map(x=>`<td class="${(s[x]||0)<0?'neg':''}">${s[x]||0}</td>`).join('')}<td><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b></td></tr>`}).join('')}</tbody></table>`:empty('No products yet. Press the button above to add one.')}</div>
+  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px;margin-left:8px" onclick="importCount()">Import stock count</button></div><div class="card" style="overflow-x:auto">${l.length?`<table class="stab ptab"><thead><tr><th>Product</th>${L.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<tr class="${off?'fut':''}" data-pid="${esc(p.id)}" onclick="editProduct('${p.id}')"><td><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · '+esc(p.sku):''}${off?' · Hidden from cashier':''}</div></td>${L.map(x=>`<td class="${(s[x]||0)<0?'neg':''}">${s[x]||0}</td>`).join('')}<td><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b></td></tr>`}).join('')}</tbody></table>`:empty('No products yet. Press the button above to add one.')}</div>
   <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Stock per warehouse and store comes from the POS. Online stores sell from the stock of the store chosen in Operational › Store. Products hidden from the cashier stay here, dimmed.</div>`;
 }
 // Category and brand are typed freely; names used before are offered as suggestions

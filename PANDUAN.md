@@ -362,3 +362,23 @@ Aturan pembacaan:
 - Kalau dalam satu bulan ada beberapa kali bayar, jumlahnya dijumlahkan.
 - Bulan hasil impor tampil dengan centang hijau dan tanda **imported**, tanpa rincian produk.
 - Impor ulang hanya mengganti bulan-bulan tersebut, jadi data tidak dobel.
+
+## 22. Impor stok (opname) untuk semua toko & produk (Operational › Stock)
+
+Gunakan fitur ini kalau Anda punya daftar stok hasil hitung, dan ingin stok di sistem disamakan dengan daftar itu.
+
+1. Siapkan daftar stok **beserta baris judul**. Bisa salah satu dari dua bentuk berikut:
+   - `SKU` (atau `Produk`), lalu **satu kolom per toko/gudang**. Nama kolomnya harus sama dengan nama di Operational › Store, misalnya `Gudang` atau `Toko C6`.
+   - `SKU`, `Lokasi`, `Jumlah` (satu baris per produk per lokasi).
+2. Buka Dashboard › **Operational** › **Stock** › **Products**, lalu tekan **Import stock count**.
+3. Isi **Count date**, yaitu tanggal stok itu dihitung.
+4. Tempel daftarnya. Ringkasan akan menampilkan stok sistem → stok hitungan per produk dan lokasi, serta produk atau lokasi yang tidak dikenali.
+5. Tekan **Import**.
+
+Cara kerjanya:
+- Ini sama dengan **opname**. Sistem hanya mencatat **selisihnya**, dan di riwayat stok tercatat sebagai "Stock count".
+- Barang yang sudah Anda input lewat tablet POS tetap ada.
+- Penjualan dan pergerakan stok **setelah** tanggal hitung tetap menambah atau mengurangi stok.
+- Kalau Anda impor ulang untuk tanggal yang sama, hitungan sebelumnya diganti, tidak ditambah.
+- Produk yang tidak ada di daftar tidak berubah.
+- Tablet kasir otomatis mendapat angka barunya dalam 1 menit.
