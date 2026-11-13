@@ -17,6 +17,7 @@ start; run "dashboard import products from a spreadsheet" node dash_import.js
 start; run "dashboard Production › Supplier recap + paid" node supplier.js
 start; run "store types, online stock source, products per store" node stores.js
 start; run "POS: sales sent right away in the background" node pos_live.js
+start; run "Overview: sales of the last 7 days + today" node overview_sales.js
 start; run "Finance › Sales: import history + monthly recap" node sales.js
 start; run "Finance › Report + Financial (sample data)" node finance_report.js
 start; run "reminder links (website or dashboard page)" node task_link.js

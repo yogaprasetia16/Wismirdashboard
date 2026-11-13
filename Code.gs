@@ -102,7 +102,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 11;
+const CODE_VERSION = 12;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -149,6 +149,21 @@ function rowsFrom(name, items) {
 }
 
 // Baca satu tab. since > 0: hanya baris POS yang berubah sejak waktu itu.
+// v12: total struk (tanpa yang dibatalkan) per tanggal + shift, 40 hari terakhir. Dashboard memakainya untuk penjualan
+// shift yang belum ditutup (shift yang sudah ditutup sudah ada di POS Shift). Ringkas: tidak mengirim detail struk.
+function posDaily() {
+  const d = new Date(); d.setDate(d.getDate() - 40);
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const from = Utilities.formatDate(d, tz, 'yyyy-MM-dd'), agg = {};
+  readSheet('POS Kasir').forEach(function (r) {
+    const t = String(r.tanggal || '');
+    if (t < from || String(r.status) === 'VOID') return;
+    const k = t + '|' + r.shiftId;
+    const a = agg[k] || (agg[k] = { id: k, tanggal: t, shiftId: String(r.shiftId || ''), toko: String(r.toko || ''), total: 0, n: 0 });
+    a.total += Number(r.total) || 0; a.n++;
+  });
+  return Object.keys(agg).map(function (k) { return agg[k]; });
+}
 function readSheet(name, since) {
   const sh = sheetFor(name), cols = colsFor(name);
   const last = sh.getLastRow();
@@ -197,6 +212,7 @@ function doGet(e) {
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
     Object.keys(HEADERS).forEach(function (n) { data[n] = readSheet(n); });
     ['POS Produk', 'POS Karyawan', 'POS Stok', 'POS Shift', 'POS Absen'].forEach(function (n) { data[n] = readSheet(n); });
+    try { data['POS Harian'] = posDaily(); } catch (e) { data['POS Harian'] = []; } // tidak boleh menggagalkan muat dashboard // v12: penjualan per hari per shift (struk, 40 hari terakhir) untuk Overview
     return out({ ok: true, v: CODE_VERSION, ver: dashVer(), data: data });
   } catch (err) {
     return out({ ok: false, error: String(err) });

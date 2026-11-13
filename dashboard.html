@@ -212,7 +212,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring'};
-const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen'};
+const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian'};
 let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
@@ -248,7 +248,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=11;
+const NEED_CODE=12;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -428,6 +428,9 @@ function migratePos(){
 // Each closed store shift counts as one Income entry (read-only) in Finance
 const posTx=()=>P('shift').filter(s=>+s.totalPenjualan).map(s=>({id:'pos:'+s.id,pos:1,jenis:'Income',tanggal:nd(s.tanggal),kategori:'Sales',channel:'Store',jumlah:+s.totalPenjualan,catatan:'POS · '+s.toko+' · '+(s.buka||'')+'–'+(s.tutup||'')}));
 const allTx=()=>S.tx.concat(posTx());
+// receipts of POS shifts that are not closed yet (closed shifts are already income through posTx)
+const liveSales=()=>{const shut=new Set(P('shift').map(s=>String(s.id)));return P('harian').filter(r=>!shut.has(String(r.shiftId))).map(r=>({tanggal:nd(r.tanggal),total:+r.total||0}))};
+const daySales=k=>allTx().filter(t=>t.tanggal===k&&t.jenis==='Income').reduce((a,t)=>a+ +t.jumlah,0)+liveSales().filter(r=>r.tanggal===k).reduce((a,r)=>a+r.total,0);
 const openTasks=()=>S.tasks.filter(t=>!t.selesai);
 const dueTasks=()=>openTasks().filter(t=>!t.tempo||t.tempo<=today());
 const minOf=p=>p.min===''||p.min==null||isNaN(+p.min)?3:+p.min;
@@ -472,15 +475,18 @@ function render(){
 }
 const empty=t=>`<div class="empty">${t}</div>`;
 function vHome(){
-  const {i,o}=sums(monthTx()),low=lowStock(),pm=posStock();
+  // owner 2026-11-13: bars = sales of the last 7 days (last bar = today), big number = today's sales. Sales of a day =
+  // income entries (incl. closed POS shifts) + receipts of shifts not closed yet (POS Harian, Code.gs v12).
+  const {o}=sums(monthTx()),low=lowStock(),pm=posStock(),m0=today().slice(0,7);
+  const i=sums(monthTx()).i+liveSales().filter(r=>r.tanggal.slice(0,7)===m0).reduce((a,r)=>a+r.total,0);
   const days=[...Array(7)].map((_,n)=>{const d=new Date();d.setDate(d.getDate()-6+n);const k=ymd(d);
-    return{l:d.toLocaleDateString('en-GB',{weekday:'short'}),v:allTx().filter(t=>t.tanggal===k&&t.jenis==='Income').reduce((a,t)=>a+ +t.jumlah,0)}});
+    return{l:n===6?'Today':d.toLocaleDateString('en-GB',{weekday:'short'}),v:daySales(k)}});
   const mx=Math.max(1,...days.map(d=>d.v));
   const tasks=dueTasks().sort((a,b)=>(a.tempo||'9').localeCompare(b.tempo||'9'));
   const run=[...S.prod].sort(prodSort).slice(0,4);
-  return `<div class="cols"><section class="panel"><div class="ph"><h2>This week</h2><span class="live"><i></i>Income, last 7 days</span></div>
+  return `<div class="cols"><section class="panel"><div class="ph"><h2>This week</h2><span class="live"><i></i>Sales, last 7 days</span></div>
   <div class="hero"><div class="bars">${days.map(d=>`<div><i style="height:${d.v/mx*90}px"></i>${d.l}</div>`).join('')}</div>
-  <div><span class="tag">This month</span><div class="hl">Net profit</div><div class="hbig">${rp(i-o)}</div><div class="hs">Income ${rp(i)}<br>Expenses ${rp(o)}</div></div></div>
+  <div><span class="tag">This week</span><div class="hl">Today's sales</div><div class="hbig">${rp(days[6].v)}</div><div class="hs">Income this month ${rp(i)}<br>Expenses this month ${rp(o)}</div></div></div>
   <div class="sub">Low stock</div><div class="g2">${low.length?low.slice(0,6).map(p=>`<div class="it" onclick="editProduct('${p.id}')"><span class="th">${esc(String(p.nama||'?')[0])}</span><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">${esc(p.varian)}</div></div><span class="pill warn">${prodTotal(p,pm)} left</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">All stock levels are fine</div>'}</div>
   <div class="sub">Recent production</div><div class="g2">${run.length?run.map(p=>`<div class="it" onclick="editProd('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${p.qty} pcs${p.date?' · '+fmtD(p.date):''}</div></div><span class="pill">${rp(p.total)}</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">No production orders yet</div>'}</div></section>
   <section class="panel"><div class="ph"><h2>Needs attention</h2>${tasks.length?`<span class="cnt">${tasks.length}</span>`:''}</div>
