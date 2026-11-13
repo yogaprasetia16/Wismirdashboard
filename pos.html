@@ -284,12 +284,21 @@ const activeProducts=()=>S.products.filter(p=>p.active!==false).sort((a,b)=>a.na
 const storeProducts=st=>{const l=S.locs&&S.locs.prods&&S.locs.prods[st];return Array.isArray(l)?activeProducts().filter(p=>l.indexOf(p.id)>=0):activeProducts()};
 const stockProducts=()=>storeProducts(ownerOK?stLoc:S.cfg.store);
 function stockMap(loc){const m={};for(const x of S.moves){if(x.status==='void')continue;if(x.to===loc)m[x.pid]=(m[x.pid]||0)+x.qty;if(x.from===loc)m[x.pid]=(m[x.pid]||0)-x.qty}return m}
-// Since 2026-11-13 every sale writes its own stock moves at once (id S-<receipt>-<product>, ref = receipt id), queued and sent
-// in the background like manual stock moves. Receipts of older versions are still taken off at shift close.
-function mvTx(){const s=new Set();for(const x of S.moves)if(String(x.id).startsWith('S-')&&x.ref)s.add(x.ref);return s}
-function saleMoves(t){const d={};t.items.forEach(i=>d[i.pid]=(d[i.pid]||0)+i.qty);
- Object.keys(d).forEach(pid=>{const mv={id:'S-'+t.id+'-'+pid,t:t.t,pid:pid,from:SRC(t.store),to:'Sale',qty:d[pid],by:'Sistem',note:'Penjualan '+t.id,status:'ok',kind:'sale',ref:t.id};S.moves.push(mv);enqueue('POS Stok',mv)})}
-function soldNow(){const m={};if(!S.shift)return m;const done=mvTx();for(const t of S.txs){if(t.shiftId!==S.shift.id||t.void||done.has(t.id))continue;for(const i of t.items)m[i.pid]=(m[i.pid]||0)+i.qty}return m}
+// Sales stock (owner 2026-11-13): sent right away, but as ONE row per product per shift (id S-<shift id>-<product id>,
+// ref = shift id) whose quantity is updated after every sale / cancelled receipt, so the Sheet does not grow per receipt.
+// A short-lived earlier version wrote one row per receipt (id S-<receipt id>-<product>, ref = receipt id): those receipts
+// are left out of the shift row. Receipts of shifts that never went "live" are still taken off at shift close.
+function perRc(){const s=new Set();for(const x of S.moves){const r=String(x.ref||'');if(String(x.id)==='S-'+r+'-'+x.pid&&S.txs.some(t=>t.id===r))s.add(r)}return s}
+function liveShift(id){return !!(S.shift&&S.shift.id===id&&S.shift.live)||S.moves.some(m=>String(m.id).startsWith('S-'+id+'-'))}
+function covered(){const s=perRc();S.txs.forEach(t=>{if(liveShift(t.shiftId))s.add(t.id)});return s}
+function syncShiftMoves(shId){
+ const sh=S.shift&&S.shift.id===shId?S.shift:S.shifts.find(x=>x.id===shId);if(!sh)return;
+ const skip=perRc(),q={};S.txs.forEach(t=>{if(t.shiftId!==shId||t.void||skip.has(t.id))return;t.items.forEach(i=>q[i.pid]=(q[i.pid]||0)+i.qty)});
+ const pids=new Set(Object.keys(q));S.moves.forEach(m=>{if(String(m.id)==='S-'+shId+'-'+m.pid)pids.add(m.pid)});
+ pids.forEach(pid=>{const id='S-'+shId+'-'+pid,n=q[pid]||0;let m=S.moves.find(x=>x.id===id);
+  if(!m){if(!n)return;m={id:id,t:Date.now(),pid:pid,from:SRC(sh.store),to:'Sale',qty:n,by:'Sistem',note:'Penjualan shift '+shId,status:'ok',kind:'sale',ref:shId};S.moves.push(m);enqueue('POS Stok',m);return}
+  const st=n?'ok':'void',qq=n||m.qty;if(m.qty!==qq||m.status!==st){m.qty=qq;m.status=st;enqueue('POS Stok',m)}})}
+function soldNow(){const m={};if(!S.shift)return m;const done=covered();for(const t of S.txs){if(t.shiftId!==S.shift.id||t.void||done.has(t.id))continue;for(const i of t.items)m[i.pid]=(m[i.pid]||0)+i.qty}return m}
 function availMap(loc){const m=stockMap(loc);if(S.shift&&SRC(S.shift.store)===loc){const s=soldNow();for(const k in s)m[k]=(m[k]||0)-s[k]}return m}
 function shiftStats(sh){sh=sh||S.shift;if(!sh)return null;const tx=S.txs.filter(t=>t.shiftId===sh.id&&!t.void);const by={};let total=0;tx.forEach(t=>{total+=t.total;if(t.pays)t.pays.forEach(x=>by[x.method]=(by[x.method]||0)+x.amount);else by[t.method]=(by[t.method]||0)+t.total});const cash=by.Tunai||0;const cm=sh.cashMoves||[];const cin=sum(cm.filter(x=>x.type==='in'),x=>x.amount),cout=sum(cm.filter(x=>x.type==='out'),x=>x.amount);return{tx:tx,total:total,by:by,cash:cash,cin:cin,cout:cout,n:tx.length,expected:sh.cashStart+cash+cin-cout}}
 function topPrices(pid){const h=S.prices[pid]||{};return Object.keys(h).map(k=>({p:+k,n:h[k].n,t:h[k].t})).sort((a,b)=>b.n-a.n||b.t-a.t).slice(0,3)}
@@ -343,7 +352,7 @@ async function pull(){
   if(g!==gen)return; // started before 'Mulai baru': stale
   // another device pressed "Mulai baru": drop this tablet's history too, then pull again from zero
   if(j.epoch&&String(j.epoch)!==S.epoch){gen++;wipeHistory(true);S.epoch=String(j.epoch);S.since=0;save();pulling=false;softRender();toast('Riwayat uji coba dibersihkan (Mulai baru)');kick(0);return}
-  let ch=false;
+  let ch=false,reSync=false;
   Object.keys(COL).forEach(sh=>{
    const rows=(j.data&&j.data[sh])||[];if(!rows.length)return;
    const arr=S[COL[sh]],idx={};arr.forEach((x,i)=>idx[x.id]=i);
@@ -351,11 +360,12 @@ async function pull(){
     const o=DES[sh](row);if(!o.id)return;
     if(S.outbox.some(x=>x.s===sh&&x.id===o.id))return;                       // versi tablet ini belum terkirim: tetap pakai yang lokal
     if(S.shift&&o.shiftId===S.shift.id&&(sh==='POS Kasir'||sh==='POS Absen')){ // shift berjalan dikelola tablet ini
-     const l=sh==='POS Kasir'&&o.void&&arr[idx[o.id]];if(l&&!l.void){l.void=true;ch=true}return}
+     const l=sh==='POS Kasir'&&o.void&&arr[idx[o.id]];if(l&&!l.void){l.void=true;ch=true;reSync=true}return}
     const i=idx[o.id];
     if(i==null){idx[o.id]=arr.push(o)-1;ch=true}else if(JSON.stringify(arr[i])!==JSON.stringify(o)){arr[i]=o;ch=true}
    });
   });
+  if(reSync&&S.shift){syncShiftMoves(S.shift.id);kick()}
   if(applyMaster(j.data||{}))ch=true;
   if(ch){S.shifts.sort((a,b)=>a.closedAt-b.closedAt);S.txs.sort((a,b)=>a.t-b.t)}
   S.since=Math.max(0,(+j.now||0)-5000);S.lastSync=Date.now();syncErr='';save();
@@ -851,7 +861,7 @@ A.openShift=()=>{
  if(STORES().indexOf(S.cfg.store)<0)return err(STORES().length?'Pilih toko dulu: ketuk nama toko di kanan atas (mode owner).':'Belum ada toko. Tambahkan di dashboard: Operational → Store, tipe Physical store.');
  const names=ids.map(id=>S.staff.find(s=>s.id===id).name);
  const id=uid('SH'),now=Date.now();
- S.shift={id:id,store:S.cfg.store,openedAt:now,staff:ids,staffNames:names,cashStart:num(raw),cashMoves:[]};
+ S.shift={id:id,store:S.cfg.store,openedAt:now,staff:ids,staffNames:names,cashStart:num(raw),cashMoves:[],live:1};
  ids.forEach(sid=>S.attendance.push({id:uid('A'),shiftId:id,t:now,date:ymd(now),store:S.cfg.store,staffId:sid,name:S.staff.find(s=>s.id===sid).name}));
  sel.clear();draft.cash='';save();toast('Shift dibuka');go('pos');
 };
@@ -872,7 +882,7 @@ A.doClose=()=>{
  S.shifts.push(rec);enqueue('POS Shift',rec);
  S.txs.filter(t=>t.shiftId===sh.id).forEach(t=>enqueue('POS Kasir',t));
  S.attendance.filter(a=>a.shiftId===sh.id).forEach(a=>enqueue('POS Absen',a));
- const agg={},done=mvTx();ss.tx.filter(t=>!done.has(t.id)).forEach(t=>t.items.forEach(i=>agg[i.pid]=(agg[i.pid]||0)+i.qty));
+ const agg={},done=covered();ss.tx.filter(t=>!done.has(t.id)).forEach(t=>t.items.forEach(i=>agg[i.pid]=(agg[i.pid]||0)+i.qty));
  Object.keys(agg).forEach(pid=>{const mv={id:uid('M'),t:now,pid:pid,from:SRC(sh.store),to:'Sale',qty:agg[pid],by:'Sistem',note:'Penjualan shift '+sh.id,status:'ok',kind:'sale',ref:sh.id};S.moves.push(mv);enqueue('POS Stok',mv)});
  S.shift=null;S.cart=[];save();closeSheet();snd('ok');toast(syncOn()?'Shift ditutup · data dikirim ke Google Sheets':'Shift ditutup');render(true);kick(0);
 };
@@ -903,8 +913,9 @@ function recalcShift(id){const sh=S.shifts.find(x=>x.id===id);if(!sh)return;cons
 function saleCorr(t,pid,diff,note){if(!diff)return;const mv={id:uid('M'),t:Date.now(),pid:pid,from:diff>0?SRC(t.store):'Sale',to:diff>0?'Sale':SRC(t.store),qty:Math.abs(diff),by:'Sistem',note:note+' '+t.id,status:'ok',kind:'sale',ref:t.shiftId};S.moves.push(mv);enqueue('POS Stok',mv)}
 function voidTx(id){
  const t=S.txs.find(x=>x.id===id);if(!t||t.void)return;t.void=true;
- const own=S.moves.filter(m=>String(m.id).startsWith('S-')&&m.ref===t.id),closed=S.shifts.some(x=>x.id===t.shiftId);
+ const own=S.moves.filter(m=>String(m.id)==='S-'+t.id+'-'+m.pid),closed=S.shifts.some(x=>x.id===t.shiftId);
  if(own.length)own.forEach(m=>{if(m.status!=='void'){m.status='void';enqueue('POS Stok',m)}});
+ else if(liveShift(t.shiftId))syncShiftMoves(t.shiftId);
  else if(closed){const d={};t.items.forEach(i=>d[i.pid]=(d[i.pid]||0)+i.qty);Object.keys(d).forEach(pid=>saleCorr(t,pid,-d[pid],'Void struk'))}
  if(closed)recalcShift(t.shiftId);enqueue('POS Kasir',t);
  save();closeSheet();toast('Struk dibatalkan');render();renderChrome();kick();
@@ -966,7 +977,7 @@ A.confirmPay=()=>{
  }
  const now=Date.now();
  const t={id:uid('T'),shiftId:S.shift.id,store:S.shift.store,t:now,method:method,pays:pays,total:total,paid:paid,change:change,items:S.cart.map(c=>({pid:c.pid,name:c.name,qty:c.qty,price:c.price}))};
- S.txs.push(t);saleMoves(t);enqueue('POS Kasir',t);
+ S.txs.push(t);S.shift.live=1;syncShiftMoves(S.shift.id);enqueue('POS Kasir',t);
  S.cart.forEach(c=>{const h=S.prices[c.pid]||(S.prices[c.pid]={});const e=h[c.price]||(h[c.price]={n:0,t:0});e.n++;e.t=now});
  S.cart=[];save();
  snd('ok');
