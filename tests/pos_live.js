@@ -1,5 +1,6 @@
 // POS (owner 2026-11-13): a sale is saved on the tablet first, then its receipt and its stock moves are sent to the Sheet
-// in the background right away (no waiting for shift close). Cancelling a receipt also goes out at once. Closing the shift
+// in the background right away (no waiting for shift close), as one row per product per shift that is updated after every sale
+// (so the Sheet does not grow per receipt). Cancelling a receipt also goes out at once. Closing the shift
 // sends the shift summary and attendance and does not take the stock off a second time. Sample data is made up.
 const {chromium}=require('playwright');
 const B='http://localhost:8765',URL_=B+'/exec';
@@ -33,13 +34,15 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  // stock shown on the tablet is not taken off twice (moves + open shift)
  await A.click('#grid .pc[data-id="pa"]');const note=await A.textContent('#sheet .note');await A.click('#sheet [data-a=x]').catch(()=>{});
  ok(note.includes('Stok di Toko A: 8'),'tablet stock after selling 2 of 10: 8 (not 6): '+note.replace(/\s+/g,' ').slice(0,80));
- await until(async()=>{const o=await dump();return rows(o,'POS Kasir').length===2&&rows(o,'POS Stok').filter(r=>r.ke==='Sale').length===2},10000,'sent while the shift is open');
+ await sell('pa','100000','1');
+ ok(await A.evaluate(()=>window.__wismir.S.moves.filter(m=>m.to==='Sale').length===2),'a second sale of Gamis Alpha updates the same row (still 2 sale rows)');
+ await until(async()=>{const o=await dump();return rows(o,'POS Kasir').length===3&&rows(o,'POS Stok').filter(r=>r.ke==='Sale'&&r.pid==='pa'&&+r.qty===3).length===1},10000,'sent while the shift is open');
  const o1=await dump();
- ok(rows(o1,'POS Kasir').length===2&&!rows(o1,'POS Shift').length,'receipts are on the Sheet while the shift is still open');
- ok(rows(o1,'POS Stok').filter(r=>r.ke==='Sale').map(r=>r.pid+':'+r.qty).sort().join()==='pa:2,pb:1','each sale\'s stock moves are on the Sheet right away');
+ ok(rows(o1,'POS Kasir').length===3&&!rows(o1,'POS Shift').length,'receipts are on the Sheet while the shift is still open');
+ ok(rows(o1,'POS Stok').filter(r=>r.ke==='Sale').map(r=>r.pid+':'+r.qty).sort().join()==='pa:3,pb:1','one row per product for the shift, on the Sheet right away (Gamis Alpha 3, Tunik Beta 1)');
  // dashboard sees the stock right away
- await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>((posStock().pa||{})['Toko A'])===8),10000,'dash stock');
- ok(true,'dashboard: Gamis Alpha in Toko A = 8 before the shift closes');
+ await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>((posStock().pa||{})['Toko A'])===7),10000,'dash stock');
+ ok(true,'dashboard: Gamis Alpha in Toko A = 7 before the shift closes');
  // cancel the second receipt: receipt and its stock go out at once
  await nav(A,'rc');
  const tid=await A.evaluate(()=>window.__wismir.S.txs.find(t=>t.items[0].pid==='pb').id);
@@ -53,7 +56,14 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  await until(async()=>{const o=await dump();return rows(o,'POS Shift').length===1&&rows(o,'POS Absen').length===1},10000,'close');
  const o2=await dump();
  ok(rows(o2,'POS Stok').filter(r=>r.ke==='Sale').length===2,'closing the shift adds no extra sale moves');
- ok(+rows(o2,'POS Shift')[0].totalPenjualan===200000,'shift summary total 200.000 (cancelled receipt left out)');
- await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>((posStock().pa||{})['Toko A'])===8&&((posStock().pb||{})['Toko A'])===10),10000,'dash final');
- ok(true,'dashboard after close: Gamis Alpha 8, Tunik Beta 10');
+ ok(+rows(o2,'POS Shift')[0].totalPenjualan===300000,'shift summary total 300.000 (cancelled receipt left out)');
+ await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>((posStock().pa||{})['Toko A'])===7&&((posStock().pb||{})['Toko A'])===10),10000,'dash final');
+ ok(true,'dashboard after close: Gamis Alpha 7, Tunik Beta 10');
+ // a tablet that already wrote per-receipt rows (previous version) in its running shift: those receipts are not counted twice
+ await A.click('[data-a=tgStaff]');await A.fill('#cashStart','0');await A.click('[data-a=openShift]');await A.waitForTimeout(200);
+ await A.evaluate(()=>{const S=window.__wismir.S,t={id:'TOLD1',shiftId:S.shift.id,store:'Toko A',t:Date.now(),method:'Transfer',pays:[{method:'Transfer',amount:100000}],total:100000,paid:100000,change:0,items:[{pid:'pa',name:'Gamis Alpha',qty:1,price:100000}]};
+  S.txs.push(t);S.moves.push({id:'S-TOLD1-pa',t:t.t,pid:'pa',from:'Toko A',to:'Sale',qty:1,by:'Sistem',note:'Penjualan TOLD1',status:'ok',kind:'sale',ref:'TOLD1'});S.shift.live=0});
+ await sell('pa','100000','1');
+ const mix=await A.evaluate(()=>{const S=window.__wismir.S;const r=S.moves.find(m=>m.id==='S-'+S.shift.id+'-pa');let n=0;S.moves.forEach(m=>{if(m.status==='void'||m.pid!=='pa')return;if(m.to==='Toko A')n+=m.qty;if(m.from==='Toko A')n-=m.qty});return{q:r&&r.qty,n}});
+ ok(mix.q===1&&mix.n===5,'old per-receipt row + new shift row: Gamis Alpha 7 − 1 − 1 = 5 (shift row qty 1): '+JSON.stringify(mix));
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
