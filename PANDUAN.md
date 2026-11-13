@@ -381,4 +381,6 @@ Cara kerjanya:
 - Penjualan dan pergerakan stok **setelah** tanggal hitung tetap menambah atau mengurangi stok.
 - Kalau Anda impor ulang untuk tanggal yang sama, hitungan sebelumnya diganti, tidak ditambah.
 - Produk yang tidak ada di daftar tidak berubah.
+- **Tutup dulu semua shift yang masih buka** di tablet sebelum impor. Penjualan shift yang masih buka baru terkirim saat shift ditutup, jadi nanti akan mengurangi stok hitungan lagi.
+- Kalau hasilnya belum pas, impor lagi daftar yang sama dengan **tanggal yang sama**. Hitungan lama diganti dan stok disamakan lagi dengan daftar Anda.
 - Tablet kasir otomatis mendapat angka barunya dalam 1 menit.

@@ -1120,7 +1120,7 @@ function countParse(text,date){
   cells.slice(1).forEach(c=>{const pt=pCols.map(i=>c[i]);if(lc>=0&&qc>=0)put(pt,c[lc],c[qc]);else wide.forEach(w=>{if(String(c[w.i]||'').trim()!=='')put(pt,head[w.i],c[w.i])})});
   if(!(lc>=0&&qc>=0))hl.forEach((h,i)=>{if(!pCols.includes(i)&&!SCQ.test(h)&&!wide.some(w=>w.i===i)&&h)missLoc.add(head[i])});
   const rows=Object.values(out).map(x=>{const id='op-'+date+'-'+x.p.id+'-'+x.l.toLowerCase().replace(/[^a-z0-9]+/g,'_');
-    let sys=0;P('stok').forEach(m=>{if(m.status==='void'||String(m.id)===id||String(nd(m.tanggal))>date)return;const q=+m.qty||0;if(m.ke===x.l)sys+=q;if(m.dari===x.l)sys-=q});
+    let sys=0;P('stok').forEach(m=>{if(m.status==='void'||m.pid!==x.p.id||String(m.id)===id||String(nd(m.tanggal))>date)return;const q=+m.qty||0;if(m.ke===x.l)sys+=q;if(m.dari===x.l)sys-=q});
     return{...x,id,sys,diff:x.count-sys,had:P('stok').some(m=>String(m.id)===id&&m.status!=='void')}});
   return{rows,miss:[...miss],missLoc:[...missLoc],bad};
 }
@@ -1128,6 +1128,8 @@ function importCount(){
   closePop();$('#sheet').oninput=null;
   if(!S.cfg.url){$('#sheet').innerHTML=`<h3>Import stock count</h3><div class="lbl" style="margin:0 6px 12px">Connect Google Sheets in Settings first: the stock count is saved as stock moves for the store tablets.</div><button class="btn sec" id="no">Close</button>`;$('#no').onclick=close;$('#bg').classList.add('open');return}
   $('#sheet').innerHTML=`<h3>Import stock count</h3><div class="lbl" style="margin:-8px 6px 12px">An opname for every product and store/warehouse in your list: the stock is set to your count on the count date (the difference is recorded as "Stock count"). Stock moves already entered on the tablets stay. Paste with the header row: SKU or product, then one column per store/warehouse (names as in Operational › Store), or columns Location and Qty. Importing again replaces the count of that date.</div>
+  <div class="lbl neg" style="margin:-4px 6px 12px">Close every open shift on the store tablets first: the sales of an open shift are only sent when the shift closes and would come off the counted stock again.</div>
+  <div class="lbl" id="scload" style="margin:-4px 6px 12px">Loading the latest stock from the store tablets…</div>
   <div class="f"><label>Count date</label><input id="scDate" type="date" value="${today()}"></div>
   <div class="f"><textarea id="sctext" rows="6" placeholder="Paste here" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);resize:vertical"></textarea></div><div id="scprev"></div>
   <div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="scgo" disabled style="opacity:.5">Nothing to import yet</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
@@ -1140,12 +1142,19 @@ function importCount(){
      ${miss.length?`<div class="lbl neg">Not in the product list (skipped): ${miss.slice(0,15).map(esc).join(', ')}${miss.length>15?'…':''}</div>`:''}${missLoc.length?`<div class="lbl neg">Unknown store/warehouse (skipped): ${missLoc.map(esc).join(', ')}</div>`:''}${bad?`<div class="lbl neg">${bad} cells skipped (not a number)</div>`:''}</div>`;
     b.disabled=false;b.style.opacity=1;b.textContent='Import stock count ('+rows.filter(r=>r.diff||r.had).length+' changes)'};
   $('#sctext').oninput=prev;$('#scDate').onchange=prev;$('#no').onclick=close;
-  $('#scgo').onclick=async()=>{const d=$('#scDate').value||today(),{rows}=countParse($('#sctext').value,d),t=String(new Date(d+'T23:59:00').getTime());
+  // always measure against the newest moves from the tablets (the dashboard otherwise reloads only every 5 minutes)
+  (async()=>{await pullSheets();const l=$('#scload');if(l)l.textContent='Stock loaded from the store tablets '+hhmm()+'.';if($('#sctext'))prev()})();
+  $('#scgo').onclick=async()=>{const b0=$('#scgo');b0.disabled=true;b0.textContent='Loading the latest stock…';await pullSheets();
+    const d=$('#scDate').value||today(),{rows}=countParse($('#sctext').value,d),t=String(new Date(d+'T23:59:00').getTime());
     const mv=rows.filter(r=>r.diff||r.had).map(r=>({id:r.id,tanggal:d,jam:'23:59',produk:r.p.nama,dari:r.diff>0?'Koreksi opname':r.l,ke:r.diff>0?r.l:'Koreksi opname',qty:Math.abs(r.diff),oleh:'Dashboard',catatan:'Opname (import): system '+r.sys+', counted '+r.count,status:r.diff?'ok':'void',jenis:'',ref:'',pid:r.p.id,t}));
     if(!mv.length){close();return setStatus('Stock count: everything was already right')}
+    const want=rows.map(r=>({p:r.p.id,l:r.l,c:r.count,later:P('stok').filter(m=>m.status!=='void'&&String(nd(m.tanggal))>d&&m.pid===r.p.id).reduce((a,m)=>a+(m.ke===r.l?+m.qty:0)-(m.dari===r.l?+m.qty:0),0)}));
     const b=$('#scgo');b.disabled=true;b.textContent='Saving…';
     try{const j=await (await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,action:'upsert',rows:{'POS Stok':mv}})})).json();
-      if(!j.ok)throw new Error(j.error||'failed');close();setStatus('Stock count saved: '+mv.length+' changes');tab='ops';ops='stock';stv='list';await pullSheets()}
+      if(!j.ok)throw new Error(j.error||'failed');close();tab='ops';ops='stock';stv='list';await pullSheets();
+      // check: every counted product × location now has the counted stock (plus moves dated after the count date)
+      const st=posStock(),off=want.filter(w=>((st[w.p]||{})[w.l]||0)!==w.c+w.later);
+      setStatus(off.length?'Stock count saved, but '+off.length+' stock figures differ from your count: open Import stock count again and import once more.':'Stock count saved: '+mv.length+' changes, stock now equals your count')}
     catch(e){b.disabled=false;b.textContent='Try again';err('Could not save to Google Sheets ('+(e.message||e)+'). Nothing was changed.')}};
   $('#bg').classList.add('open');setTimeout(()=>$('#sctext').focus(),50);
 }

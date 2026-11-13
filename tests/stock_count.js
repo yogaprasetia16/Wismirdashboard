@@ -27,6 +27,7 @@ const txt=s=>s.replace(/\s/g,' ');
  await D.click('text=Import stock count');
  await D.fill('#sctext',['SKU\tProduk\tGudang\tToko C6\tToko Lama','aa01\tGamis Alpha\t120\t35\t4','BB02\tTunik Beta\t50\t\t','zz99\tX\t1\t1\t'].join('\n'));
  const pv=txt(await D.textContent('#scprev'));
+ ok(pv.includes('Tunik Beta · Gudang: 0 → 50'),'system stock is counted per product (Gamis Alpha in the same warehouse does not count for Tunik Beta)');
  ok(pv.includes('2 products × 2 locations')&&pv.includes('Gamis Alpha · Toko C6: 8 → 35 (+27)')&&pv.includes('zz99')&&pv.includes('Toko Lama'),'preview: system → counted per product and location, unknown SKU and location named: '+pv);
  await D.click('#scgo');
  await until(()=>D.evaluate(()=>(S.pos.stok||[]).length===5),12000,'saved');
@@ -49,5 +50,18 @@ const txt=s=>s.replace(/\s/g,' ');
  await until(()=>A.evaluate(()=>window.__wismir.S.moves.length===6),12000,'tablet');
  const ts=await A.evaluate(()=>{const S=window.__wismir.S;let n=0;S.moves.forEach(m=>{if(m.status==='void'||m.pid!=='pa')return;if(m.to==='Toko C6')n+=m.qty;if(m.from==='Toko C6')n-=m.qty});return n});
  ok(ts===27,'tablet: Gamis Alpha in Toko C6 = 27');
+ // stale dashboard: tablet moves reach the Sheet but the dashboard has not reloaded yet -> the import loads them first,
+ // so the stock still ends up exactly at the count (owner 2026-11-13: "transaksi stok kemarin dihiraukan")
+ const post=r=>fetch(URL_,{method:'POST',body:JSON.stringify({pin:'9999',action:'upsert',rows:{'POS Stok':[r]}})});
+ await post({id:'m4',tanggal:T,jam:'11:00',produk:'Tunik Beta',dari:'Supplier',ke:'Gudang',qty:7,oleh:'Gudang',catatan:'',status:'ok',jenis:'',ref:'',pid:'pb',t:'4'});
+ ok(await stock('pb','Gudang')===50,'dashboard has not seen the new tablet move yet (50)');
+ await D.click('text=Import stock count');await D.fill('#sctext',['SKU\tGudang','BB02\t50'].join('\n'));
+ await until(async()=>txt(await D.textContent('#scload')).includes('loaded'),10000,'load on open');
+ ok(txt(await D.textContent('#scprev')).includes('Tunik Beta · Gudang: 7 → 50'),'opening the import loads the newest tablet moves first: '+txt(await D.textContent('#scprev')));
+ await post({id:'m5',tanggal:T,jam:'12:00',produk:'Tunik Beta',dari:'Supplier',ke:'Gudang',qty:3,oleh:'Gudang',catatan:'',status:'ok',jenis:'',ref:'',pid:'pb',t:'5'});
+ await D.click('#scgo');await until(()=>D.evaluate(()=>S.pos.stok.some(m=>m.id==='m5')&&!document.querySelector('#bg.open')),12000,'stale save');
+ await until(async()=>(await stock('pb','Gudang'))===50,8000,'stale stock');
+ ok(await stock('pb','Gudang')===50,'a move arriving while the import is open is loaded again before saving: Gudang = 50 as counted');
+ ok(txt(await D.evaluate(()=>status)).includes('equals your count'),'status confirms the stock equals the count');
  await D.evaluate(()=>render());await D.screenshot({path:'stock-count.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
