@@ -53,8 +53,8 @@ Isi URL `/exec` dan PIN Sheets, lalu tekan **Simpan & sinkron sekarang**.
 |---|---|
 | Stok (masuk, keluar, transfer, rusak, opname) | Langsung. Kalau internet putus, masuk antrean dan dikirim otomatis saat online. |
 | Produk dan karyawan | Diatur di dashboard. Tablet mengambilnya setiap 1 menit dan setiap kali tab Stok dibuka. |
-| Kasir (struk), shift, dan absen | Sekali, saat **Tutup shift**. Kasir tidak pernah menunggu jaringan. |
-| Penjualan shift (mengurangi stok) | Saat tutup shift. |
+| Kasir (struk) dan stok yang terjual | **Langsung setelah transaksi** (sejak 13-11-2026). Struk disimpan di tablet dulu, lalu dikirim di latar belakang, jadi kasir tidak menunggu jaringan. Kalau internet putus, masuk antrean dan dikirim otomatis saat online. Ubah pembayaran dan batalkan struk juga langsung terkirim. |
+| Ringkasan shift (total, kas) dan absen | Saat **Tutup shift**. |
 
 - Setiap 1 menit tablet mengambil perubahan dari tablet lain, misalnya stok Gudang yang dipindah dari tablet lain.
 - Bagian Owner → Data menampilkan berapa data yang masih menunggu dikirim.
@@ -67,7 +67,7 @@ Settings → isi URL dan PIN yang sama → **Save settings**. Data POS tampil di
 - **Operational → Stock**: satu daftar produk untuk dashboard **dan** POS. Setiap produk menampilkan stok per lokasi dari POS (Gudang / Toko A / Toko B) ditambah stok online.
   - Tombol − / + mengubah **stok online**. Stok toko dan gudang dicatat dari tablet (tab Stok).
   - Form produk berisi **Product name**, **Category**, **Brand**, **SKU** (kode produk, tidak boleh sama antar produk), dan **COGS** (harga pokok per pcs). Category dan Brand diketik bebas. Nama yang pernah diketik muncul sebagai pilihan, jadi tulisannya konsisten.
-  - **Stock → History**: riwayat pergerakan stok dari tablet (masuk, keluar, transfer, terjual, rusak, opname). Bisa difilter per periode, toko/gudang, jenis, kategori, brand, dan dicari per nama produk atau SKU. Penjualan dari shift yang belum ditutup baru muncul setelah shift ditutup.
+  - **Stock → History**: riwayat pergerakan stok dari tablet (masuk, keluar, transfer, terjual, rusak, opname). Bisa difilter per periode, toko/gudang, jenis, kategori, brand, dan dicari per nama produk atau SKU. Penjualan muncul langsung setelah transaksi (satu baris per produk per struk).
   - Produk yang sudah punya riwayat di POS tidak bisa dihapus. Tombol bawahnya menjadi **Hide from cashier**: produk hilang dari kasir, tapi riwayatnya tetap ada. Produk itu bisa dimunculkan lagi lewat **Show in cashier again**.
   - Peringatan stok menipis muncul kalau total stok tinggal **3 atau kurang**.
 - **Operational → Staff**: satu daftar karyawan untuk dashboard **dan** POS. Karyawan **Active** muncul di tablet saat buka shift.
@@ -381,6 +381,6 @@ Cara kerjanya:
 - Penjualan dan pergerakan stok **setelah** tanggal hitung tetap menambah atau mengurangi stok.
 - Kalau Anda impor ulang untuk tanggal yang sama, hitungan sebelumnya diganti, tidak ditambah.
 - **Produk atau toko/gudang yang tidak ada di daftar, stoknya dianggap 0.** Sebelum Anda tekan Import, ringkasan menunjukkan berapa angka stok yang akan menjadi 0.
-- **Tutup dulu semua shift yang masih buka** di tablet sebelum impor. Penjualan shift yang masih buka baru terkirim saat shift ditutup, jadi nanti akan mengurangi stok hitungan lagi.
+- Pastikan tablet kasir sudah tersambung internet (Owner › Data: "Semua data sudah terkirim") sebelum impor, supaya semua penjualan sudah masuk.
 - Kalau hasilnya belum pas, impor lagi daftar yang sama dengan **tanggal yang sama**. Hitungan lama diganti dan stok disamakan lagi dengan daftar Anda.
 - Tablet kasir otomatis mendapat angka barunya dalam 1 menit.
