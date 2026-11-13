@@ -384,3 +384,11 @@ Cara kerjanya:
 - Pastikan tablet kasir sudah tersambung internet (Owner › Data: "Semua data sudah terkirim") sebelum impor, supaya semua penjualan sudah masuk.
 - Kalau hasilnya belum pas, impor lagi daftar yang sama dengan **tanggal yang sama**. Hitungan lama diganti dan stok disamakan lagi dengan daftar Anda.
 - Tablet kasir otomatis mendapat angka barunya dalam 1 menit.
+
+## 23. Overview: penjualan 7 hari terakhir
+
+- Batang di kotak hitam menunjukkan penjualan 7 hari terakhir. Batang paling kanan (**Today**) adalah hari ini.
+- Angka besar **Today's sales** adalah penjualan hari ini, termasuk struk dari shift yang **belum ditutup**.
+- **Income this month** dan **Expenses this month** adalah total bulan ini.
+- Supaya penjualan dari shift yang belum ditutup ikut terhitung, perlu **Code.gs versi 12**. Kalau Code.gs belum diperbarui, penjualan baru muncul setelah shift ditutup.
+- Dashboard memuat ulang data setiap 5 menit. Kalau ingin angkanya langsung terbaru, tekan **Sync**.
