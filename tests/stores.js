@@ -60,7 +60,7 @@ const nav=async(pg,t)=>{await pg.click('#menuBtn');await pg.click('#menu [data-t
  await A.waitForTimeout(150);
  ok((await A.$eval('#grid .pc[data-id="'+id['Hijab B']+'"]',e=>e.textContent))!==null,'still listed');
  const av=await A.evaluate(id=>{const S=window.__wismir.S;let n=0;S.moves.forEach(m=>{if(m.pid!==id)return;if(m.to==='Toko A')n+=m.qty;if(m.from==='Toko A')n-=m.qty});return n},id['Hijab B']);
- ok(av===10,'before close: Toko A moves unchanged ('+av+')');
+ ok(av===7,'the sale takes the stock off Toko A right away, before the shift closes (owner 2026-11-13) ('+av+')');
  // stock form on the online tablet: location Toko A, products of Online Shop
  await nav(A,'stock');await A.click('[data-a=mvStart][data-m=in]');
  const opts=await A.$$eval('#mvP option',o=>o.map(x=>x.value).filter(Boolean)),to=await A.$eval('#mvT',e=>e.value).catch(()=>'');
