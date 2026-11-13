@@ -392,3 +392,28 @@ Cara kerjanya:
 - **Income this month** dan **Expenses this month** adalah total bulan ini.
 - Supaya penjualan dari shift yang belum ditutup ikut terhitung, perlu **Code.gs versi 12**. Kalau Code.gs belum diperbarui, penjualan baru muncul setelah shift ditutup.
 - Dashboard memuat ulang data setiap 5 menit. Kalau ingin angkanya langsung terbaru, tekan **Sync**.
+
+## 24. Stok opname langsung dari tabel stok (Operational › Stock › Products)
+
+1. Di tabel stok, ketuk **angka stok** produk pada kolom toko atau gudang yang ingin dikoreksi. Angka yang bisa diketuk bergaris titik-titik di bawahnya.
+2. Akan muncul **Stock in the system now**, yaitu stok di sistem saat ini. Ketik jumlah hasil hitungan di **Counted stock**.
+3. Tekan **Save stock count**. Selisihnya dicatat sebagai opname hari ini, dan tablet kasir mendapat angka barunya dalam 1 menit.
+4. Kalau dihitung ulang di hari yang sama, hitungan sebelumnya **diganti**, tidak ditambah.
+
+Untuk membuka form produk (nama, kategori, SKU, COGS), ketuk **nama produknya**.
+
+## 25. Filter riwayat stok di tablet (Stok › Riwayat)
+
+- **Masuk & keluar** (bawaan): hanya menampilkan barang masuk dari dan keluar ke Supplier/Konveksi.
+- **Semua transaksi**: menampilkan semua pergerakan, termasuk transfer, rusak, opname, dan penjualan.
+
+## 26. Printer Bluetooth sering putus
+
+Sejak 13-11-2026:
+- Tablet menyambung ulang sendiri setelah koneksi putus.
+- Setiap 30 detik saat printer diam, tablet mengirim sinyal kecil supaya koneksi tetap hidup. Sinyal ini tidak mencetak apa-apa.
+
+Kalau masih sering putus, cek tiga hal berikut:
+1. **Pengaturan tablet › Baterai**: matikan penghemat baterai untuk Chrome, atau atur Chrome ke "Tidak dibatasi".
+2. **Printer**: kalau ada pengaturan "auto off" atau "sleep", matikan atau perpanjang waktunya.
+3. Jarak printer dan tablet jangan terlalu jauh, dan jangan terhalang tembok atau logam.

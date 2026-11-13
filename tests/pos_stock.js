@@ -44,7 +44,8 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  // opname on Hijab B: count 5 (system 7) -> -2; then the count was really 9 -> +2
  await A.click('[data-a=mvStart][data-m=opname]');await A.selectOption('#mvP',ids['Hijab B']);await A.fill('#mvQ','5');await A.click('[data-a=mvNext]');
  ok(await stock(ids['Hijab B'])===5,'opname: counted 5');
- await A.click('[data-a=mvEdit] >> nth=0');
+ ok(!(await A.$('[data-a=mvEdit]'))||!(await A.textContent('.card')).includes('Opname'),'default filter "Masuk & keluar" hides the opname');
+ await A.click('[data-a=hflt][data-f=all]');await A.click('[data-a=mvEdit] >> nth=0');
  ok((await A.textContent('#emHint')).includes('7'),'opname edit shows system stock without this record (7)');
  await A.fill('#emQ','9');await A.click('[data-a=mvEditSave]');
  ok(await stock(ids['Hijab B'])===9,'opname edited to a count of 9: stock is 9');
