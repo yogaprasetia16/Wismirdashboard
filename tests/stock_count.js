@@ -40,8 +40,9 @@ const txt=s=>s.replace(/\s/g,' ');
  ok(await stock('pa','Toko C6')===32,'a sale after the count date still takes stock off (35 − 3 = 32)');
  // re-import with a corrected count replaces the earlier count (no doubling); an unchanged count voids nothing new
  await D.click('text=Import stock count');await D.fill('#sctext',['SKU\tGudang\tToko C6','aa01\t120\t30'].join('\n'));
- ok(txt(await D.textContent('#scprev')).includes('Toko C6: 8 → 30'),'re-import measures against the stock without the earlier count of that date');
+ ok(txt(await D.textContent('#scprev')).includes('Toko C6: 8 → 30')&&txt(await D.textContent('#scprev')).includes('Not in your list, set to 0: 1 stock figures (50 pcs)'),'re-import measures against the stock without the earlier count of that date');
  await D.click('#scgo');await until(async()=>(await stock('pa','Toko C6'))===27,12000,'recount');
+ ok(await stock('pb','Gudang')===0,'Tunik Beta was not in the second list: its stock is set to 0 (owner 2026-11-13)');
  ok(await D.evaluate(()=>S.pos.stok.filter(m=>String(m.id).startsWith('op-')).length===3),'still one count move per product × location (replaced, not added)');
  // the tablet sees the counted stock
  const A=await (await br.newContext({viewport:{width:1280,height:800}})).newPage();A.on('pageerror',e=>errs.push('pos: '+e.message));
@@ -54,7 +55,7 @@ const txt=s=>s.replace(/\s/g,' ');
  // so the stock still ends up exactly at the count (owner 2026-11-13: "transaksi stok kemarin dihiraukan")
  const post=r=>fetch(URL_,{method:'POST',body:JSON.stringify({pin:'9999',action:'upsert',rows:{'POS Stok':[r]}})});
  await post({id:'m4',tanggal:T,jam:'11:00',produk:'Tunik Beta',dari:'Supplier',ke:'Gudang',qty:7,oleh:'Gudang',catatan:'',status:'ok',jenis:'',ref:'',pid:'pb',t:'4'});
- ok(await stock('pb','Gudang')===50,'dashboard has not seen the new tablet move yet (50)');
+ ok(await stock('pb','Gudang')===0,'dashboard has not seen the new tablet move yet (0)');
  await D.click('text=Import stock count');await D.fill('#sctext',['SKU\tGudang','BB02\t50'].join('\n'));
  await until(async()=>txt(await D.textContent('#scload')).includes('loaded'),10000,'load on open');
  ok(txt(await D.textContent('#scprev')).includes('Tunik Beta · Gudang: 7 → 50'),'opening the import loads the newest tablet moves first: '+txt(await D.textContent('#scprev')));

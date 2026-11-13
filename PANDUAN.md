@@ -365,7 +365,7 @@ Aturan pembacaan:
 
 ## 22. Impor stok (opname) untuk semua toko & produk (Operational › Stock)
 
-Gunakan fitur ini kalau Anda punya daftar stok hasil hitung, dan ingin stok di sistem disamakan dengan daftar itu.
+Gunakan fitur ini kalau Anda punya daftar stok hasil hitung untuk **semua** produk dan toko, dan ingin stok di sistem disamakan dengan daftar itu.
 
 1. Siapkan daftar stok **beserta baris judul**. Bisa salah satu dari dua bentuk berikut:
    - `SKU` (atau `Produk`), lalu **satu kolom per toko/gudang**. Nama kolomnya harus sama dengan nama di Operational › Store, misalnya `Gudang` atau `Toko C6`.
@@ -380,7 +380,7 @@ Cara kerjanya:
 - Barang yang sudah Anda input lewat tablet POS tetap ada.
 - Penjualan dan pergerakan stok **setelah** tanggal hitung tetap menambah atau mengurangi stok.
 - Kalau Anda impor ulang untuk tanggal yang sama, hitungan sebelumnya diganti, tidak ditambah.
-- Produk yang tidak ada di daftar tidak berubah.
+- **Produk atau toko/gudang yang tidak ada di daftar, stoknya dianggap 0.** Sebelum Anda tekan Import, ringkasan menunjukkan berapa angka stok yang akan menjadi 0.
 - **Tutup dulu semua shift yang masih buka** di tablet sebelum impor. Penjualan shift yang masih buka baru terkirim saat shift ditutup, jadi nanti akan mengurangi stok hitungan lagi.
 - Kalau hasilnya belum pas, impor lagi daftar yang sama dengan **tanggal yang sama**. Hitungan lama diganti dan stok disamakan lagi dengan daftar Anda.
 - Tablet kasir otomatis mendapat angka barunya dalam 1 menit.
