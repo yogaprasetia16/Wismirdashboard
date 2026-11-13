@@ -176,7 +176,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .lnk{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--green);display:grid;place-items:center;cursor:pointer;flex:none}.lnk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.lnk:hover{background:var(--seg)}
 .cmb .cmbl{margin-top:6px;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:4px}.cmbo{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 10px;border-radius:10px;font:inherit;color:var(--ink);cursor:pointer}.cmbo:hover{background:var(--seg)}.cmbo.on{background:var(--thbg);color:var(--green);font-weight:600}
 .dayh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:16px 6px 8px;font-size:12.5px;font-weight:600;color:var(--mute)}.dayh b{color:var(--ink);font-size:13px}.dayh+.card{margin-bottom:0}
-.stab{width:100%;border-collapse:collapse;font-size:13px}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
+.stab{width:100%;border-collapse:collapse;font-size:13px}.stab td.cc{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}.stab td.cc:hover{background:var(--line)}.stab th{text-align:right;font-weight:600;color:var(--mute);font-size:11.5px;padding:6px 6px 8px;white-space:nowrap}.stab td{text-align:right;padding:9px 6px;border-top:1px solid var(--line);white-space:nowrap}.stab th:first-child,.stab td:first-child{text-align:left;white-space:normal;min-width:110px}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .sc2{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 12px;cursor:pointer;min-width:0;transition:transform .15s,box-shadow .15s}
 .sc2:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(30,60,60,.10)}
@@ -1127,11 +1127,36 @@ function countParse(text,date){
   if(!(lc>=0&&qc>=0))hl.forEach((h,i)=>{if(!pCols.includes(i)&&!SCQ.test(h)&&!wide.some(w=>w.i===i)&&h)missLoc.add(head[i])});
   // owner 2026-11-13: every product × store/warehouse not in the list counts as 0 (only when the list has recognised rows)
   if(Object.keys(out).length)S.products.forEach(p=>locs.forEach(l=>{if(!out[p.id+'|'+l])out[p.id+'|'+l]={p,l,count:0,zero:true}}));
-  const rows=Object.values(out).map(x=>{const id='op-'+date+'-'+x.p.id+'-'+x.l.toLowerCase().replace(/[^a-z0-9]+/g,'_');
-    let sys=0;P('stok').forEach(m=>{if(m.status==='void'||m.pid!==x.p.id||String(m.id)===id||String(nd(m.tanggal))>date)return;const q=+m.qty||0;if(m.ke===x.l)sys+=q;if(m.dari===x.l)sys-=q});
-    const own=P('stok').find(m=>String(m.id)===id&&m.status!=='void'),cur=sys+(own?(own.ke===x.l?1:-1)*(+own.qty||0):0);
-    return{...x,id,sys,cur,diff:x.count-sys,had:!!own}});
+  const rows=Object.values(out).map(x=>opRow(x,date));
   return{rows,miss:[...miss],missLoc:[...missLoc],bad};
+}
+// one product × location counted on a date: system stock without this count's own row, and the difference to record
+function opRow(x,date){const id='op-'+date+'-'+x.p.id+'-'+x.l.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  let sys=0;P('stok').forEach(m=>{if(m.status==='void'||m.pid!==x.p.id||String(m.id)===id||String(nd(m.tanggal))>date)return;const q=+m.qty||0;if(m.ke===x.l)sys+=q;if(m.dari===x.l)sys-=q});
+  const own=P('stok').find(m=>String(m.id)===id&&m.status!=='void'),cur=sys+(own?(own.ke===x.l?1:-1)*(+own.qty||0):0);
+  return{...x,id,sys,cur,diff:x.count-sys,had:!!own}}
+const opMove=(r,d,src)=>({id:r.id,tanggal:d,jam:'23:59',produk:r.p.nama,dari:r.diff>0?'Koreksi opname':r.l,ke:r.diff>0?r.l:'Koreksi opname',qty:Math.abs(r.diff),oleh:'Dashboard',catatan:'Opname ('+src+'): system '+r.sys+', counted '+r.count,status:r.diff?'ok':'void',jenis:'',ref:'',pid:r.p.id,t:String(new Date(d+'T23:59:00').getTime())});
+const upsertStok=async mv=>{const j=await (await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,action:'upsert',rows:{'POS Stok':mv}})})).json();if(!j.ok)throw new Error(j.error||'failed')};
+// Operational › Stock › Products (owner 2026-11-13): tap a stock number to type the counted stock of that product at that
+// location; saved as an opname of today (same row id as Import stock count, so a second count today replaces the first).
+function cellCount(pid,loc){
+  closePop();const p=S.products.find(x=>x.id===pid);if(!p)return;$('#sheet').oninput=null;
+  if(!S.cfg.url){$('#sheet').innerHTML=`<h3>Stock count</h3><div class="lbl" style="margin:0 6px 12px">Connect Google Sheets in Settings first: the stock count is saved as a stock move for the store tablets.</div><button class="btn sec" id="no">Close</button>`;$('#no').onclick=close;$('#bg').classList.add('open');return}
+  const now=()=>((posStock()[pid]||{})[loc]||0);
+  $('#sheet').innerHTML=`<h3>Stock count</h3><div class="lbl" style="margin:-8px 6px 12px"><b>${esc(p.nama)}</b> at <b>${esc(loc)}</b>. Type the stock you counted: the difference is recorded as an opname of today and the store tablet gets it within a minute.</div>
+  <div class="card" style="padding:12px 16px;margin-bottom:12px"><div class="lbl">Stock in the system now</div><div class="t" id="ccNow" style="font-size:22px">${now()}</div></div>
+  <div class="f"><label>Counted stock</label><input id="ccv" type="number" inputmode="numeric" step="1" value="${now()}"></div>
+  <div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ccgo">Save stock count</button><button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  $('#no').onclick=close;
+  (async()=>{await pullSheets();const e=$('#ccNow');if(e)e.textContent=now()})();
+  $('#ccgo').onclick=async()=>{const raw=$('#ccv').value.trim(),c=Math.round(+raw);if(raw===''||isNaN(c)){err('Type the counted stock (a number).');return}
+    const b=$('#ccgo');b.disabled=true;b.textContent='Loading the latest stock…';
+    try{await pullSheets();const d=today(),r=opRow({p,l:loc,count:c},d);
+      if(!r.diff&&!r.had){close();return setStatus('Stock count: '+p.nama+' at '+loc+' was already '+c)}
+      b.textContent='Saving…';await upsertStok([opMove(r,d,'dashboard')]);close();await pullSheets();
+      const got=now();setStatus(got===c?'Stock count saved: '+p.nama+' at '+loc+' = '+c:'Stock count saved, but '+p.nama+' at '+loc+' shows '+got+' (moves dated later still count)')}
+    catch(e){b.disabled=false;b.textContent='Try again';err('Could not save to Google Sheets ('+(e.message||e)+'). Nothing was changed.')}};
+  $('#bg').classList.add('open');setTimeout(()=>{const f=$('#ccv');if(f){f.focus();f.select()}},50);
 }
 function importCount(){
   closePop();$('#sheet').oninput=null;
@@ -1156,12 +1181,11 @@ function importCount(){
   (async()=>{await pullSheets();const l=$('#scload');if(l)l.textContent='Stock loaded from the store tablets '+hhmm()+'.';if($('#sctext'))prev()})();
   $('#scgo').onclick=async()=>{const b0=$('#scgo');b0.disabled=true;b0.textContent='Loading the latest stock…';await pullSheets();
     const d=$('#scDate').value||today(),{rows}=countParse($('#sctext').value,d),t=String(new Date(d+'T23:59:00').getTime());
-    const mv=rows.filter(r=>r.diff||r.had).map(r=>({id:r.id,tanggal:d,jam:'23:59',produk:r.p.nama,dari:r.diff>0?'Koreksi opname':r.l,ke:r.diff>0?r.l:'Koreksi opname',qty:Math.abs(r.diff),oleh:'Dashboard',catatan:'Opname (import): system '+r.sys+', counted '+r.count,status:r.diff?'ok':'void',jenis:'',ref:'',pid:r.p.id,t}));
+    const mv=rows.filter(r=>r.diff||r.had).map(r=>opMove(r,d,'import'));
     if(!mv.length){close();return setStatus('Stock count: everything was already right')}
     const want=rows.map(r=>({p:r.p.id,l:r.l,c:r.count,later:P('stok').filter(m=>m.status!=='void'&&String(nd(m.tanggal))>d&&m.pid===r.p.id).reduce((a,m)=>a+(m.ke===r.l?+m.qty:0)-(m.dari===r.l?+m.qty:0),0)}));
     const b=$('#scgo');b.disabled=true;b.textContent='Saving…';
-    try{const j=await (await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,action:'upsert',rows:{'POS Stok':mv}})})).json();
-      if(!j.ok)throw new Error(j.error||'failed');close();tab='ops';ops='stock';stv='list';await pullSheets();
+    try{await upsertStok(mv);close();tab='ops';ops='stock';stv='list';await pullSheets();
       // check: every counted product × location now has the counted stock (plus moves dated after the count date)
       const st=posStock(),off=want.filter(w=>((st[w.p]||{})[w.l]||0)!==w.c+w.later);
       setStatus(off.length?'Stock count saved, but '+off.length+' stock figures differ from your count: open Import stock count again and import once more.':'Stock count saved: '+mv.length+' changes, stock now equals your count')}
@@ -1170,8 +1194,8 @@ function importCount(){
 }
 function vProducts(){
   const m=posStock(),L=posLocs(),l=[...S.products].sort((a,b)=>(isOff(a)-isOff(b))||pname(a).localeCompare(pname(b)));
-  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px;margin-left:8px" onclick="importCount()">Import stock count</button></div><div class="card" style="overflow-x:auto">${l.length?`<table class="stab ptab"><thead><tr><th>Product</th>${L.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<tr class="${off?'fut':''}" data-pid="${esc(p.id)}" onclick="editProduct('${p.id}')"><td><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · '+esc(p.sku):''}${off?' · Hidden from cashier':''}</div></td>${L.map(x=>`<td class="${(s[x]||0)<0?'neg':''}">${s[x]||0}</td>`).join('')}<td><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b></td></tr>`}).join('')}</tbody></table>`:empty('No products yet. Press the button above to add one.')}</div>
-  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Stock per warehouse and store comes from the POS. Online stores sell from the stock of the store chosen in Operational › Store. Products hidden from the cashier stay here, dimmed.</div>`;
+  return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px" onclick="importSheet()">Import from spreadsheet</button><button class="btn sec" style="width:auto;padding:9px 16px;font-size:13px;margin-left:8px" onclick="importCount()">Import stock count</button></div><div class="card" style="overflow-x:auto">${l.length?`<table class="stab ptab"><thead><tr><th>Product</th>${L.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${l.map(p=>{const s=m[p.id]||{},tot=prodTotal(p,m),off=isOff(p);return `<tr class="${off?'fut':''}" data-pid="${esc(p.id)}" onclick="editProduct('${p.id}')"><td><div class="t">${esc(p.nama)}${p.varian?' · '+esc(p.varian):''}</div><div class="lbl">${esc(p.kategori||'No category')}${p.brand?' · '+esc(p.brand):''}${p.sku?' · '+esc(p.sku):''}${off?' · Hidden from cashier':''}</div></td>${L.map(x=>`<td class="cc${(s[x]||0)<0?' neg':''}" title="Tap to count" onclick="event.stopPropagation();cellCount('${esc(p.id)}',${esc(JSON.stringify(x))})">${s[x]||0}</td>`).join('')}<td><b class="${!off&&tot<=minOf(p)?'neg':''}">${tot}</b></td></tr>`}).join('')}</tbody></table>`:empty('No products yet. Press the button above to add one.')}</div>
+  <div class="lbl" style="padding:0 6px">One product list for the dashboard and the store tablet (POS). Stock per warehouse and store comes from the POS; tap a stock number to correct it with a stock count (opname). Online stores sell from the stock of the store chosen in Operational › Store. Products hidden from the cashier stay here, dimmed.</div>`;
 }
 // Category and brand are typed freely; names used before are offered as suggestions
 const usedVals=k=>[...new Set(S.products.map(p=>String(p[k]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));

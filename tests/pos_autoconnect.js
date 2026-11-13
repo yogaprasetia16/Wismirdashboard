@@ -8,7 +8,7 @@ async function until(fn,ms=6000){const t=Date.now();while(Date.now()-t<ms){try{i
 const INIT=([st,getDevices])=>{
  try{if(!localStorage.getItem('wismir_pos_v1'))localStorage.setItem('wismir_pos_v1',JSON.stringify(st))}catch(e){}
  try{delete Navigator.prototype.serial}catch(e){}
- window.__prRetryMs=500;window.__req=[];window.__chunks=[];
+ window.__prRetryMs=500;window.__keepTick=200;window.__req=[];window.__chunks=[];
  const on=()=>localStorage.getItem('fakePrinterOn')!=='0';
  const ch={properties:{writeWithoutResponse:true},writeValueWithoutResponse:async b=>{window.__chunks.push(Array.from(b))}};
  const dev=new EventTarget();dev.id='dev1';dev.name='BT-P3200';
@@ -38,7 +38,7 @@ const chip=p=>p.evaluate(()=>{const b=document.querySelector('#prChip');return !
  ok((await p.evaluate(()=>window.__req.length))===0,'… without opening Chrome\'s printer picker');
  // printer still off when the app opens, switched on a bit later
  await p.evaluate(()=>localStorage.setItem('fakePrinterOn','0'));await p.reload();await sleep(1500);
- ok(await chip(p)==='off','printer off at opening: button shows not connected (amber)');
+ ok(await until(async()=>await chip(p)==='off'),'printer off at opening: button shows not connected (amber)');
  await p.evaluate(()=>localStorage.setItem('fakePrinterOn','1'));
  ok(await until(async()=>await chip(p)==='on'),'printer switched on later: connects by itself');
  // link drops during the day (printer restarted)
@@ -59,6 +59,14 @@ const chip=p=>p.evaluate(()=>{const b=document.querySelector('#prChip');return !
  ok(await until(async()=>await chip(p)==='on'),'one tap on the Printer button connects');
  const req=await p.evaluate(()=>JSON.stringify(window.__req[0]||{}));
  ok(req.includes('"name":"BT-P3200"'),'… and Chrome\'s list shows only the saved printer: '+req.slice(0,60));
+ // owner 2026-11-13 (link kept dropping): after that one tap the tablet reconnects by itself, without getDevices
+ await p.evaluate(()=>window.__dev.gatt.disconnect());
+ ok(await until(async()=>await chip(p)==='off'),'link dropped: amber');
+ ok(await until(async()=>await chip(p)==='on'),'… reconnects by itself with the printer kept from the tap (no getDevices needed)');
+ ok((await p.evaluate(()=>window.__req.length))===1,'… without opening Chrome\'s picker again');
+ // keep-alive: a quiet link gets a 2-byte ESC @ now and then
+ await p.evaluate(()=>{window.__chunks=[];window.__keepMs=300});
+ ok(await until(async()=>(await p.evaluate(()=>window.__chunks.some(c=>c.join()==='27,64')))),'keep-alive: ESC @ sent on a quiet link');
  ok(errs.length===0,'no page errors '+errs.join(';'));
  await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0);
 })().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

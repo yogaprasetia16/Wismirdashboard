@@ -85,7 +85,7 @@ const nav=async(pg,t)=>{await pg.click('#menuBtn');await pg.click('#menu [data-t
  const tr=await D.$eval('.ptab tr[data-pid="'+id['Hijab B']+'"]',e=>[...e.children].slice(1).map(c=>c.textContent).join('|'));
  ok(tr==='0|7|7','Hijab B: Gudang 0, Toko A 7 (10 − 3 sold online), total 7: '+tr);
  ok(!(await D.$('.stk button'))&&!(await D.$('[onclick^="adj("]')),'no +/− stock buttons');
- await D.click('.ptab tr[data-pid="'+id['Gamis A']+'"]');ok(await D.isVisible('#sheet [data-k=nama]'),'tapping a row opens the product');
+ await D.click('.ptab tr[data-pid="'+id['Gamis A']+'"] td:first-child');ok(await D.isVisible('#sheet [data-k=nama]'),'tapping a row opens the product');
  await D.evaluate(()=>close());
  await D.screenshot({path:'stock-table.png'});
  await D.evaluate(()=>{tab='ops';ops='store';render()});await D.click('.row >> text=Online Shop');await D.waitForTimeout(150);await D.screenshot({path:'store-form.png'});

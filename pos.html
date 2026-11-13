@@ -274,7 +274,7 @@ S.cfg=S.cfg||{store:'Toko A',pin:'1234'};S.holds=S.holds||[];S.outbox=S.outbox||
 /* ---------- ui state ---------- */
 let showKpi=false,tab='home',ownerOK=false,osub='report',rPer='today',rStore='all';
 const curLoc=()=>ownerOK?stLoc:SRC(S.cfg.store);
-let stLoc=SRC(S.cfg.store),stView='hist',stQ='',posCat='Semua',allStaff=false,draft={cash:''},sel=new Set(),MV=null,SC=null,PAY=null;
+let stHf='io',stLoc=SRC(S.cfg.store),stView='hist',stQ='',posCat='Semua',allStaff=false,draft={cash:''},sel=new Set(),MV=null,SC=null,PAY=null;
 
 /* ---------- data helpers ---------- */
 const prod=id=>S.products.find(p=>p.id===id);
@@ -486,7 +486,7 @@ async function bleChar(ask,only,pick){ // pick: always open the picker (choose a
  if(!dev&&!pick&&navigator.bluetooth.getDevices){try{dev=(await navigator.bluetooth.getDevices()).find(d=>d.id===S.cfg.prBle)||null}catch(e){}}
  if(!dev&&ask)dev=await navigator.bluetooth.requestDevice(only&&S.cfg.prBleName?{filters:[{name:S.cfg.prBleName}],optionalServices:BLE_SVC}:{acceptAllDevices:true,optionalServices:BLE_SVC});
  if(!dev)throw new Error('Printer belum disambungkan. Owner → Data → Printer → Sambungkan printer.');
- const g=await dev.gatt.connect();let ch=null;
+ let g=null;for(let k=0;k<3;k++){try{g=await dev.gatt.connect();break}catch(e){if(k===2)throw e;await new Promise(r=>setTimeout(r,700))}}let ch=null;
  for(const u of BLE_SVC){try{const sv=await g.getPrimaryService(u);ch=(await sv.getCharacteristics()).find(c=>c.properties.writeWithoutResponse||c.properties.write);if(ch)break}catch(e){}}
  if(!ch){try{dev.gatt.disconnect()}catch(e){}throw new Error('Printer ini tidak menerima data lewat Bluetooth LE. Pilih mode Aplikasi RawBT.')}
  BLE={dev,ch};if(S.cfg.prBle!==dev.id||(dev.name&&S.cfg.prBleName!==dev.name)){S.cfg.prBle=dev.id;if(dev.name)S.cfg.prBleName=dev.name;save()}
@@ -520,10 +520,15 @@ async function prSilent(){
  finally{prBusy=false}
 }
 function prRetry(ms){clearTimeout(prT);if(!prAuto()||!canSilent())return;prT=setTimeout(async()=>{if(!(await prSilent()))prRetry(window.__prRetryMs||20000)},ms==null?(window.__prRetryMs||20000):ms)}
-const canSilent=()=>btWay()==='serial'||(hasBle()&&!!navigator.bluetooth.getDevices&&!!S.cfg.prBle);
+const canSilent=()=>btWay()==='serial'||(hasBle()&&((!!navigator.bluetooth.getDevices&&!!S.cfg.prBle)||!!(BLE&&BLE.dev)));
 const openUrl=u=>{(window.__openUrl||(x=>{location.href=x}))(u)};
 let PQ=Promise.resolve(); // one print job at a time
-function prSend(bytes){const job=PQ.then(()=>prSend1(bytes));PQ=job.catch(()=>{});return job}
+// BLE keep-alive (owner 2026-11-13: the link kept dropping): many BLE printers / Android close an idle link, so every
+// 30 s of quiet a 2-byte "initialise printer" command (ESC @, prints nothing) is sent through the print queue.
+let prLast=Date.now();
+setInterval(()=>{if(!prAuto()||btWay()!=='ble'||PRS!=='on'||!(BLE&&BLE.ch&&BLE.dev.gatt&&BLE.dev.gatt.connected))return;
+ if(Date.now()-prLast<(window.__keepMs||30000))return;prLast=Date.now();PQ=PQ.then(()=>bleWrite(new Uint8Array([0x1b,0x40]))).catch(()=>{})},window.__keepTick||5000);
+function prSend(bytes){prLast=Date.now();const job=PQ.then(()=>prSend1(bytes));PQ=job.catch(()=>{});return job}
 async function prSend1(bytes){
  const c=PRC();
  if(c.mode==='rawbt'){let t='';bytes.forEach(x=>t+=String.fromCharCode(x));openUrl('intent:base64,'+btoa(t)+'#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;');return}
@@ -728,17 +733,17 @@ function viewStock(){
    '<div class="note">Total di '+esc(loc)+': <b>'+tot+' pcs</b> dari '+list.length+' produk'+(S.shift&&S.shift.store===loc?' · sudah dikurangi penjualan shift berjalan':'')+'</div>'+
    '<div class="card">'+(list.map(p=>{const n=av[p.id]||0;const cl=n<0?'neg':n===0?'zero':'pos';return '<div class="row" data-a="mvRow" data-id="'+p.id+'"><div class="th">'+esc(p.name.slice(0,1))+'</div><div class="grow"><div class="t">'+esc(p.name)+'</div><div class="lbl">'+esc(p.category||'Lainnya')+'</div></div>'+(n>0&&n<=3?'<span class="pill warn">Menipis</span>':'')+'<div class="v '+cl+'">'+n+'</div></div>'}).join('')||'<div class="empty">Produk tidak ditemukan.</div>')+'</div>';
  }else{
-  // sales are left out here on purpose (staff only see in / out / transfer / damaged / opname); the dashboard history still shows them
-  const m=S.moves.filter(x=>(x.from===loc||x.to===loc)&&!isSaleMv(x)).slice().sort((a,b)=>b.t-a.t).slice(0,120);
+  // filter (owner 2026-11-13): "Masuk & keluar" (default) = only stock in / out; "Semua transaksi" = every move incl. sales
   const EXT=['Supplier','Konveksi'];
   const kind=x=>x.kind==='sale'||x.to==='Sale'?'sale':x.to==='Rusak/Hilang'?'loss':(x.from==='Koreksi opname'||x.to==='Koreksi opname')?'opname':EXT.indexOf(x.from)>=0?'in':EXT.indexOf(x.to)>=0?'out':'tf';
+  const m=S.moves.filter(x=>(x.from===loc||x.to===loc)&&(stHf==='all'||['in','out'].indexOf(kind(x))>=0)).slice().sort((a,b)=>b.t-a.t).slice(0,120);
   const KI={sale:['cart','Penjualan','k-sale'],loss:['mvloss','Rusak/hilang','k-loss'],opname:['mvop','Opname','k-op'],in:['mvin','Masuk','k-in'],out:['mvout','Keluar','k-out'],tf:['swap','Transfer','k-tf']};
   const dlabel=t=>{const d=startDay(t),n=startDay(Date.now());const dd=Math.round((n-d)/864e5);const dn=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][new Date(t).getDay()];return (dd===0?'Hari ini':dd===1?'Kemarin':dn)+' · '+dmy(t)};
   let last=null,html='';
   m.forEach(x=>{const dk=startDay(x.t);if(dk!==last){last=dk;const cnt=m.filter(y=>startDay(y.t)===dk).length;html+='<div class="dsep"><span>'+dlabel(x.t)+'</span><i></i><em>'+cnt+' pergerakan</em></div>'}
    const inn=x.to===loc,v=x.status==='void',k=KI[kind(x)];
    html+='<div class="row'+(v?' void':'')+'" style="cursor:default"><div class="th kic '+k[2]+'" title="'+k[1]+'">'+svg(k[0])+'</div><div class="grow"><div class="t">'+esc(pname(x.pid))+'</div><div class="lbl"><b class="ktag '+k[2]+'">'+k[1]+'</b> '+esc(x.from)+' → '+esc(x.to)+' · '+hm(x.t)+' · '+esc(x.by)+(x.note?' · '+esc(x.note):'')+'</div>'+(x.kind==='manual'&&!v?'<div style="display:flex;gap:14px"><button class="lnk" style="padding:4px 0" data-a="mvEdit" data-id="'+x.id+'">Ubah</button><button class="lnk" style="padding:4px 0" data-a="void" data-id="'+x.id+'">Batalkan (void)</button></div>':'')+'</div><div class="v '+(inn?'pos':'neg')+'">'+(inn?'+':'-')+x.qty+'</div></div>'});
-  body='<div class="card">'+(html||'<div class="empty">Belum ada pergerakan.</div>')+'</div>';
+  body='<div class="seg">'+[['io','Masuk & keluar'],['all','Semua transaksi']].map(x=>'<button class="'+(stHf===x[0]?'on':'')+'" data-a="hflt" data-f="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><div class="card">'+(html||'<div class="empty">Belum ada pergerakan.</div>')+'</div>';
  }
  return '<section class="panel"><div class="ph"><h2>Stok inventaris</h2></div><div class="mvb">'+[['in','Masuk','mvin'],['out','Keluar','mvout'],['tf','Transfer','swap'],['loss','Rusak','mvloss'],['opname','Opname','mvop']].map(x=>'<button data-a="mvStart" data-m="'+x[0]+'">'+svg(x[2])+'<span>'+x[1]+'</span></button>').join('')+'</div><div style="display:flex;flex-wrap:wrap">'+locs+views+'</div>'+body+'</section>';
 }
@@ -988,6 +993,7 @@ A.confirmPay=()=>{
 /* Stok */
 A.loc=el=>{stLoc=el.dataset.l;render()};
 A.sview=el=>{stView=el.dataset.v;render()};
+A.hflt=el=>{stHf=el.dataset.f;render()};
 I.sq=el=>{stQ=el.value;const pos=el.selectionStart;render();const n=$('#sq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}};
 A.mv=()=>mvOpen('','in');
 A.mvRow=el=>mvOpen(el.dataset.id,'tf');
@@ -1183,7 +1189,7 @@ $('#rst').addEventListener('change',e=>{
  r.readAsText(f);
 });
 window.addEventListener('resize',closeMenu);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderChrome();kick(0)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderChrome();kick(0);if(PRS!=='on')prRetry(0)}});
 window.addEventListener('online',()=>{tries=0;kick(0)});
 setInterval(()=>{if(!document.hidden&&!flushing&&!pulling)kick(0)},60000);
 
