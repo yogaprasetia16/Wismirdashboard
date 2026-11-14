@@ -15,7 +15,7 @@ const txt=s=>s.replace(/\s/g,' ');
   await until(()=>p.evaluate(()=>S.cfg.pulled===1),10000,'pull');return p};
  const D=await open();
  await D.evaluate(()=>{tab='ops';ops='exp';render()});
- const seg=await D.$eval('#app .seg',s=>[...s.querySelectorAll('button')].map(x=>x.textContent));
+ const seg=await D.$eval('#app .seg',s=>[...s.querySelectorAll('button')].map(x=>x.getAttribute('aria-label')||x.textContent));
  ok(seg.join()==='Stock,Staff,Attendance,Store,Expense','Operational has an Expense tab: '+seg.join(', '));
  ok(await D.isVisible('#cta')&&(await D.textContent('#cta')).includes('New expense'),'"+ New expense" button');
  const T=await D.evaluate(()=>today());

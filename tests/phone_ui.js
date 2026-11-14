@@ -6,7 +6,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const p=await (await br.newContext({...devices['iPhone 13']})).newPage();p.on('pageerror',e=>errs.push(e.message));
  await p.goto('http://localhost:8765/dashboard.html');await p.waitForTimeout(300);
  await p.evaluate(()=>{S.tx.push({id:'a1',jenis:'Expense',tanggal:today(),kategori:'Store rent',jumlah:100,catatan:''},{id:'a2',jenis:'Expense',tanggal:today(),kategori:'Porter',jumlah:20,catatan:''});tab='ops';ops='exp';render()});
- const vis0=await p.evaluate(()=>{const r=document.querySelector('#app .seg.sc'),b=r.querySelector('button.on'),R=r.getBoundingClientRect(),B=b.getBoundingClientRect();return b.textContent+':'+(B.left>=R.left-1&&B.right<=R.right+1)});
+ const vis0=await p.evaluate(()=>{const b=document.querySelector('#app .seg button.on'),B=b.getBoundingClientRect();return (b.getAttribute('aria-label')||b.textContent)+':'+(B.left>=0&&B.right<=innerWidth)}); // icon tabs since 2026-11-14 fit without scrolling
  ok(vis0==='Expense:true','the active Operational tab (Expense) is scrolled into view on a phone');
  await p.tap('#cta');
  await p.screenshot({path:'phone-combo-form.png'});
