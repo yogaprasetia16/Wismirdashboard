@@ -434,4 +434,8 @@ Untuk pengeluaran yang dibayar sekaligus untuk beberapa bulan, misalnya sewa tok
 
 Kalau item Annually diubah (jumlah, rentang bulan, atau kategori), semua bulannya ikut diperbarui. Kalau item itu dihapus (ketuk dua kali), semua bulannya ikut terhapus.
 
+Kalau harga sewa tahun berikutnya berubah, **buat item baru** untuk tahun itu, misalnya January 2027 – December 2027 dengan jumlah baru. Item tahun lalu jangan diubah, karena angka bulan-bulan tahun lalu akan ikut berubah.
+
+Item yang masa bayarnya sudah lewat otomatis disembunyikan, jadi daftar tetap rapi. Untuk melihatnya lagi, tekan **Show finished**.
+
 Fitur ini butuh **Code.gs versi 13**.
