@@ -649,6 +649,19 @@ function fStore(name){
  <div class="card">${rankT(['Product','Quantity','Revenue'],fGroup(l,'key','name').map(x=>`<tr><td style="text-align:left"><b>${esc(x.n)}</b></td><td>${x.q.toLocaleString('id-ID')}</td><td><b>${rp(x.rev)}</b></td></tr>`))}</div><button class="btn sec" id="no">Close</button>`;
  $('#no').onclick=close;$('#bg').classList.add('open');
 }
+// ---- Valuation (owner 2026-11-14)
+// Material value = per material: (qty bought in Purchasing › Textile − qty used in Manufacturing) × average price per unit
+// (total paid / qty bought). Materials are matched by name (case-insensitive). Cash = all-time revenue − (all purchases +
+// all manufacturing + supplier months paid + all expenses). Total valuation = cash + material value + product value.
+const qn=v=>typeof v==='number'?v:mNum(v);
+function matRows(){const key=x=>String(x||'').trim().toLowerCase(),m={},unk=new Set();
+  S.purch.filter(p=>p.category==='Textile').forEach(p=>{const k=key(p.name);if(!k)return;const o=m[k]||(m[k]={name:String(p.name).trim(),buy:0,cost:0,used:0});o.buy+=qn(p.qty);o.cost+=qn(p.total)});
+  S.prod.forEach(o=>{const k=key(o.material);if(!k||k==='0'||!qn(o.matQty))return;if(m[k])m[k].used+=qn(o.matQty);else unk.add(String(o.material).trim())});
+  const rows=Object.values(m).map(o=>{const avg=o.buy?o.cost/o.buy:0,left=Math.max(0,o.buy-o.used);return{...o,avg,left,over:o.used>o.buy,val:left*avg}}).sort((a,b)=>b.val-a.val||a.name.localeCompare(b.name));
+  return{rows,unk:[...unk],val:rows.reduce((a,r)=>a+r.val,0)}}
+function cashCalc(rev){const pur=S.purch.reduce((a,p)=>a+qn(p.total),0),man=S.prod.reduce((a,p)=>a+qn(p.total),0),sup=S.supp.filter(x=>x.paidOn).reduce((a,x)=>a+qn(x.total),0),exp=expList().reduce((a,t)=>a+qn(t.jumlah),0);
+  return{rev,pur,man,sup,exp,cash:rev-pur-man-sup-exp}}
+const mq=v=>(+v||0).toLocaleString('id-ID',{maximumFractionDigits:1});
 function vFinancial(){
  const all=finRows();if(!all.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Financial</div>`+fEmpty();
  const ms=[...new Set(all.map(r=>r.m))].sort(),first=ms[0],last=ms[ms.length-1],aRev=fSum(all,'v'),aItems=fSum(all,'q');
@@ -662,7 +675,7 @@ function vFinancial(){
  const mxY=Math.max(1,...years.map(y=>y.rev));
  // valuation: current stock (all warehouses and stores) at COGS
  const st=posStock(),sku=S.products.map(p=>({p,q:Math.max(0,posTotal(st,p.id)),c:+p.cogs||0})).filter(x=>x.q>0).sort((a,b)=>b.q*b.c-a.q*a.c||b.q-a.q);
- const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q));
+ const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q)),mat=matRows(),cc=cashCalc(aRev);
  return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
  <div class="sub">Total earning</div><div class="kp3"><div class="card"><div class="lbl">Total revenue</div><div class="kn">${fM(aRev)}</div><div class="lbl">All time</div></div><div class="card"><div class="lbl">Items sold</div><div class="kn">${aItems.toLocaleString('id-ID')} pcs</div><div class="lbl">All time</div></div></div>
  <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${storeRank(fGroup(all,'st'),aRev,false)}</div>
@@ -672,9 +685,11 @@ function vFinancial(){
   <div class="xl">${years.map(y=>`<div><b>${y.y}</b><br>${gp(y)}</div>`).join('')}</div>
   ${noCogsNote(all)}
   <div style="margin-top:14px">${rankT(['Year','Revenue','Cost','Gross profit','Items sold','Growth'],years.slice().reverse().map(y=>`<tr><td style="text-align:left"><b>${y.y}</b></td><td><b>${fM(y.rev)}</b></td><td>${fM(y.cost)}</td><td>${fM(y.rev-y.cost)}</td><td>${y.items.toLocaleString('id-ID')}</td><td>${gp(y)}</td></tr>`))}</div></div>
- <div class="sub">Valuation</div><div class="kp3"><div class="card"><div class="lbl">Total valuation</div><div class="kn">${fM(skuV)}</div><div class="lbl">Product value only for now</div></div>
-  <div class="card"><div class="lbl">Cash</div><div class="kn mu">–</div><div class="lbl">Not tracked yet</div></div><div class="card"><div class="lbl">Material value</div><div class="kn mu">–</div><div class="lbl">Not tracked yet</div></div>
+ <div class="sub">Valuation</div><div class="kp3" id="valKpi"><div class="card"><div class="lbl">Total valuation</div><div class="kn">${fM(cc.cash+mat.val+skuV)}</div><div class="lbl">Cash + material + product</div></div>
+  <div class="card"><div class="lbl">Cash</div><div class="kn${cc.cash<0?' neg':''}">${fM(cc.cash)}</div><div class="lbl">Revenue − purchases − manufacturing − supplier paid − expenses</div></div><div class="card"><div class="lbl">Material value</div><div class="kn">${fM(mat.val)}</div><div class="lbl">Textile left × average price</div></div>
   <div class="card"><div class="lbl">Product value</div><div class="kn">${fM(skuV)}</div><div class="lbl">Current stock × COGS</div></div></div>
+ <div class="card" id="cashCard"><div class="t" style="font-weight:700">Cash</div><div class="lbl" style="margin-bottom:8px">All time: money in from sales minus money paid out</div>${rankT(['','Amount'],[['Revenue (all sales)',cc.rev,''],['Purchases (all categories)',-cc.pur,''],['Manufacturing',-cc.man,''],['Supplier (months paid)',-cc.sup,''],['Expenses',-cc.exp,'']].map(r=>`<tr><td style="text-align:left">${r[0]}</td><td class="${r[1]<0?'neg':''}">${r[1]<0?'−':''}${rp(Math.abs(r[1]))}</td></tr>`).concat([`<tr><td style="text-align:left"><b>Cash</b></td><td><b class="${cc.cash<0?'neg':''}">${cc.cash<0?'−':''}${rp(Math.abs(cc.cash))}</b></td></tr>`]))}</div>
+ <div class="card" id="matCard"><div class="t" style="font-weight:700">Material stock</div><div class="lbl" style="margin-bottom:8px">Production › Purchasing (Textile) minus what Manufacturing used, matched by material name · ${rp(mat.val)}</div>${mat.rows.length?rankT(['Material','Bought','Used','Left','Avg price / unit','Value'],mat.rows.map(r=>`<tr><td style="text-align:left"><b>${esc(r.name)}</b>${r.over?'<div class="lbl neg">used more than bought</div>':''}</td><td>${mq(r.buy)}</td><td>${mq(r.used)}</td><td>${mq(r.left)}</td><td>${rp(Math.round(r.avg))}</td><td><b>${rp(Math.round(r.val))}</b></td></tr>`)):'<div class="lbl mu">No textile purchases yet.</div>'}${mat.unk.length?`<div class="lbl neg" style="margin-top:8px">Used in Manufacturing but not found in Purchasing (Textile), so not counted: ${mat.unk.slice(0,12).map(esc).join(', ')}${mat.unk.length>12?'…':''}. Use the same material name in both.</div>`:''}</div>
  <div class="card"><div class="t" style="font-weight:700">Product quantity per SKU</div><div class="lbl" style="margin-bottom:8px">${skuQ.toLocaleString('id-ID')} pcs · ${rp(skuV)} · current stock in all warehouses and stores, valued at COGS</div>${sku.length?rankT(['SKU','Product','Category','Quantity','Unit cost','Stock value'],sku.map(x=>`<tr><td style="text-align:left" class="mu">${esc(x.p.sku||'–')}</td><td style="text-align:left"><b>${esc(x.p.nama)}</b></td><td style="text-align:left" class="mu">${esc(x.p.kategori||'–')}</td><td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="hb" style="flex:1;margin:0"><i style="width:${(x.q/maxQ*100).toFixed(1)}%"></i></div><b>${x.q.toLocaleString('id-ID')}</b></div></td><td class="mu">${x.c?rp(x.c):'<span class="neg">no COGS</span>'}</td><td><b>${rp(x.q*x.c)}</b></td></tr>`)):empty('No stock yet. Stock comes from the store tablets (POS).')}</div>`;
 }
 // hover / tap tooltip for chart marks ([data-tip])

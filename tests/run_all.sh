@@ -20,6 +20,7 @@ start; run "POS: sales sent right away in the background" node pos_live.js
 start; run "Overview: sales of the last 7 days + today" node overview_sales.js
 start; run "stock table: tap a number to count; POS history filter" node stock_cell.js
 start; run "Operational › Expense › Annually" node annual.js
+start; run "Finance › Financial › Valuation" node valuation.js
 start; run "Finance › Sales: import history + monthly recap" node sales.js
 start; run "Finance › Report + Financial (sample data)" node finance_report.js
 start; run "reminder links (website or dashboard page)" node task_link.js
