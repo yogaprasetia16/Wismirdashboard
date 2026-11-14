@@ -1,6 +1,6 @@
 // Builds preview copies with sample data so the owner can look at the design without Google Sheets.
 // Usage: node tests/make_preview.js <output-dir>   -> <out>/dashboard-preview.html, <out>/pos-preview.html
-// Send them with display "render". Never commit or publish the preview files.
+// Send them with display "render" and/or publish them as a private Artifact (see CLAUDE.md). Never commit the preview files.
 const fs=require('fs'),path=require('path');
 const root=path.resolve(__dirname,'..'),out=process.argv[2];
 if(!out){console.error('usage: node tests/make_preview.js <output-dir>');process.exit(2)}
