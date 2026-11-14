@@ -35,12 +35,19 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  await D.selectOption('#sheet [data-k=sampai]','March '+Y);await D.fill('#sheet [data-k=jumlah]','1000000');await D.click('#ok');
  g=await gen();ok(g.join()===[Y+'-01-01:333333',Y+'-02-01:333333',Y+'-03-01:333334'].join(),'edited to Jan–Mar 1.000.000: 3 months, others removed: '+g.join());
  // wrong range refused
- await D.click('#sheet [data-aid]');await D.selectOption('#sheet [data-k=dari]','May '+Y);await D.click('#ok');
+ await D.click('#annOld');await D.click('#sheet [data-aid]');await D.selectOption('#sheet [data-k=dari]','May '+Y);await D.click('#ok');
  ok((await D.textContent('#err')).includes('To month'),'"To month" before "From month" is refused');
  await D.click('#no');
  // delete
- await D.click('#annBtn');await D.click('#sheet [data-aid]');await D.click('#rm');await D.click('#rm');
+ await D.click('#annBtn');await D.click('#annOld');await D.click('#sheet [data-aid]');await D.click('#rm');await D.click('#rm');
  ok((await gen()).length===0&&await D.evaluate(()=>S.ann.length===0),'deleting removes the item and its monthly expenses');
  await until(async()=>{const o=await dump();return rows(o,'Annual').length===0&&!rows(o,'Keuangan').some(r=>String(r.id).startsWith('a-'))},10000,'deleted on Sheet');
  ok(true,'… also on the Sheet');
+ // finished items are folded away (owner 2026-11-14)
+ await D.evaluate(Y=>{S.ann.push({id:'old1',kategori:'Sewa toko',jumlah:1200,catatan:'',dari:(+Y-1)+'-01',sampai:(+Y-1)+'-12'},{id:'new1',kategori:'Sewa toko',jumlah:2400,catatan:'',dari:Y+'-01',sampai:Y+'-12'});annSync(S.ann[0]);annSync(S.ann[1]);save();close();tab='ops';ops='exp';render()},Y);await D.waitForTimeout(400);
+ ok((await D.textContent('#annBtn')).includes('· 1'),'button counts only running items');
+ await D.click('#annBtn');
+ ok((await D.$$('#sheet [data-aid]')).length===1&&(await D.textContent('#annOld')).includes('Show finished (1)'),'last year\'s item is hidden under "Show finished (1)"');
+ await D.click('#annOld');ok((await D.$$('#sheet [data-aid]')).length===2,'"Show finished" lists it again');
+ await D.click('#no');
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

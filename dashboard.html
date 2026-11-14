@@ -1020,7 +1020,7 @@ function vOpsExp(){
   const l=expList(),T=today().slice(0,7),ms=[...new Set(l.map(t=>String(nd(t.tanggal)).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)).concat([T]))].sort().reverse();
   if(!OM||!ms.includes(OM))OM=T;
   const ml=l.filter(t=>String(nd(t.tanggal)).startsWith(OM)).sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal))),tot=ml.reduce((a,t)=>a+ +t.jumlah,0);
-  const nRec=(S.rec||[]).length,nAnn=(S.ann||[]).length;
+  const nRec=(S.rec||[]).length,nAnn=(S.ann||[]).filter(a=>!annDone(a)).length;
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:190px"><select onchange="OM=this.value;render()" aria-label="Month">${ms.map(m=>`<option value="${m}" ${m===OM?'selected':''}>${MON(m)}</option>`).join('')}</select></div>
    <div class="lbl">${ml.length} expenses · <b>${rp(tot)}</b></div>
    <button class="btn sec" id="recBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="recSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>Recurring${nRec?` · ${nRec}`:''}</button><button class="btn sec" id="annBtn" style="width:auto;margin:0;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="annSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Annually${nAnn?` · ${nAnn}`:''}</button></div>
@@ -1064,12 +1064,15 @@ function annFields(a={}){const o=annOpts(),y=today().slice(0,4),lab=m=>MON(m);re
   {k:'jumlah',label:'Amount for the whole period (Rp)',type:'number',val:a.jumlah||''}]}
 const cleanA=v=>{const back=l=>annOpts().find(m=>MON(m)===l)||'';return{kategori:ecap(v.kategori),catatan:v.catatan||'',dari:back(v.dari),sampai:back(v.sampai),jumlah:+v.jumlah||0}};
 const annOk=v=>{if(!v.kategori.trim())return err('Please enter a category.'),false;if(!v.dari||!v.sampai||v.sampai<v.dari)return err('"To month" must be the same as or after "From month".'),false;return true};
-function annSheet(){
-  closePop();$('#sheet').oninput=null;const l=[...(S.ann||[])].sort((a,b)=>String(nmo(b.dari)).localeCompare(String(nmo(a.dari))));
+// items whose last month is over are folded under "Show finished" (owner 2026-11-14: old years must not crowd the list)
+const annDone=a=>nmo(a.sampai)<today().slice(0,7);
+function annSheet(showOld){
+  closePop();$('#sheet').oninput=null;const all=[...(S.ann||[])].sort((a,b)=>String(nmo(b.dari)).localeCompare(String(nmo(a.dari)))),old=all.filter(annDone),l=showOld?all:all.filter(a=>!annDone(a));
   $('#sheet').innerHTML=`<h3>Annual expenses</h3><div class="lbl" style="margin:-8px 6px 12px">Paid at once for several months (e.g. store rent for a year). The amount is spread evenly over the months, one expense per month.</div>
-  <div class="card">${l.length?l.map(a=>{const n=annMonths(nmo(a.dari),nmo(a.sampai)).length;return `<div class="row" data-aid="${esc(a.id)}" onclick="editAnn('${a.id}')"><div class="grow"><div class="t">${esc(ecap(a.kategori))}</div><div class="lbl">${MON(nmo(a.dari))} – ${MON(nmo(a.sampai))} · ${n} months · ${rp(n?Math.floor((+a.jumlah||0)/n):0)}/month${a.catatan?' · '+esc(a.catatan):''}</div></div><b>${rp(a.jumlah)}</b></div>`}).join(''):empty('No annual expenses yet.')}</div>
+  <div class="card">${l.length?l.map(a=>{const n=annMonths(nmo(a.dari),nmo(a.sampai)).length;return `<div class="row" data-aid="${esc(a.id)}" onclick="editAnn('${a.id}')"><div class="grow"><div class="t">${esc(ecap(a.kategori))}</div><div class="lbl">${MON(nmo(a.dari))} – ${MON(nmo(a.sampai))} · ${n} months · ${rp(n?Math.floor((+a.jumlah||0)/n):0)}/month${a.catatan?' · '+esc(a.catatan):''}</div></div><b>${rp(a.jumlah)}</b></div>`}).join(''):empty(old.length?'No running annual expenses.':'No annual expenses yet.')}</div>
+  ${old.length?`<button class="btn sec" id="annOld" style="width:auto;padding:8px 14px;font-size:13px;margin:-4px 0 12px">${showOld?'Hide finished':'Show finished ('+old.length+')'}</button>`:''}
   <button class="btn" id="annAdd">+ Add annual expense</button><button class="btn sec" id="no" style="margin-top:8px">Close</button>`;
-  $('#no').onclick=close;$('#annAdd').onclick=addAnn;$('#bg').classList.add('open');
+  $('#no').onclick=close;$('#annAdd').onclick=addAnn;if($('#annOld'))$('#annOld').onclick=()=>annSheet(!showOld);$('#bg').classList.add('open');
 }
 function addAnn(){form('New annual expense',annFields(),v=>{const a={id:uid(),...cleanA(v)};if(!annOk(a))return false;(S.ann=S.ann||[]).push(a);annSync(a);save();setTimeout(annSheet,0)})}
 function editAnn(id){const a=(S.ann||[]).find(x=>x.id===id);if(!a)return;form('Edit annual expense',annFields(a),v=>{const n=cleanA(v);if(!annOk(n))return false;Object.assign(a,n);annSync(a);save();setTimeout(annSheet,0)},()=>{S.ann=S.ann.filter(x=>x.id!==id);S.tx=S.tx.filter(t=>!String(t.id).startsWith('a-'+id+'-'));save();setTimeout(annSheet,0)})}
