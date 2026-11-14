@@ -211,9 +211,9 @@ const today=()=>ymd(new Date());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring'};
+const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring',ann:'Annual'};
 const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian'};
-let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],pos:{},cfg:{url:'',pin:''}};
+let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],ann:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
 // Dates from Google Sheets can arrive as "2026-11-03T17:00:00.000Z"; turn them back into a local yyyy-mm-dd
@@ -248,7 +248,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=12;
+const NEED_CODE=13;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -688,7 +688,7 @@ function vFinancial(){
 const ECATS=CATS.filter(c=>c!=='Sales');
 const ecap=t=>{t=String(t||'').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Other'};
 const expList=()=>S.tx.filter(t=>t.jenis==='Expense');
-const expCats=()=>{const m={};expList().forEach(t=>{const k=ecap(t.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});(S.rec||[]).forEach(r=>{const k=ecap(r.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});if(!Object.keys(m).length)ECATS.forEach(c=>{m[c.toLowerCase()]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))};
+const expCats=()=>{const m={};expList().forEach(t=>{const k=ecap(t.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});(S.rec||[]).concat(S.ann||[]).forEach(r=>{const k=ecap(r.kategori);m[k.toLowerCase()]=m[k.toLowerCase()]||k});if(!Object.keys(m).length)ECATS.forEach(c=>{m[c.toLowerCase()]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))};
 function expFields(t={}){return[
   {k:'tanggal',label:'Date',type:'date',val:t.tanggal||today()},
   {k:'kategori',label:'Category',type:'combo',val:t.kategori?ecap(t.kategori):'',opts:expCats()},
@@ -1015,15 +1015,15 @@ function runRecurring(){
 // expense list grouped per day, newest day first (owner 2026-11-11, like the POS stock history): day header with the day's total
 const DAYL=d=>{const x=new Date(d+'T00:00'),t=today(),y=(()=>{const z=new Date();z.setDate(z.getDate()-1);return ymd(z)})();return (d===t?'Today · ':d===y?'Yesterday · ':'')+x.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})};
 function expDays(l){const g={};l.forEach(t=>{const d=String(nd(t.tanggal));(g[d]=g[d]||[]).push(t)});
-  return Object.keys(g).sort().reverse().map(d=>`<div class="dayh" data-day="${d}"><span>${DAYL(d)}</span><b>−${rp(g[d].reduce((a,t)=>a+ +t.jumlah,0))}</b></div><div class="card">${g[d].map(t=>`<div class="row" data-eid="${esc(t.id)}" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}${String(t.id).startsWith('r-')?' <span class="mu" title="Recurring">↻</span>':''}</div>${t.catatan?`<div class="lbl">${esc(t.catatan)}</div>`:''}</div><b class="neg">−${rp(t.jumlah)}</b></div>`).join('')}</div>`).join('')}
+  return Object.keys(g).sort().reverse().map(d=>`<div class="dayh" data-day="${d}"><span>${DAYL(d)}</span><b>−${rp(g[d].reduce((a,t)=>a+ +t.jumlah,0))}</b></div><div class="card">${g[d].map(t=>`<div class="row" data-eid="${esc(t.id)}" onclick="editTx('${t.id}')"><div class="grow"><div class="t">${esc(ecap(t.kategori))}${String(t.id).startsWith('r-')?' <span class="mu" title="Recurring">↻</span>':String(t.id).startsWith('a-')?' <span class="mu" title="Paid yearly, spread per month">· annual</span>':''}</div>${t.catatan?`<div class="lbl">${esc(t.catatan)}</div>`:''}</div><b class="neg">−${rp(t.jumlah)}</b></div>`).join('')}</div>`).join('')}
 function vOpsExp(){
   const l=expList(),T=today().slice(0,7),ms=[...new Set(l.map(t=>String(nd(t.tanggal)).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)).concat([T]))].sort().reverse();
   if(!OM||!ms.includes(OM))OM=T;
   const ml=l.filter(t=>String(nd(t.tanggal)).startsWith(OM)).sort((a,b)=>String(b.tanggal).localeCompare(String(a.tanggal))),tot=ml.reduce((a,t)=>a+ +t.jumlah,0);
-  const nRec=(S.rec||[]).length;
+  const nRec=(S.rec||[]).length,nAnn=(S.ann||[]).length;
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:190px"><select onchange="OM=this.value;render()" aria-label="Month">${ms.map(m=>`<option value="${m}" ${m===OM?'selected':''}>${MON(m)}</option>`).join('')}</select></div>
    <div class="lbl">${ml.length} expenses · <b>${rp(tot)}</b></div>
-   <button class="btn sec" id="recBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="recSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>Recurring${nRec?` · ${nRec}`:''}</button></div>
+   <button class="btn sec" id="recBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="recSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>Recurring${nRec?` · ${nRec}`:''}</button><button class="btn sec" id="annBtn" style="width:auto;margin:0;padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="annSheet()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Annually${nAnn?` · ${nAnn}`:''}</button></div>
   ${ml.length?expDays(ml):`<div class="card">${empty('No expenses in '+MON(OM)+' yet. Press the button above to add one.')}</div>`}
   <div class="lbl" style="padding:0 6px">Tap an expense to change or delete it. The full recap is in Finance › Transactions › Expense.</div>`;
 }
@@ -1044,6 +1044,35 @@ function recSheet(){
 const cleanR=v=>({...v,kategori:ecap(v.kategori),jumlah:+v.jumlah||0,next:v.next||today()});
 function addRec(){form('New recurring expense',recFields(),v=>{S.rec.push({id:uid(),...cleanR(v)});runRecurring();save();setTimeout(recSheet,0)})}
 function editRec(id){const r=S.rec.find(x=>x.id===id);if(!r)return;form('Edit recurring expense',recFields(r),v=>{Object.assign(r,cleanR(v));runRecurring();save();setTimeout(recSheet,0)},()=>{S.rec=S.rec.filter(x=>x.id!==id);save();setTimeout(recSheet,0)})}
+// ---- Annually (owner 2026-11-14): an expense paid at once for a range of months (e.g. store rent Jan–Dec), tab Annual
+// (id, kategori, jumlah, catatan, dari, sampai = yyyy-mm). Saving it writes one expense per month, dated the 1st, with
+// id a-<annual id>-<yyyy-mm> and amount = total / months (the rounding rest on the last month, so the months add up to the
+// total). Editing the item rewrites its months; deleting it removes them.
+const annMonths=(a,b)=>{const out=[];if(!/^\d{4}-\d{2}$/.test(a)||!/^\d{4}-\d{2}$/.test(b)||b<a)return out;let [y,m]=a.split('-').map(Number);while(out.length<120){const k=y+'-'+String(m).padStart(2,'0');out.push(k);if(k===b)break;if(++m>12){m=1;y++}}return out};
+const nmo=v=>String(nd(v)).slice(0,7);
+const annOpts=()=>{const y=+today().slice(0,4),l=[];for(let yy=y-2;yy<=y+2;yy++)for(let m=1;m<=12;m++)l.push(yy+'-'+String(m).padStart(2,'0'));return l};
+function annSync(a){
+  const ms=annMonths(nmo(a.dari),nmo(a.sampai)),tot=Math.round(+a.jumlah||0),per=ms.length?Math.floor(tot/ms.length):0,pre='a-'+a.id+'-';
+  S.tx=S.tx.filter(t=>!String(t.id).startsWith(pre)||ms.includes(String(t.id).slice(pre.length)));
+  ms.forEach((m,i)=>{const v=i===ms.length-1?tot-per*(ms.length-1):per,id=pre+m,row={id,jenis:'Expense',channel:'',tanggal:m+'-01',kategori:ecap(a.kategori),jumlah:v,catatan:(a.catatan?a.catatan+' · ':'')+'paid for '+MON(ms[0])+' – '+MON(ms[ms.length-1])};
+    const t=S.tx.find(x=>x.id===id);if(t)Object.assign(t,row);else S.tx.push(row)})}
+function annFields(a={}){const o=annOpts(),y=today().slice(0,4),lab=m=>MON(m);return[
+  {k:'kategori',label:'Category',type:'combo',val:a.kategori?ecap(a.kategori):'',opts:expCats()},
+  {k:'catatan',label:'Note',type:'text',val:a.catatan||''},
+  {k:'dari',label:'From month',type:'select',opts:o.map(lab),val:lab(a.dari?nmo(a.dari):y+'-01')},
+  {k:'sampai',label:'To month',type:'select',opts:o.map(lab),val:lab(a.sampai?nmo(a.sampai):y+'-12')},
+  {k:'jumlah',label:'Amount for the whole period (Rp)',type:'number',val:a.jumlah||''}]}
+const cleanA=v=>{const back=l=>annOpts().find(m=>MON(m)===l)||'';return{kategori:ecap(v.kategori),catatan:v.catatan||'',dari:back(v.dari),sampai:back(v.sampai),jumlah:+v.jumlah||0}};
+const annOk=v=>{if(!v.kategori.trim())return err('Please enter a category.'),false;if(!v.dari||!v.sampai||v.sampai<v.dari)return err('"To month" must be the same as or after "From month".'),false;return true};
+function annSheet(){
+  closePop();$('#sheet').oninput=null;const l=[...(S.ann||[])].sort((a,b)=>String(nmo(b.dari)).localeCompare(String(nmo(a.dari))));
+  $('#sheet').innerHTML=`<h3>Annual expenses</h3><div class="lbl" style="margin:-8px 6px 12px">Paid at once for several months (e.g. store rent for a year). The amount is spread evenly over the months, one expense per month.</div>
+  <div class="card">${l.length?l.map(a=>{const n=annMonths(nmo(a.dari),nmo(a.sampai)).length;return `<div class="row" data-aid="${esc(a.id)}" onclick="editAnn('${a.id}')"><div class="grow"><div class="t">${esc(ecap(a.kategori))}</div><div class="lbl">${MON(nmo(a.dari))} – ${MON(nmo(a.sampai))} · ${n} months · ${rp(n?Math.floor((+a.jumlah||0)/n):0)}/month${a.catatan?' · '+esc(a.catatan):''}</div></div><b>${rp(a.jumlah)}</b></div>`}).join(''):empty('No annual expenses yet.')}</div>
+  <button class="btn" id="annAdd">+ Add annual expense</button><button class="btn sec" id="no" style="margin-top:8px">Close</button>`;
+  $('#no').onclick=close;$('#annAdd').onclick=addAnn;$('#bg').classList.add('open');
+}
+function addAnn(){form('New annual expense',annFields(),v=>{const a={id:uid(),...cleanA(v)};if(!annOk(a))return false;(S.ann=S.ann||[]).push(a);annSync(a);save();setTimeout(annSheet,0)})}
+function editAnn(id){const a=(S.ann||[]).find(x=>x.id===id);if(!a)return;form('Edit annual expense',annFields(a),v=>{const n=cleanA(v);if(!annOk(n))return false;Object.assign(a,n);annSync(a);save();setTimeout(annSheet,0)},()=>{S.ann=S.ann.filter(x=>x.id!==id);S.tx=S.tx.filter(t=>!String(t.id).startsWith('a-'+id+'-'));save();setTimeout(annSheet,0)})}
 function vOps(){
   return `<h1>Operational</h1><div class="seg sc">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense']].map(s=>`<button class="${ops===s[0]?'on':''}" onclick="ops='${s[0]}';render()">${s[1]}</button>`).join('')}</div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp}[ops]||vStock)();
 }

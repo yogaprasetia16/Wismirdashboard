@@ -29,6 +29,8 @@ const HEADERS = {
   Penjualan: ['id', 'bulan', 'toko', 'sku', 'qty', 'total'],
   // Recurring = pengeluaran berulang (dashboard > Operational > Expense > Recurring): repeat Monthly/Weekly/Daily/Yearly, next = tanggal berikutnya
   Recurring: ['id', 'kategori', 'jumlah', 'catatan', 'repeat', 'next'],
+  // Annual = pengeluaran yang dibayar sekaligus di awal (dashboard > Operational > Expense > Annually), dibagi rata per bulan dari bulan 'dari' sampai 'sampai' (yyyy-mm)
+  Annual: ['id', 'kategori', 'jumlah', 'catatan', 'dari', 'sampai'],
 };
 
 // ---- Tab milik POS (baris ditambah / diperbarui per id, tidak pernah dihapus massal) ----
@@ -48,7 +50,7 @@ const UPD = '_upd'; // waktu server saat baris terakhir diubah (untuk sync berta
 const NUM = {
   Keuangan: ['jumlah'], Stok: ['stokToko', 'stokOnline', 'min', 'harga', 'cogs'], Tugas: ['every'],
   Purchasing: ['qty', 'total'], Production: ['qty', 'matQty', 'unitCost', 'total'],
-  Marketing: ['budget', 'spent', 'revenue'], Supplier: ['total'], Penjualan: ['qty', 'total'], Recurring: ['jumlah'],
+  Marketing: ['budget', 'spent', 'revenue'], Supplier: ['total'], Penjualan: ['qty', 'total'], Recurring: ['jumlah'], Annual: ['jumlah'],
   'POS Stok': ['qty'], 'POS Kasir': ['total', 'dibayar', 'kembalian'],
   'POS Shift': ['kasAwal', 'penjualanTunai', 'kasMasuk', 'kasKeluar', 'kasSeharusnya', 'tunai', 'transfer', 'edc', 'totalPenjualan', 'transaksi'],
 };
@@ -102,7 +104,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 12;
+const CODE_VERSION = 13;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.

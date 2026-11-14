@@ -417,3 +417,21 @@ Kalau masih sering putus, cek tiga hal berikut:
 1. **Pengaturan tablet › Baterai**: matikan penghemat baterai untuk Chrome, atau atur Chrome ke "Tidak dibatasi".
 2. **Printer**: kalau ada pengaturan "auto off" atau "sleep", matikan atau perpanjang waktunya.
 3. Jarak printer dan tablet jangan terlalu jauh, dan jangan terhalang tembok atau logam.
+
+## 27. Pengeluaran yang dibayar sekaligus di awal (Operational › Expense › Annually)
+
+Untuk pengeluaran yang dibayar sekaligus untuk beberapa bulan, misalnya sewa toko setahun.
+
+1. Buka **Operational › Expense**, lalu tekan **Annually** (di samping Recurring).
+2. Tekan **+ Add annual expense**.
+3. Isi form:
+   - **Category**, misalnya Sewa toko.
+   - **Note** (boleh dikosongkan), misalnya Toko A.
+   - **From month** dan **To month**, misalnya January sampai December.
+   - **Amount**: total yang dibayar untuk seluruh periode, misalnya 100.000.000.
+4. Tekan **Save**. Setiap bulan dalam rentang itu otomatis mendapat pengeluaran sebesar total dibagi jumlah bulan. Contoh: 100 juta untuk 12 bulan menjadi 8.333.333 per bulan. Sisa pembulatan masuk ke bulan terakhir, jadi totalnya tetap pas 100 juta.
+5. Di daftar pengeluaran, baris ini diberi tanda **· annual**.
+
+Kalau item Annually diubah (jumlah, rentang bulan, atau kategori), semua bulannya ikut diperbarui. Kalau item itu dihapus (ketuk dua kali), semua bulannya ikut terhapus.
+
+Fitur ini butuh **Code.gs versi 13**.
