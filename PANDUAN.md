@@ -443,7 +443,6 @@ Fitur ini butuh **Code.gs versi 13**.
 ## 28. Valuation di Finance › Financial
 
 - **Product value**: stok barang jadi saat ini × COGS.
-- **Material value**: untuk setiap bahan, (jumlah dibeli di Production › Purchasing kategori **Textile** − jumlah terpakai di Manufacturing) × harga rata-rata per unit. Contoh: beli 150 m linen seharga Rp8 juta (rata-rata Rp53.333/m) dan terpakai 90 m. Sisanya 60 m × Rp53.333 = Rp3,2 juta.
-  - **Nama bahan di Purchasing dan Manufacturing harus sama**, misalnya "Linen" dan "Linen". Huruf besar/kecil tidak masalah. Bahan yang namanya tidak ditemukan di Purchasing akan ditulis merah dan tidak dihitung.
+- **Material value**: semua bahan kategori **Textile** digabung, tanpa melihat nama bahan. Contoh: total beli 1.000 dengan total bayar Rp10.000.000, jadi rata-rata Rp10.000. Terpakai di Manufacturing 800, sisa 200. Nilai bahan = 200 × Rp10.000 = Rp2.000.000.
 - **Cash**: total omzet sepanjang waktu dikurangi total Purchasing (semua kategori, termasuk Zakat dan Dividen), total Manufacturing, Supplier yang sudah ditandai bayar, dan semua Expense. Rinciannya ada di tabel Cash.
 - **Total valuation** = Cash + Material value + Product value.

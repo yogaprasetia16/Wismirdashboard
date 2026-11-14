@@ -24,7 +24,7 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  let g=await gen();
  ok(g.length===12&&g[0]===Y+'-01-01:8333333'&&g[11]===Y+'-12-01:8333337','12 monthly expenses of 8.333.333 (last one 8.333.337, total 100.000.000): '+g[0]+' … '+g[11]);
  ok(await D.evaluate(()=>S.tx.filter(t=>String(t.id).startsWith('a-')).reduce((a,t)=>a+t.jumlah,0))===100000000,'months add up to the total');
- ok((await D.textContent('#sheet')).includes('12 months'),'annual list shows the range and months');
+ await D.waitForSelector('#sheet [data-aid]');ok((await D.textContent('#sheet')).includes('12 months'),'annual list shows the range and months');
  await until(async()=>{const o=await dump();return rows(o,'Annual').length===1&&rows(o,'Keuangan').filter(r=>String(r.id).startsWith('a-')).length===12},10000,'synced');
  ok(true,'saved on the Sheet: tab Annual + 12 expenses');
  // the month view shows it
