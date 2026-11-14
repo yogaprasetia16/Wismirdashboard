@@ -87,7 +87,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .stk{display:flex;align-items:center;gap:9px}.stk button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:18px;cursor:pointer}
 .seg{display:inline-flex;background:var(--seg);border-radius:99px;padding:3px;margin-bottom:14px}
 .seg button{border:0;background:none;padding:8px 18px;border-radius:99px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--mute)}
-.seg button.on{background:var(--dark);color:#fff}.seg.ico{gap:2px}.seg.ico button{width:42px;height:42px;padding:0;display:grid;place-items:center}.seg.ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg button.on{background:var(--dark);color:#fff}.seg.ico{gap:2px}.segrow{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:12px}.segrow .seg{margin:0!important}.seg.ico button{width:42px;height:42px;padding:0;display:grid;place-items:center}.seg.ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .btn{background:var(--dark);color:#fff;border:0;border-radius:99px;padding:13px 16px;font-weight:600;font-size:14px;cursor:pointer;width:100%}
 .btn.sec{background:var(--sec);color:var(--ink)}.btn.del{background:none;color:var(--red)}
 .card .btn+.btn{margin-top:10px}
@@ -791,7 +791,9 @@ function vTx(){
   const fseg=`<div class="seg ico" style="margin-bottom:10px">${[['tx','Transactions'],['report','Report'],['fin','Financial']].map(x=>`<button class="${fv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="fv='${x[0]}';render()"><svg viewBox="0 0 24 24">${FIC[x[0]]}</svg></button>`).join('')}</div>`;
   if(fv==='report')return `<h1>Finance</h1>`+fseg+vReport();
   if(fv==='fin')return `<h1>Finance</h1>`+fseg+vFinancial();
-  return `<h1>Finance</h1>`+fseg+`<div class="seg" style="margin-bottom:12px">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" onclick="txf='${s}';render()">${s}</button>`).join('')}</div>`+(txf==='Expense'?vExpense():vSales());
+  // owner 2026-11-14: Income | Expense as round icons too, same size, beside the Finance tabs with a little space
+  const TIC={Income:'<path d="M12 4v11M7 10l5 5 5-5M4 20h16"/>',Expense:'<path d="M12 20V9M7 14l5-5 5 5M4 4h16"/>'};
+  return `<h1>Finance</h1><div class="segrow">`+fseg+`<div class="seg ico">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" title="${s}" aria-label="${s}" onclick="txf='${s}';render()"><svg viewBox="0 0 24 24">${TIC[s]}</svg></button>`).join('')}</div></div>`+(txf==='Expense'?vExpense():vSales());
 }
 
 function prodFields(p={}){return[
