@@ -7,7 +7,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  const br=await chromium.launch();const errs=[];
  const D=await (await br.newContext({viewport:{width:1280,height:900}})).newPage();D.on('pageerror',e=>errs.push(e.message));
  await D.goto(B+'/dashboard.html');await D.evaluate(()=>{tab='tx';render()});
- const top=await D.$eval('#app .seg',s=>[...s.querySelectorAll('button')].map(x=>x.textContent));
+ const top=await D.$eval('#app .seg',s=>[...s.querySelectorAll('button')].map(x=>x.getAttribute('aria-label')||x.textContent));
  const sub=await D.$$eval('#app .seg:nth-of-type(2) button',b=>b.map(x=>x.textContent));
  ok(top.join()==='Transactions,Report,Financial','top tabs: '+top.join(', '));
  ok(sub.join()==='Income,Expense','Transactions has Income | Expense, no All: '+sub.join(', '));

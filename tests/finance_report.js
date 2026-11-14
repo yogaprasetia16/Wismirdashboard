@@ -26,7 +26,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  await D.evaluate(()=>pullSheets());await until(()=>D.evaluate(()=>(S.pos.stok||[]).length===2),10000,'pull');
  // Report
  await D.evaluate(()=>{tab='tx';fv='report';FM='';render()});
- const seg=await D.$$eval('#app .seg:first-of-type button',b=>b.map(x=>x.textContent));
+ const seg=await D.$$eval('#app .seg:first-of-type button',b=>b.map(x=>x.getAttribute('aria-label')||x.textContent));
  ok(seg.join()==='Transactions,Report,Financial','Finance tabs: '+seg.join(', '));
  const t=await D.textContent('#app');
  ok(t.includes('February 2026')&&!t.includes('Sample data'),'report opens on the latest month with data, no "Sample data" tag');
@@ -48,7 +48,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  await D.click('#sheet #no');
  await D.screenshot({path:'fin-report.png',fullPage:true});
  // Financial
- await D.click('#app .seg button >> text=Financial');
+ await D.click('#app .seg button[aria-label=Financial]');
  const f=await D.textContent('#app');
  ok(f.includes('January 2025 – February 2026')&&f.includes('2026 (YTD)'),'all time period and 2026 as year to date');
  const yr=await D.$$eval('.viz tbody tr',r=>r.map(x=>[...x.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|')));
