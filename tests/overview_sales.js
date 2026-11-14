@@ -28,7 +28,7 @@ const nav=async(pg,t)=>{await pg.click('#menuBtn');await pg.click('#menu [data-t
  ok(t.includes("Today's sales")&&t.includes('Rp 150.000')&&!t.includes('Net profit'),'big number = today\'s sales from the open shift (150.000)');
  ok(t.includes('This week')&&!t.includes('This month')&&t.includes('Sales, last 7 days'),'labels: This week, Sales, last 7 days');
 const inc=await D.evaluate(()=>sums(monthTx()).i+150000).then(v=>v.toLocaleString('id-ID'));
- ok(t.includes('Income this month Rp '+inc)&&t.includes('Expenses this month Rp 20.000'),'income this month includes the open shift; expenses of this month');
+ ok(t.includes("'s income Rp "+inc)&&t.includes("'s expense Rp 20.000"),'income this month includes the open shift; expenses of this month');
  const bars=await D.$$eval('.hero .bars > div',e=>e.map(x=>({l:x.textContent.trim(),h:parseFloat(x.querySelector('i').style.height)})));
  ok(bars.length===7&&bars[6].l==='Today'&&bars[6].h===90&&bars[5].h===30,'7 bars, last = Today (tallest), yesterday 50.000 = a third: '+JSON.stringify(bars.slice(5)));
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');
