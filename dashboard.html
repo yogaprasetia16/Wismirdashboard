@@ -485,16 +485,19 @@ function vHome(){
   // income entries (incl. closed POS shifts) + receipts of shifts not closed yet (POS Harian, Code.gs v12).
   const {o}=sums(monthTx()),low=lowStock(),pm=posStock(),m0=today().slice(0,7);
   const i=sums(monthTx()).i+liveSales().filter(r=>r.tanggal.slice(0,7)===m0).reduce((a,r)=>a+r.total,0);
+  const from=(()=>{const d=new Date();d.setDate(d.getDate()-6);return ymd(d)})(),sold={};
+  P('stok').forEach(m=>{if(m.status==='void')return;const t=String(nd(m.tanggal));if(t<from||t>today())return;const q=+m.qty||0;if(m.ke==='Sale')sold[m.pid]=(sold[m.pid]||0)+q;else if(m.dari==='Sale')sold[m.pid]=(sold[m.pid]||0)-q});
+  const top4=Object.keys(sold).map(id=>({p:S.products.find(x=>String(x.id)===String(id)),q:sold[id]})).filter(x=>x.p&&x.q>0).sort((a,b)=>b.q-a.q).slice(0,4);
   const days=[...Array(7)].map((_,n)=>{const d=new Date();d.setDate(d.getDate()-6+n);const k=ymd(d);
     return{l:n===6?'Today':d.toLocaleDateString('en-GB',{weekday:'short'}),v:daySales(k)}});
   const mx=Math.max(1,...days.map(d=>d.v));
   const tasks=dueTasks().sort((a,b)=>(a.tempo||'9').localeCompare(b.tempo||'9'));
-  const run=[...S.prod].sort(prodSort).slice(0,4);
+  const run=S.prod.filter(p=>p.status!=='Done').sort(prodSort); // owner 2026-11-14: only production still in progress
   return `<div class="cols"><section class="panel"><div class="ph"><h2>This week</h2><span class="live"><i></i>Sales, last 7 days</span></div>
   <div class="hero"><div class="bars${heroAnim?' anim':''}">${days.map((d,i)=>`<div><i style="height:${d.v/mx*90}px;--d:${i*70}ms"></i>${d.l}</div>`).join('')}</div>
   <div><span class="tag">This week</span><div class="hl">Today's sales</div><div class="hbig" data-cu="${heroAnim?days[6].v:''}">${rp(days[6].v)}</div><div class="hs">Income this month ${rp(i)}<br>Expenses this month ${rp(o)}</div></div></div>
-  <div class="sub">Low stock</div><div class="g2">${low.length?low.slice(0,6).map(p=>`<div class="it" onclick="editProduct('${p.id}')"><span class="th">${esc(String(p.nama||'?')[0])}</span><div class="grow"><div class="t">${esc(p.nama)}</div><div class="lbl">${esc(p.varian)}</div></div><span class="pill warn">${prodTotal(p,pm)} left</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">All stock levels are fine</div>'}</div>
-  <div class="sub">Recent production</div><div class="g2">${run.length?run.map(p=>`<div class="it" onclick="editProd('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${p.qty} pcs${p.date?' · '+fmtD(p.date):''}</div></div><span class="pill">${rp(p.total)}</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">No production orders yet</div>'}</div></section>
+  <div class="sub">Top 4 products · last 7 days</div><div class="g2" id="top4">${top4.length?top4.map((x,i)=>`<div class="it" onclick="editProduct('${x.p.id}')"><span class="th">${i+1}</span><div class="grow"><div class="t">${esc(x.p.nama)}</div><div class="lbl">${esc([x.p.sku,x.p.kategori].filter(Boolean).join(' · '))}</div></div><span class="pill">${x.q.toLocaleString('id-ID')} pcs</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">No sales in the last 7 days yet</div>'}</div>
+  <div class="sub">Ongoing production</div><div class="g2" id="ongoing">${run.length?run.map(p=>`<div class="it" onclick="editProd('${p.id}')"><span class="th">${esc((p.name||'?')[0])}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="lbl">${p.qty} pcs${p.date?' · '+fmtD(p.date):''}</div></div><span class="pill">${rp(p.total)}</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">No production in progress</div>'}</div></section>
   <section class="panel"><div class="ph"><h2>Needs attention</h2>${tasks.length?`<span class="cnt">${tasks.length}</span>`:''}</div>
   ${tasks.length?tasks.slice(0,5).map(t=>`<div class="it tk"><span class="th">✓</span><div class="grow"><div class="t">${esc(t.judul)}</div><div class="lbl">${esc(t.div||'Operational')} · ${t.tempo?(t.tempo===today()?'Today':fmtD(t.tempo)):'No date'}${t.repeat&&t.repeat!=='None'?' · ↻ '+repLbl(t):''}</div><div class="acts"><button class="ok" onclick="tog('${t.id}')">Done</button><button class="ol" onclick="editTask('${t.id}')">Edit</button></div></div></div>`).join(''):empty('Nothing due. Add one in the Reminders tab.')}</section></div>`;
 }
