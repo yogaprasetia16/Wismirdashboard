@@ -18,7 +18,7 @@ const PASTE=['date\tcategory\tname\tquantity\ttotal payment','06/09/2024\tTextil
  await D.evaluate(()=>addPurch());
  ok((await D.$$eval('#sheet [data-k=category] option',o=>o.map(x=>x.value))).join()==='Textile,Item,Zakat,Dividen','category options: Textile, Item, Zakat, Dividen (no Karmila product)');
  await D.click('#no');
- await D.click('text=Import purchases');await D.fill('#ptext',PASTE);
+ await D.click('[aria-label="Import purchases"]');await D.fill('#ptext',PASTE);
  const pv=txt(await D.textContent('#pprev'));
  ok(pv.includes('5 purchases')&&pv.includes('Rp 41.370.150')&&pv.includes('Textile 2')&&pv.includes('Item 3'),'preview: 5 purchases, total, per category: '+pv);
  await D.click('#pgo');await D.waitForTimeout(200);
@@ -34,7 +34,7 @@ const PASTE=['date\tcategory\tname\tquantity\ttotal payment','06/09/2024\tTextil
  const id=await D.evaluate(()=>S.purch.find(p=>p.name==='linen a').id);await D.click('[data-pid="'+id+'"]');await D.fill('#sheet [data-k=qty]','70,5');await D.click('#ok');
  ok(await D.evaluate(id=>S.purch.find(p=>p.id===id).qty===70.5,id),'editing keeps a decimal quantity (70,5)');
  // re-import replaces
- await D.click('text=Import purchases');await D.fill('#ptext',PASTE);ok(txt(await D.textContent('#pprev')).includes('5 rows replace'),'re-import: rows replace');await D.click('#pgo');
+ await D.click('[aria-label="Import purchases"]');await D.fill('#ptext',PASTE);ok(txt(await D.textContent('#pprev')).includes('5 rows replace'),'re-import: rows replace');await D.click('#pgo');
  ok(await D.evaluate(()=>S.purch.length===5),'no double rows after re-import');
  await until(async()=>{const o=await dump();return o.Purchasing&&o.Purchasing.v.length===6},10000,'synced');
  const pr=(await dump()).Purchasing.v;ok(pr[0].join()==='id,date,name,category,qty,total'&&pr.slice(1).some(r=>r[1]==='2025-05-20'&&r[4]===1108.1),'saved in the Purchasing tab');

@@ -14,7 +14,7 @@ const PASTE=['Tanggal\tJumlah','05/02/2025\tRp12.500.000','20/02/2025\t2.500.000
  await D.goto(B+'/dashboard.html');await D.evaluate(()=>{tab='set';render()});await D.fill('#cu',URL_);await D.fill('#cp','9999');await D.evaluate(()=>saveCfg());
  await until(()=>D.evaluate(()=>S.cfg.pulled===1),10000,'dash');
  await D.evaluate(()=>{tab='prod';pt='supp';render()});
- await D.click('text=Import payments');await D.fill('#stp',PASTE);
+ await D.click('[aria-label="Import payments"]');await D.fill('#stp',PASTE);
  const pv=txt(await D.textContent('#stpv'));
  ok(pv.includes('4 payments → 3 months')&&pv.includes('Rp 32.000.000')&&pv.includes('January 2025: Rp 15.000.000')&&pv.includes('2 payments')&&pv.includes('December 2025: Rp 8.000.000')&&pv.includes('1 rows skipped'),'preview: payments mapped to the month before, same-month payments added: '+pv);
  await D.click('#stgo');await D.waitForTimeout(200);
@@ -28,7 +28,7 @@ const PASTE=['Tanggal\tJumlah','05/02/2025\tRp12.500.000','20/02/2025\t2.500.000
  await D.click('#no');
  await D.evaluate(()=>{PRY='2025';render()});
  // re-import replaces (no doubling)
- await D.click('text=Import payments');await D.fill('#stp',PASTE);ok(txt(await D.textContent('#stpv')).includes('3 months replace'),'re-import replaces those months');await D.click('#stgo');
+ await D.click('[aria-label="Import payments"]');await D.fill('#stp',PASTE);ok(txt(await D.textContent('#stpv')).includes('3 months replace'),'re-import replaces those months');await D.click('#stgo');
  ok(await D.evaluate(()=>S.supp.length===3&&S.supp.find(x=>x.bulan==='2025-01').total===15000000),'still 3 months, January still Rp 15.000.000');
  // remove one (two taps)
  await D.evaluate(()=>{PRY='2025';render()});await D.click('[data-supp="2025-02"]');await D.click('#sPaid');ok((await D.textContent('#sPaid')).includes('Tap again'),'removing asks for a second tap');await D.click('#sPaid');
