@@ -31,6 +31,7 @@ const txt=s=>s.replace(/\s/g,' ');
  const tot=await p.evaluate(v=>fM(v),-500000+2933333+product);
  ok(k.includes('Valuation'+txt(tot))&&k.includes('Cash')&&k.includes('Material'),'total valuation = cash + material + product: '+k.slice(0,160));
  ok(!(await p.textContent('#app')).includes('Not tracked yet'),'"Not tracked yet" is gone');
- ok((await p.textContent('#matCard')).includes('Used in Manufacturing')&&(await p.textContent('#cashCard')).includes('Manufacturing'),'material table and cash breakdown shown');
+ await p.click('#valKpi .vcol.c1');const mt=await p.textContent('#matCard');await p.click('#sheet #no');await p.waitForTimeout(250);await p.click('#valKpi .vcol.c0');const ct=await p.textContent('#cashCard');await p.click('#sheet #no');
+ ok(mt.includes('Used in Manufacturing')&&ct.includes('Manufacturing'),'material table and cash breakdown open from the valuation bars');
  await p.$eval('#valKpi',e=>e.scrollIntoView());await p.screenshot({path:'valuation.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

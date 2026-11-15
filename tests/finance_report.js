@@ -50,16 +50,19 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  // Financial
  await D.click('#app .seg button[aria-label=Financial]');
  const f=await D.textContent('#app');
- ok(f.includes('January 2025 – February 2026')&&f.includes('2026 (YTD)'),'all time period and 2026 as year to date');
- const yr=await D.$$eval('.viz tbody tr',r=>r.map(x=>[...x.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|')));
+ ok(f.includes('January 2025 – February 2026')&&f.replace(/\s/g,' ').includes('2026YTD'),'all time period and 2026 as year to date');
+ await D.click('#yrCard .lnkt');await D.waitForSelector('#sheet .viz');
+ const yr=await D.$$eval('#sheet .viz tbody tr',r=>r.map(x=>[...x.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|')));
  // 2026: rev 5.000.000, cost 42×60000 + 14×20000 = 2.800.000; growth vs Jan–Feb 2025 (3.250.000) = +53,8%
  ok(yr[0]==='2026 (YTD)|Rp 5,0 jt|Rp 2,8 jt|Rp 2,2 jt|58|▲ 53,8%','2026 row: revenue, cost, gross profit, items, growth: '+yr[0]);
- await D.waitForTimeout(1200); // numbers count up when Financial opens
+ await D.click('#sheet #no');await D.waitForTimeout(1200); // numbers count up when Financial opens
  const kn=await D.$$eval('#revCard .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(kn[0]==='Rp 8,3 jt'&&kn[1]==='93 pcs','all-time revenue Rp 8,3 jt and 93 pcs: '+kn.slice(0,2).join(' | '));
  const vk=await D.$$eval('#valKpi .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(vk[3]==='Rp 0,5 jt'&&vk[2]==='Rp 0,0 jt'&&vk[1]!=='–','valuation (owner 2026-11-14): product 7×60000 + 3×20000 = Rp 0,5 jt; no textile = material 0; cash computed: '+vk.join(' | '));
- ok((await D.$$eval('.stab',x=>x.length))>=4,'store, product, year and SKU tables');
+ ok(await D.isVisible('#stCard .mrank')&&await D.isVisible('#pdCard .mrank')&&await D.isVisible('#yrCard .ychart'),'one-screen Financial: yearly growth, store and product ranking cards (owner 2026-11-15)');
+ for(const [c,id] of [['c0','#cashCard'],['c1','#matCard'],['c2','#skuCard']]){await D.click('#valKpi .vcol.'+c);ok(await D.isVisible('#sheet '+id),'tapping a valuation bar opens its details: '+id);await D.click('#sheet #no');await D.waitForTimeout(250)}
+ await D.click('#stCard .lnkt');ok((await D.$$('#sheet .stab tbody tr')).length>=1,'"All" opens the full store ranking');await D.click('#sheet #no');await D.waitForTimeout(250);
  await D.screenshot({path:'fin-financial.png',fullPage:true});
  const Ph=await (await br.newContext({viewport:{width:390,height:844}})).newPage();Ph.on('pageerror',e=>errs.push('phone: '+e.message));
  await Ph.goto(B+'/dashboard.html');await Ph.evaluate(()=>{tab='tx';fv='report';render()});
