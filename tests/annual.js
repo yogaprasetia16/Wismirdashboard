@@ -45,7 +45,7 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  ok(true,'… also on the Sheet');
  // finished items are folded away (owner 2026-11-14)
  await D.evaluate(Y=>{S.ann.push({id:'old1',kategori:'Sewa toko',jumlah:1200,catatan:'',dari:(+Y-1)+'-01',sampai:(+Y-1)+'-12'},{id:'new1',kategori:'Sewa toko',jumlah:2400,catatan:'',dari:Y+'-01',sampai:Y+'-12'});annSync(S.ann[0]);annSync(S.ann[1]);save();close();tab='ops';ops='exp';render()},Y);await D.waitForTimeout(400);
- ok((await D.textContent('#annBtn')).includes('· 1'),'button counts only running items');
+ ok((await D.textContent('#annBtn')).trim()==='1','button counts only running items');
  await D.click('#annBtn');
  ok((await D.$$('#sheet [data-aid]')).length===1&&(await D.textContent('#annOld')).includes('Show finished (1)'),'last year\'s item is hidden under "Show finished (1)"');
  await D.click('#annOld');ok((await D.$$('#sheet [data-aid]')).length===2,'"Show finished" lists it again');
