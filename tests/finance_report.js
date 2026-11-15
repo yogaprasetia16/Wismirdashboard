@@ -54,7 +54,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  const yr=await D.$$eval('.viz tbody tr',r=>r.map(x=>[...x.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|')));
  // 2026: rev 5.000.000, cost 42×60000 + 14×20000 = 2.800.000; growth vs Jan–Feb 2025 (3.250.000) = +53,8%
  ok(yr[0]==='2026 (YTD)|Rp 5,0 jt|Rp 2,8 jt|Rp 2,2 jt|58|▲ 53,8%','2026 row: revenue, cost, gross profit, items, growth: '+yr[0]);
- const kn=await D.$$eval('.kp3 .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
+ const kn=await D.$$eval('#revCard .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(kn[0]==='Rp 8,3 jt'&&kn[1]==='93 pcs','all-time revenue Rp 8,3 jt and 93 pcs: '+kn.slice(0,2).join(' | '));
  const vk=await D.$$eval('#valKpi .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(vk[3]==='Rp 0,5 jt'&&vk[2]==='Rp 0,0 jt'&&vk[1]!=='–','valuation (owner 2026-11-14): product 7×60000 + 3×20000 = Rp 0,5 jt; no textile = material 0; cash computed: '+vk.join(' | '));
