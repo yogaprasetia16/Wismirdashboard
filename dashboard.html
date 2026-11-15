@@ -192,10 +192,13 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .hfil{display:grid;gap:0 10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:6px}
 /* owner 2026-11-15: Cash / Material / Product as slim bars stacked beside the valuation total */
 #valKpi{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-content:center;align-items:center;gap:8px 18px}
-#valKpi .vmain{grid-column:1;grid-row:1/span 3}
+#valKpi .vmain{grid-column:1}
+.vchart{grid-column:2;display:flex;align-items:flex-end;gap:12px;height:100%;min-height:150px}
+.vcol{flex:1;min-width:0;text-align:center}.vcol i{display:block;width:100%;max-width:56px;margin:0 auto 6px;border-radius:8px;background:var(--viz1)}.vcol:last-child i{background:var(--acc)}.vcol i.nb{background:var(--red)}
+.vcol .lbl{font-size:11.5px}.fintop .vcol .kn{font-size:14px;margin:0;white-space:nowrap}#valKpi .kn.vbig{white-space:nowrap}@media (max-width:1180px) and (min-width:521px){#valKpi .kn.vbig{font-size:26px}.fintop .vcol .kn{font-size:12px}.vchart{gap:8px}}
 #valKpi .vcell{grid-column:2;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;min-height:0!important;padding:9px 14px!important;border-radius:99px}
 #valKpi .vcell .kn{margin:0;font-size:15px}
-@media (max-width:520px){#valKpi{grid-template-columns:1fr}#valKpi .vmain{grid-row:auto}#valKpi .vcell{grid-column:1}}
+@media (max-width:520px){#valKpi{grid-template-columns:1fr}.vchart{grid-column:1;min-height:140px}}
 </style>
 </head>
 <body>
@@ -697,7 +700,7 @@ function vFinancial(){
  const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q)),mat=matRows(),cc=cashCalc(aRev);
  return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
  <div class="fintop"><div class="card" id="valKpi"><div class="vmain"><div class="lbl">Valuation</div><div class="kn vbig${cc.cash+mat.val+skuV<0?' neg':''}">${fM(cc.cash+mat.val+skuV)}</div><div class="lbl">Cash + material + product</div></div>
-  <div class="vcell"><div class="lbl">Cash</div><div class="kn${cc.cash<0?' neg':''}">${fM(cc.cash)}</div></div><div class="vcell"><div class="lbl">Material</div><div class="kn">${fM(mat.val)}</div></div><div class="vcell"><div class="lbl">Product</div><div class="kn">${fM(skuV)}</div></div></div>
+  <div class="vchart">${(()=>{const L=[['Cash',cc.cash],['Material',mat.val],['Product',skuV]],mx=Math.max(1,...L.map(x=>Math.abs(x[1])));return L.map(x=>`<div class="vcol"><i class="${x[1]<0?'nb':''}" style="height:${Math.max(4,Math.round(Math.abs(x[1])/mx*92))}px"></i><div class="lbl">${x[0]}</div><div class="kn${x[1]<0?' neg':''}">${fM(x[1])}</div></div>`).join('')})()}</div></div>
  <div class="card fsplit" id="revCard"><div><div class="lbl">Total revenue</div><div class="kn">${fM(aRev)}</div></div><div><div class="lbl">Product sold</div><div class="kn">${aItems.toLocaleString('id-ID')} pcs</div></div></div>
  <div class="card fsplit" id="ageCard"><div><div class="lbl">Selling for</div><div class="kn">${since.age}</div></div><div><div class="lbl">Since</div><div class="kn sm">${since.lbl}</div></div></div></div>
  <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${storeRank(fGroup(all,'st'),aRev,false)}</div>
