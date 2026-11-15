@@ -195,7 +195,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 #valKpi .vmain{grid-column:1}
 .vchart{grid-column:2;display:flex;align-items:flex-end;gap:12px;height:100%;min-height:150px}
 .vcol{flex:1;min-width:0;text-align:center}.vcol i{display:block;width:100%;max-width:56px;margin:0 auto 6px;border-radius:8px;background:var(--viz1)}.vcol:last-child i{background:var(--acc)}.vcol i.nb{background:var(--red)}
-.vcol .lbl{font-size:11.5px}.fintop .vcol .kn{font-size:14px;margin:0;white-space:nowrap}#valKpi .kn.vbig{white-space:nowrap}@media (max-width:1180px) and (min-width:521px){#valKpi .kn.vbig{font-size:26px}.fintop .vcol .kn{font-size:12px}.vchart{gap:8px}}
+.vcol .lbl{font-size:11.5px}.vchart.anim i{transform-origin:bottom;animation:barUp .75s cubic-bezier(.2,.9,.25,1.12) both;animation-delay:var(--d,0ms)}@media (prefers-reduced-motion:reduce){.vchart.anim i{animation:none}}.fintop .vcol .kn{font-size:14px;margin:0;white-space:nowrap}#valKpi .kn.vbig{white-space:nowrap}@media (max-width:1180px) and (min-width:521px){#valKpi .kn.vbig{font-size:26px}.fintop .vcol .kn{font-size:12px}.vchart{gap:8px}}
 #valKpi .vcell{grid-column:2;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;min-height:0!important;padding:9px 14px!important;border-radius:99px}
 #valKpi .vcell .kn{margin:0;font-size:15px}
 @media (max-width:520px){#valKpi{grid-template-columns:1fr}.vchart{grid-column:1;min-height:140px}}
@@ -466,12 +466,14 @@ $('#sync').onclick=()=>{if(!syncN)pullSheets()};
 const monthTx=()=>allTx().filter(t=>String(t.tanggal).startsWith(today().slice(0,7)));
 function sums(l){let i=0,o=0;l.forEach(t=>t.jenis==='Income'?i+=+t.jumlah:o+=+t.jumlah);return{i,o}}
 let locked=false;
-let prevTab=null,heroAnim=false;
-function countUp(){const e=document.querySelector('.hbig[data-cu]');if(!e||!e.dataset.cu||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const v=+e.dataset.cu,t0=performance.now(),d=900;e.dataset.cu='';const step=t=>{const k=Math.min(1,(t-t0)/d),x=1-Math.pow(1-k,3);e.textContent=rp(Math.round(v*x));if(k<1&&e.isConnected)requestAnimationFrame(step)};requestAnimationFrame(step)}
+let prevTab=null,heroAnim=false,finAnim=false,prevView='';
+// counts every [data-cu] number up from 0 (data-fmt="m" = short "jt"/"M" format)
+function countUp(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;document.querySelectorAll('[data-cu]').forEach(e=>{if(e.dataset.cu==='')return;
+  const v=+e.dataset.cu,f=e.dataset.fmt==='m'?fM:x=>rp(Math.round(x)),t0=performance.now(),d=900;e.dataset.cu='';const step=t=>{const k=Math.min(1,(t-t0)/d),x=1-Math.pow(1-k,3);e.textContent=f(v*x);if(k<1&&e.isConnected)requestAnimationFrame(step)};requestAnimationFrame(step)})}
 function render(){
   if(locked)return;
-  heroAnim=tab==='home'&&prevTab!=='home';prevTab=tab; // animate the Overview chart only when the page is opened
+  heroAnim=tab==='home'&&prevTab!=='home';prevTab=tab;const vw=tab+'/'+fv;finAnim=vw==='tx/fin'&&prevView!==vw;prevView=vw; // Financial: animate on opening (owner 2026-11-15)
+  // animate the Overview chart only when the page is opened
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
   $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'?'none':''; // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
@@ -484,7 +486,7 @@ function render(){
   $('#app').innerHTML=(S.cfg.url&&S.cfg.codeOld?`<div class="card" style="padding:14px 18px;margin-bottom:16px"><b class="neg">Update Code.gs</b><div class="lbl">The Google Sheets script (Apps Script) is an older version, so some new fields are kept on this device only. Open Code.gs on GitHub, Copy raw file, paste it in Apps Script, then Deploy › Manage deployments › Edit › New version › Deploy.</div></div>`:'')+
   (tab==='home'?vHome():`<section class="panel">${{task:vTask,tx:vTx,prod:vProd,mkt:vMkt,ops:vOps,set:vSet}[tab]()}</section>`);
   if(pop)showKpi(pop);
-  if(heroAnim)countUp();
+  if(heroAnim||finAnim)countUp();
   // scrolling tab rows (phone): keep the active tab in view
   document.querySelectorAll('#app .seg.sc').forEach(r=>{const b=r.querySelector('button.on');if(b&&r.scrollWidth>r.clientWidth)r.scrollLeft=Math.max(0,b.offsetLeft-(r.clientWidth-b.offsetWidth)/2)});
 }
@@ -699,8 +701,8 @@ function vFinancial(){
  const st=posStock(),sku=S.products.map(p=>({p,q:Math.max(0,posTotal(st,p.id)),c:+p.cogs||0})).filter(x=>x.q>0).sort((a,b)=>b.q*b.c-a.q*a.c||b.q-a.q);
  const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q)),mat=matRows(),cc=cashCalc(aRev);
  return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
- <div class="fintop"><div class="card" id="valKpi"><div class="vmain"><div class="lbl">Valuation</div><div class="kn vbig${cc.cash+mat.val+skuV<0?' neg':''}">${fM(cc.cash+mat.val+skuV)}</div><div class="lbl">Cash + material + product</div></div>
-  <div class="vchart">${(()=>{const L=[['Cash',cc.cash],['Material',mat.val],['Product',skuV]],mx=Math.max(1,...L.map(x=>Math.abs(x[1])));return L.map(x=>`<div class="vcol"><i class="${x[1]<0?'nb':''}" style="height:${Math.max(4,Math.round(Math.abs(x[1])/mx*92))}px"></i><div class="lbl">${x[0]}</div><div class="kn${x[1]<0?' neg':''}">${fM(x[1])}</div></div>`).join('')})()}</div></div>
+ <div class="fintop"><div class="card" id="valKpi"><div class="vmain"><div class="lbl">Valuation</div><div class="kn vbig${cc.cash+mat.val+skuV<0?' neg':''}" data-fmt="m" data-cu="${finAnim?cc.cash+mat.val+skuV:''}">${fM(cc.cash+mat.val+skuV)}</div><div class="lbl">Cash + material + product</div></div>
+  <div class="vchart${finAnim?' anim':''}">${(()=>{const L=[['Cash',cc.cash],['Material',mat.val],['Product',skuV]],mx=Math.max(1,...L.map(x=>Math.abs(x[1])));return L.map(x=>`<div class="vcol"><i class="${x[1]<0?'nb':''}" style="height:${Math.max(4,Math.round(Math.abs(x[1])/mx*92))}px;--d:${L.indexOf(x)*90}ms"></i><div class="lbl">${x[0]}</div><div class="kn${x[1]<0?' neg':''}">${fM(x[1])}</div></div>`).join('')})()}</div></div>
  <div class="card fsplit" id="revCard"><div><div class="lbl">Total revenue</div><div class="kn">${fM(aRev)}</div></div><div><div class="lbl">Product sold</div><div class="kn">${aItems.toLocaleString('id-ID')} pcs</div></div></div>
  <div class="card fsplit" id="ageCard"><div><div class="lbl">Selling for</div><div class="kn">${since.age}</div></div><div><div class="lbl">Since</div><div class="kn sm">${since.lbl}</div></div></div></div>
  <div class="card"><div class="t" style="font-weight:700">Store ranked</div><div class="lbl" style="margin-bottom:8px">Ranked by revenue · all time</div>${storeRank(fGroup(all,'st'),aRev,false)}</div>

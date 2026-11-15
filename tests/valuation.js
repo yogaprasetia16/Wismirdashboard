@@ -25,6 +25,7 @@ const txt=s=>s.replace(/\s/g,' ');
  const cc=await p.evaluate(()=>cashCalc(finRows().reduce((a,r)=>a+r.v,0)));
  // 10.000.000 − purchases 8.500.000 − manufacturing 1.100.000 − supplier paid 400.000 − expenses 500.000 = −500.000
  ok(cc.cash===-500000&&cc.pur===8500000&&cc.man===1100000&&cc.sup===400000&&cc.exp===500000,'cash = revenue − purchases − manufacturing − supplier paid (unpaid month left out) − expenses: '+JSON.stringify(cc));
+ await p.waitForTimeout(1200); // the total counts up when Financial opens
  const k=txt(await p.textContent('#valKpi'));
  const product=await p.evaluate(()=>{const st=posStock();return S.products.reduce((a,x)=>a+Math.max(0,posTotal(st,x.id))*(+x.cogs||0),0)});
  const tot=await p.evaluate(v=>fM(v),-500000+2933333+product);
