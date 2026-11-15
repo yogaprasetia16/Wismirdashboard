@@ -8,7 +8,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
  await p.evaluate(()=>{S.tx.push({id:'a1',jenis:'Expense',tanggal:today(),kategori:'Store rent',jumlah:100,catatan:''},{id:'a2',jenis:'Expense',tanggal:today(),kategori:'Porter',jumlah:20,catatan:''});tab='ops';ops='exp';render()});
  const vis0=await p.evaluate(()=>{const b=document.querySelector('#app .seg button.on'),B=b.getBoundingClientRect();return (b.getAttribute('aria-label')||b.textContent)+':'+(B.left>=0&&B.right<=innerWidth)}); // icon tabs since 2026-11-14 fit without scrolling
  ok(vis0==='Expense:true','the active Operational tab (Expense) is scrolled into view on a phone');
- await p.tap('#cta');
+ await p.tap('#opsAdd');
  await p.screenshot({path:'phone-combo-form.png'});
  const list=await p.$$eval('#sheet .cmbo',b=>b.filter(x=>x.offsetParent).map(x=>x.dataset.v));
  ok(list.includes('Store rent')&&list.includes('Porter')&&await p.isVisible('#sheet .cmbl'),'category list is visible without typing: '+list.slice(0,6).join(', '));
