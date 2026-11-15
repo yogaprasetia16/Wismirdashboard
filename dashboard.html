@@ -465,7 +465,7 @@ function render(){
   heroAnim=tab==='home'&&prevTab!=='home';prevTab=tab; // animate the Overview chart only when the page is opened
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||(tab==='ops'&&ops==='att')||(tab==='prod'&&pt==='supp')?'none':'';
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||(tab==='ops'&&ops==='att')||tab==='prod'?'none':''; // Production: each column has its own + (owner 2026-11-15: no header button there)
   $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store',exp:'New expense'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
