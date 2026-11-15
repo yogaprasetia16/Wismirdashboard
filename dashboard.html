@@ -223,7 +223,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let fv='tx',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let fv='report',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -790,7 +790,7 @@ function vTx(){
   if(fv==='sales'){fv='tx';txf='Income'}
   if(txf!=='Income'&&txf!=='Expense')txf='Income';
   const FIC={tx:'<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',report:'<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',fin:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'};
-  const fseg=`<div class="seg ico" style="margin-bottom:10px">${[['tx','Transactions'],['report','Report'],['fin','Financial']].map(x=>`<button class="${fv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="fv='${x[0]}';render()"><svg viewBox="0 0 24 24">${FIC[x[0]]}</svg></button>`).join('')}</div>`;
+  const fseg=`<div class="seg ico" style="margin-bottom:10px">${[['report','Report'],['fin','Financial'],['tx','Transactions']].map(x=>`<button class="${fv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="fv='${x[0]}';render()"><svg viewBox="0 0 24 24">${FIC[x[0]]}</svg></button>`).join('')}</div>`;
   if(fv==='report')return `<h1>Finance</h1>`+fseg+vReport();
   if(fv==='fin')return `<h1>Finance</h1>`+fseg+vFinancial();
   // owner 2026-11-14: Income | Expense as round icons too, same size, beside the Finance tabs with a little space
