@@ -25,11 +25,13 @@ const txt=s=>s.replace(/\s/g,' ');
  const cc=await p.evaluate(()=>cashCalc(finRows().reduce((a,r)=>a+r.v,0)));
  // 10.000.000 − purchases 8.500.000 − manufacturing 1.100.000 − supplier paid 400.000 − expenses 500.000 = −500.000
  ok(cc.cash===-500000&&cc.pur===8500000&&cc.man===1100000&&cc.sup===400000&&cc.exp===500000,'cash = revenue − purchases − manufacturing − supplier paid (unpaid month left out) − expenses: '+JSON.stringify(cc));
+ await p.waitForTimeout(1200); // the total counts up when Financial opens
  const k=txt(await p.textContent('#valKpi'));
  const product=await p.evaluate(()=>{const st=posStock();return S.products.reduce((a,x)=>a+Math.max(0,posTotal(st,x.id))*(+x.cogs||0),0)});
  const tot=await p.evaluate(v=>fM(v),-500000+2933333+product);
- ok(k.includes('Total valuation'+txt(tot))&&k.includes('Cash')&&k.includes('Material value'),'total valuation = cash + material + product: '+k.slice(0,160));
+ ok(k.includes('Valuation'+txt(tot))&&k.includes('Cash')&&k.includes('Material'),'total valuation = cash + material + product: '+k.slice(0,160));
  ok(!(await p.textContent('#app')).includes('Not tracked yet'),'"Not tracked yet" is gone');
- ok((await p.textContent('#matCard')).includes('Used in Manufacturing')&&(await p.textContent('#cashCard')).includes('Manufacturing'),'material table and cash breakdown shown');
+ await p.click('#valKpi .vcol.c1');const mt=await p.textContent('#matCard');await p.click('#sheet #no');await p.waitForTimeout(250);await p.click('#valKpi .vcol.c0');const ct=await p.textContent('#cashCard');await p.click('#sheet #no');
+ ok(mt.includes('Used in Manufacturing')&&ct.includes('Manufacturing'),'material table and cash breakdown open from the valuation bars');
  await p.$eval('#valKpi',e=>e.scrollIntoView());await p.screenshot({path:'valuation.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});

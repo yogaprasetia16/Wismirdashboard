@@ -15,7 +15,7 @@ const PASTE=['Tanggal\tProduct\tqtt product\tmaterial\tqtt material\tCost/produc
  await D.goto(B+'/dashboard.html');await D.evaluate(()=>{tab='set';render()});await D.fill('#cu',URL_);await D.fill('#cp','9999');await D.evaluate(()=>saveCfg());
  await until(()=>D.evaluate(()=>S.cfg.pulled===1),10000,'dash');
  await D.evaluate(()=>{S.products.push({id:'pa',nama:'Gamis Alpha',sku:'AA01',kategori:'Gamis',cogs:100000,min:3},{id:'pb',nama:'Tunik Beta',sku:'bb02',kategori:'Atasan',cogs:80000,min:3});save();tab='prod';pt='manu';render()});
- await D.click('text=Import orders');await D.fill('#mtext',PASTE);
+ await D.click('[aria-label="Import orders"]');await D.fill('#mtext',PASTE);
  const pv=txt(await D.textContent('#mprev'));
  ok(pv.includes('5 orders')&&pv.includes('2.604 pcs')&&pv.includes('2 of 4 products found')&&pv.includes('aa01 = Gamis Alpha')&&pv.includes('cc03'),'preview: orders, pieces, SKU matches and unknown codes: '+pv);
  await D.click('#mgo');await D.waitForTimeout(200);
@@ -37,7 +37,7 @@ const PASTE=['Tanggal\tProduct\tqtt product\tmaterial\tqtt material\tCost/produc
  await D.tap?0:0;await D.click('#sheet .cmbo[data-v="Gamis Alpha"]');await D.fill('#sheet [data-k=qty]','10');await D.fill('#sheet [data-k=matQty]','30,5');await D.fill('#sheet [data-k=unitCost]','27000');await D.click('#ok');
  const n=await D.evaluate(()=>S.prod.find(p=>p.name==='Gamis Alpha'));ok(n&&n.matQty===30.5&&n.total===270000&&n.status==='Ongoing','new order by product name, 30,5 m kept, total 270.000, Ongoing');
  ok(txt(await D.textContent('#app')).includes('Ongoing'),'ongoing orders listed on top');
- await D.click('text=Import orders');await D.fill('#mtext',PASTE);ok(txt(await D.textContent('#mprev')).includes('5 rows replace'),'re-import replaces');await D.click('#mgo');
+ await D.click('[aria-label="Import orders"]');await D.fill('#mtext',PASTE);ok(txt(await D.textContent('#mprev')).includes('5 rows replace'),'re-import replaces');await D.click('#mgo');
  ok(await D.evaluate(()=>S.prod.length===6),'no double rows after re-import');
  await until(async()=>{const o=await dump();return o.Production&&o.Production.v.length===7},10000,'synced');ok(true,'saved in the Production tab');
  await D.evaluate(()=>{PRY='2025';render()});await D.screenshot({path:'manufacturing.png'});

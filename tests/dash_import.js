@@ -12,7 +12,7 @@ const PASTE=['Produk\tCategory\tbrand\tsku\tcogs','Blus.Contoh\tatasan\tmerekA\t
  await p.goto(B+'/dashboard.html');await p.evaluate(()=>{tab='set';render()});await p.fill('#cu',URL_);await p.fill('#cp','9999');await p.evaluate(()=>saveCfg());
  await until(()=>p.evaluate(()=>S.cfg.pulled===1));
  await p.evaluate(()=>{tab='ops';ops='stock';stv='list';render()});
- await p.click('text=Import from spreadsheet');
+ await p.click('[aria-label="Import from spreadsheet"]');
  ok(await p.isVisible('#imptext'),'Import from spreadsheet opens a paste box');
  await p.fill('#imptext',PASTE);
  const prev=await p.textContent('#impprev');
@@ -26,11 +26,11 @@ const PASTE=['Produk\tCategory\tbrand\tsku\tcogs','Blus.Contoh\tatasan\tmerekA\t
  ok(await until(async()=>{const o=await dump();return o.Stok&&o.Stok.v.length===4}),'saved to the Stok sheet (3 rows)');
  const st=(await dump()).Stok;ok(st.v.find(r=>r[1]==='Gamis.Nol')[10]===0,'COGS 0 kept as 0');
  // importing the same paste again adds nothing
- await p.click('text=Import from spreadsheet');await p.fill('#imptext',PASTE);
+ await p.click('[aria-label="Import from spreadsheet"]');await p.fill('#imptext',PASTE);
  ok((await p.textContent('#impgo'))==='Nothing to import yet','pasting the same list again: nothing new (no duplicates)');
  await p.click('#no');
  // paste without a header row: Product, Category, Brand, SKU, COGS in that order
- await p.click('text=Import from spreadsheet');await p.fill('#imptext','Kulot.Contoh\tbawahan\tmerekA\tkk009\t80000');
+ await p.click('[aria-label="Import from spreadsheet"]');await p.fill('#imptext','Kulot.Contoh\tbawahan\tmerekA\tkk009\t80000');
  ok((await p.textContent('#impgo'))==='Import 1 product','paste without a header row also works');
  await p.screenshot({path:'import.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));
