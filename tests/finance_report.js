@@ -38,7 +38,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  ok((await D.$$('.viz .col')).length===2,'revenue vs cost chart: the months of 2026 with data');
  await D.click('#rCat .lnkt');const cats=await D.$$eval('#sheet tbody tr',r=>r.map(x=>x.children[0].textContent));await D.click('#sheet #no');await D.waitForTimeout(250);
  ok(cats.join()==='Gamis,Hijab','categories from the product list: '+cats.join(', '));
- await D.selectOption('#app select','ytd');
+ await D.selectOption('select[aria-label="Filter by month"]','ytd');
  const k2=await D.$$eval('.rk .kn.fbig',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(k2[0]==='Rp 5,0 jt'&&(await D.textContent('#app')).includes('vs the same months of 2025'),'year to date 2026 (Rp 5,0 jt) vs Jan–Feb 2025: '+k2[0]);
  await D.click('#rCost .nocb');ok((await D.textContent('#sheet')).includes('1 product has no COGS'),'note for the SKU not in the product list (zz09), opened from the Cost card');await D.click('#sheet #no');await D.waitForTimeout(250);
