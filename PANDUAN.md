@@ -446,3 +446,14 @@ Fitur ini butuh **Code.gs versi 13**.
 - **Material value**: semua bahan kategori **Textile** digabung, tanpa melihat nama bahan. Contoh: total beli 1.000 dengan total bayar Rp10.000.000, jadi rata-rata Rp10.000. Terpakai di Manufacturing 800, sisa 200. Nilai bahan = 200 × Rp10.000 = Rp2.000.000.
 - **Cash**: total omzet sepanjang waktu dikurangi total Purchasing (semua kategori, termasuk Zakat dan Dividen), total Manufacturing, Supplier yang sudah ditandai bayar, dan semua Expense. Rinciannya ada di tabel Cash.
 - **Total valuation** = Cash + Material value + Product value.
+
+## 29. Tampilan baru dashboard (November 2026)
+
+Banyak tombol yang dulu bertulisan sekarang berupa **ikon bulat**. Arahkan mouse ke ikon (atau tekan lama di HP) untuk melihat namanya. Panduan di atas yang menyebut nama tombol tetap berlaku, tombolnya hanya berganti jadi ikon:
+
+- **+ oranye** = tambah baru (New expense, New product, New reminder, dan lain-lain). Letaknya di kanan atas tiap bagian.
+- **Ikon panah ke bawah (cream)** di samping + = **Import …** (Import from spreadsheet, Import stock count, Import purchases, Import orders, Import payments).
+- **Operational › Expense:** ikon **Recurring** dan **Annually** ada di samping +. Angka kecil di ikon = jumlah item yang masih berjalan.
+- **Finance** sekarang dibuka di **Report**. Urutan ikonnya: Report, Financial, Transactions. Di Transactions ada ikon Income dan Expense.
+- **Report:** pilih toko (default **All stores**) dan bulan di kanan atas. Kotak ketiga sekarang **Expense** (total pengeluaran bulan itu), bukan cost dari COGS. Untuk bulan berjalan, tiap kotak menampilkan batang 7 hari terakhir.
+- **Financial:** semuanya muat satu layar. Ketuk batang **Cash / Material / Product** di kotak Valuation untuk melihat rinciannya. Ketuk **All** atau **Details** untuk daftar lengkap.
