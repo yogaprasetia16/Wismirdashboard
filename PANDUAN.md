@@ -455,5 +455,5 @@ Banyak tombol yang dulu bertulisan sekarang berupa **ikon bulat**. Arahkan mouse
 - **Ikon panah ke bawah (cream)** di samping + = **Import …** (Import from spreadsheet, Import stock count, Import purchases, Import orders, Import payments).
 - **Operational › Expense:** ikon **Recurring** dan **Annually** ada di samping +. Angka kecil di ikon = jumlah item yang masih berjalan.
 - **Finance** sekarang dibuka di **Report**. Urutan ikonnya: Report, Financial, Transactions. Di Transactions ada ikon Income dan Expense.
-- **Report:** pilih toko (default **All stores**) dan bulan di kanan atas. Kotak ketiga sekarang **Expense** (total pengeluaran bulan itu), bukan cost dari COGS. Untuk bulan berjalan, tiap kotak menampilkan batang 7 hari terakhir.
+- **Report:** pilih toko (default **All stores**) dan bulan di kanan atas. Kotak ketiga sekarang **Expense** (total pengeluaran bulan itu), bukan cost dari COGS. Untuk bulan berjalan, tiap kotak menampilkan batang 7 hari terakhir. Grafik **Revenue vs expense** (Report) dan **Yearly growth** (Financial) juga memakai data pengeluaran.
 - **Financial:** semuanya muat satu layar. Ketuk batang **Cash / Material / Product** di kotak Valuation untuk melihat rinciannya. Ketuk **All** atau **Details** untuk daftar lengkap.

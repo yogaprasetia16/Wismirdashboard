@@ -41,7 +41,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  await D.selectOption('select[aria-label="Filter by month"]','ytd');
  const k2=await D.$$eval('.rk .kn.fbig',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(k2[0]==='Rp 5,0 jt'&&(await D.textContent('#app')).includes('vs the same months of 2025'),'year to date 2026 (Rp 5,0 jt) vs Jan–Feb 2025: '+k2[0]);
- await D.click('#rChart .nocb');ok((await D.textContent('#sheet')).includes('1 product has no COGS'),'note for the SKU not in the product list (zz09), opened from the Revenue vs cost chart card');await D.click('#sheet #no');await D.waitForTimeout(250);
+ ok((await D.textContent('#rChart')).includes('Revenue vs expense')&&(await D.$$eval('#rChart .col .b',b=>b.length))>=1,'Revenue vs expense chart (owner 2026-11-16: expenses, not COGS)');
  await D.click('#rProd .lnkt');const pr=await D.$$eval('#sheet tbody tr',r=>r.map(x=>x.querySelector('b').textContent));await D.click('#sheet #no');await D.waitForTimeout(250);
  ok(pr[0]==='Gamis Alpha'&&pr.includes('zz09'),'product ranking uses product names, unknown SKU shown as code: '+pr.join(', '));
  await D.click('[data-fst="Shopee"]');
