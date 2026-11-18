@@ -158,6 +158,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .dvt{margin-top:10px}.dvt button svg{width:22px;height:22px;display:block;margin:2px auto}.dvt button{position:relative;white-space:nowrap}
 .dvt.ico{display:inline-flex;width:auto}.dvt.ico button{flex:none;width:33px;height:33px;padding:0!important}.dvt.ico button svg{width:16px;height:16px;margin:0}/* phone: same size and spacing as the Finance icon tabs (owner 2026-11-16) */.seg.ico.dvt{gap:2px;padding:3px;margin:0 0 10px!important}.dvt.ico .bd2{top:0;right:0;min-width:13px;height:13px;padding:0 3px;font-size:8.5px;line-height:1;box-shadow:0 0 0 1.5px var(--seg)}
 .bd2{position:absolute;top:-8px;right:-1px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:var(--amber);color:var(--onacc);font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.wpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}.wph{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--thbg);border:2px solid transparent}.wph.cov{border-color:var(--acc)}.wph img{width:100%;height:100%;object-fit:cover;display:block}.wph .wx{position:absolute;top:4px;right:4px;width:26px;height:26px;border:0;border-radius:50%;background:var(--red);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.6))}.wph .wct button{width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#222;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct button:disabled{opacity:.35}.wnew{position:absolute;top:4px;left:4px;background:var(--acc);color:var(--onacc);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}.wadd{aspect-ratio:3/4;display:grid;place-items:center;text-align:center;border:2px dashed var(--chkb);border-radius:12px;color:var(--acct);font-weight:600;font-size:13px;cursor:pointer;padding:6px}.f textarea{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font:inherit;color:var(--ink);resize:vertical}.f textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
 .f{min-width:0}
 .f input,.f select{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
 .f input[type=date],.f input[type=time]{display:block;width:100%;height:46px;text-align:left}
@@ -273,7 +274,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let RST='all',fv='report',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',txf='Income',status='',stv='list';
+let RST='all',fv='report',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',mk='camp',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -517,7 +518,7 @@ function render(){
   // animate the Overview chart only when the page is opened
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'||(tab==='mkt'&&mk==='web')?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
   $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store',exp:'New expense'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
@@ -1130,11 +1131,108 @@ function suppSheet(m){
   $('#bg').classList.add('open');
 }
 
-function vMkt(){
+function vCamp(){
   const sp=S.mkt.reduce((a,c)=>a+ +c.spent,0),rv=S.mkt.reduce((a,c)=>a+ +c.revenue,0);
-  return `<h1>Marketing</h1><div class="lbl" style="margin:-6px 4px 14px">Spent ${rp(sp)} · Revenue ${rp(rv)}${sp?` · ROI ${Math.round((rv-sp)/sp*100)}%`:''}</div>
+  return `<div class="lbl" style="margin:-6px 4px 14px">Spent ${rp(sp)} · Revenue ${rp(rv)}${sp?` · ROI ${Math.round((rv-sp)/sp*100)}%`:''}</div>
   <div class="card">${S.mkt.length?[...S.mkt].sort((a,b)=>(b.start||'').localeCompare(a.start||'')).map(c=>{const roi=+c.spent?Math.round((+c.revenue-+c.spent)/+c.spent*100):null;return `<div class="row" onclick="editMkt('${c.id}')"><div class="grow"><div class="t">${esc(c.name)}</div><div class="lbl">${esc(c.channel)} · ${c.start?fmtD(c.start):''}${c.end?' – '+fmtD(c.end):''}</div><div class="lbl">Spent ${rp(c.spent)} of ${rp(c.budget)} · Revenue ${rp(c.revenue)}</div></div><div style="text-align:right"><span class="pill">${esc(c.status)}</span>${roi!==null?`<div class="${roi>=0?'pos':'neg'}" style="font-weight:700;margin-top:4px">${roi>=0?'+':''}${roi}%</div>`:''}</div></div>`}).join(''):empty('No campaigns yet. Press the button above to add one.')}</div>`;
 }
+
+
+// ---- Marketing > Website (owner 2026-11-18): manage the wismir.id catalog from the dashboard.
+// The catalog lives in its own Google Sheet ("web") and photos in the wismir.id GitHub repo (folder foto/). A separate
+// Apps Script (repo Wismirmuslim, apps-script/Code.gs) is the only bridge; this page calls it with the Access PIN as
+// the password (the catalog script's ADMIN_PASSWORD must be the same as the PIN). Nothing here goes through S / save().
+const WEBSITE='https://wismir.id/',WEB_MAXSIDE=1400,WEB_Q=.82;
+let WEB={items:[],headers:[],loaded:false,busy:false,err:'',msg:'',q:''},WP=[];
+const wTok=v=>String(v||'').split(/[\s|,]+/).filter(Boolean);
+const wUrl=t=>/^https?:/i.test(t);
+function wThumb(t){
+  if(!wUrl(t))return WEBSITE+'foto/'+encodeURIComponent(t.replace(/^foto\//,''));
+  const m=t.match(/drive\.google\.com\/file\/d\/([\w-]+)/)||(/drive\.google\.com/.test(t)&&t.match(/[?&]id=([\w-]+)/));
+  return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:t}
+const wYes=v=>/^(ya|y|yes|true|1)$/i.test(String(v||'').trim());
+async function webCall(action,payload){
+  if(!S.cfg.catUrl)throw new Error('Add the Website catalog URL in Settings first.');
+  if(!S.cfg.pin)throw new Error('Add the Access PIN in Settings first.');
+  let r;try{r=await fetch(S.cfg.catUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pass:S.cfg.pin,action,...(payload||{})})})}
+  catch(e){throw new Error('Cannot reach the catalog script. Check the internet and the URL in Settings.')}
+  let j;try{j=await r.json()}catch(e){throw new Error('The catalog script gave an unexpected answer. Check that it is deployed as a Web app with access "Anyone".')}
+  if(!j.ok)throw new Error(/sandi/i.test(j.error||'')?'Wrong password. The catalog script password (ADMIN_PASSWORD) must be the same as the Access PIN.':(j.error||'Something went wrong.'));
+  return j}
+async function webLoad(){
+  if(WEB.busy)return;WEB.busy=true;WEB.err='';if(tab==='mkt'&&mk==='web')render();
+  try{const j=await webCall('list');WEB.items=j.items;WEB.headers=j.headers;WEB.loaded=true}
+  catch(e){WEB.err=e.message}
+  WEB.busy=false;if(tab==='mkt'&&mk==='web')render()}
+function webSeg(){
+  const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
+  const more=mk==='web'?`<div class="bha" style="margin-left:auto"><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
+  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&!WEB.loaded)webLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}</div>`}
+function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():vCamp())}
+function vWeb(){
+  if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
+  const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
+  if(!WEB.loaded)return note+`<div class="card">${empty(WEB.busy?'Loading the catalog…':'The catalog is not loaded yet. Press the reload button above.')}</div>`;
+  const t=WEB.q.trim().toLowerCase(),L=WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t));
+  return note+`<div class="f"><input id="webq" type="search" placeholder="Search product" aria-label="Search product" value="${esc(WEB.q)}" oninput="WEB.q=this.value;webList()"></div><div id="weblist">${webListHtml(L)}</div>
+  <div class="lbl" style="padding:0 6px">${WEB.items.length} products on wismir.id. Changes show on the website in about 1–5 minutes.</div>`}
+function webList(){const t=WEB.q.trim().toLowerCase();$('#weblist').innerHTML=webListHtml(WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t)))}
+function webListHtml(L){
+  return `<div class="card">${L.length?L.map(i=>{const p=wTok(i.foto)[0];return `<div class="row" data-wr="${i._row}" onclick="webEdit(${i._row})"><span class="th" style="overflow:hidden">${p?`<img src="${esc(wThumb(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:''}</span><div class="grow"><div class="t">${esc(i.nama)}</div><div class="lbl">${esc(i.kategori||'')}${i.ukuran?' · '+esc(i.ukuran):''} · ${wTok(i.foto).length} photos</div>${wYes(i.terbaru)||wYes(i.sale)?`<div style="margin-top:4px">${wYes(i.terbaru)?'<span class="tag2">NEW</span> ':''}${wYes(i.sale)?'<span class="tag2 neg">SALE</span>':''}</div>`:''}</div></div>`}).join(''):empty('No products found.')}</div>`}
+const WAREA=['deskripsi','detail'],WYN=['terbaru','sale'];
+const WLABEL={nama:'Product name',kategori:'Category',bahan:'Material',ukuran:'Sizes',terbaru:'Show in New collection',sale:'Mark as Sale',deskripsi:'Short description',detail:'Details (one point per line, start with -)',harga:'Price (e.g. Rp 199.000)',harga_normal:'Normal price before discount',warna:'Colour'};
+function webEdit(row){
+  closePop();const it=row==null?null:WEB.items.find(x=>x._row===row);if(row!=null&&!it)return;
+  WP=it?wTok(it.foto).map(t=>({old:1,t})):[];
+  const cats=[...new Set(['Gamis','Atasan','Bawahan','Oneset',...WEB.items.map(i=>i.kategori).filter(Boolean)])];
+  const H=WEB.headers.length?WEB.headers:['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
+  $('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>${it?'Edit product':'New product'}</h3>`+H.map(h=>{
+    const v=it?(it[h]||''):'',L=WLABEL[h]||h.charAt(0).toUpperCase()+h.slice(1);
+    if(h==='foto')return `<div class="f"><label>Photos (first = main photo)</label><div class="wpg" id="wpg"></div></div>`;
+    if(WYN.includes(h))return `<div class="f"><label>${L}</label><select data-w="${h}"><option${wYes(v)?'':' selected'}>No</option><option${wYes(v)?' selected':''}>Yes</option></select></div>`;
+    if(h==='kategori')return `<div class="f"><label>${L}</label>${cmbHtml({k:'kategori',val:v,opts:cats}).replace('data-k="kategori"','data-w="kategori"')}</div>`;
+    if(WAREA.includes(h))return `<div class="f"><label>${L}</label><textarea data-w="${h}" rows="${h==='detail'?6:3}">${esc(v)}</textarea></div>`;
+    return `<div class="f"><label>${L}</label><input data-w="${h}" value="${esc(v)}"></div>`}).join('')+
+  `<div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${it?`<button class="btn del" id="rm">Delete</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  webPhotos();$('#bg').classList.add('open');$('#no').onclick=close;$('#ok').onclick=()=>webSave(it);
+  if(it){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}webDelete(it)}}}
+function webPhotos(){
+  const g=$('#wpg');if(!g)return;
+  g.innerHTML=WP.map((p,i)=>`<div class="wph${i?'':' cov'}"><img src="${esc(p.old?wThumb(p.t):p.url)}" alt="Photo ${i+1}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${p.old?'':'<span class="wnew">NEW</span>'}<button type="button" class="wx" data-wx="${i}" aria-label="Remove photo">×</button><div class="wct"><button type="button" data-wm="${i}:-1" aria-label="Move left"${i?'':' disabled'}>‹</button><button type="button" data-wm="${i}:1" aria-label="Move right"${i<WP.length-1?'':' disabled'}>›</button></div></div>`).join('')+`<label class="wadd"><input type="file" id="wfile" accept="image/*" multiple hidden>+ Add photos</label>`;
+  $('#wfile').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;err('Preparing photos…');
+    try{for(const f of fs){const b=await webShrink(f);WP.push({b,n:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.jpg',url:URL.createObjectURL(b)})}err('')}catch(x){err(x.message)}webPhotos()}}
+document.addEventListener('click',e=>{
+  const x=e.target.closest('[data-wx]'),m=e.target.closest('[data-wm]');if(!x&&!m)return;
+  if(x){WP.splice(+x.dataset.wx,1);webPhotos()}
+  if(m){const [i,d]=m.dataset.wm.split(':').map(Number),j=i+d;if(WP[j]){[WP[i],WP[j]]=[WP[j],WP[i]];webPhotos()}}});
+async function webShrink(file){
+  let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}
+  catch(e){bmp=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('This photo cannot be read: '+file.name));i.src=URL.createObjectURL(file)})}
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,r=Math.min(1,WEB_MAXSIDE/Math.max(w,h)),c=document.createElement('canvas');
+  c.width=Math.round(w*r);c.height=Math.round(h*r);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
+  return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('Could not prepare the photo')),'image/jpeg',WEB_Q))}
+const webB64=b=>new Promise((ok,no)=>{const f=new FileReader();f.onload=()=>ok(String(f.result).split(',')[1]);f.onerror=()=>no(new Error('Could not read the photo'));f.readAsDataURL(b)});
+// photo files of this product that no other product uses (safe to delete from the website repo)
+function webOrphans(removed,exceptRow){
+  const used=new Set(WEB.items.filter(i=>i._row!==exceptRow).flatMap(i=>wTok(i.foto).map(t=>t.replace(/^foto\//,''))));
+  return [...new Set(removed.filter(t=>!wUrl(t)).map(t=>t.replace(/^foto\//,'')))].filter(n=>!used.has(n))}
+async function webSave(it){
+  const d={};$('#sheet').querySelectorAll('[data-w]').forEach(e=>{d[e.dataset.w]=e.tagName==='SELECT'?(e.value==='Yes'?'ya':''):e.value.trim()});
+  if(!d.nama)return err('Please enter a name.');
+  if(WEB.headers.includes('kategori')&&!d.kategori)return err('Please pick or type a category.');
+  const keep=new Set(WP.filter(p=>p.old).map(p=>p.t)),removed=it?wTok(it.foto).filter(t=>!keep.has(t)):[],news=WP.filter(p=>!p.old);
+  d.foto=WP.map(p=>p.old?p.t:p.n).join('|');
+  $('#ok').disabled=true;$('#ok').textContent=news.length?'Saving and uploading photos…':'Saving…';err('');
+  try{
+    const np=[];for(const p of news)np.push({name:p.n,b64:await webB64(p.b)});
+    await webCall('save',{row:it?it._row:null,origNama:it?it.nama:null,data:d,newPhotos:np,deleteFiles:webOrphans(removed,it?it._row:0)});
+    close();WEB.msg='Saved. It shows on wismir.id in about 1–5 minutes (new photos 1–2 minutes).';await webLoad()
+  }catch(e){err(e.message);$('#ok').disabled=false;$('#ok').textContent='Save'}}
+async function webDelete(it){
+  $('#rm').disabled=true;err('');
+  try{await webCall('delete',{row:it._row,nama:it.nama,deleteFiles:webOrphans(wTok(it.foto),it._row)});close();WEB.msg='Product deleted. It disappears from wismir.id in about 1–5 minutes.';await webLoad()}
+  catch(e){err(e.message);$('#rm').disabled=false}}
 
 
 // ---- Operational > Expense (owner 2026-11-10): enter the store's monthly expenses (same data as Finance > Expense)
@@ -1484,12 +1582,13 @@ $('#app').addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changed
 function vSet(){
   return `<h1>Settings</h1><div class="card"><div class="f"><label>Google Apps Script Web App URL</label><input id="cu" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
   <div class="f"><label>Access PIN</label><input id="cp" type="password" value="${esc(S.cfg.pin)}"></div><div class="lbl" style="margin:-4px 6px 10px">This PIN also unlocks the dashboard on this device.</div>
+  <div class="f"><label>Website catalog URL (Apps Script, optional)</label><input id="cw" value="${esc(S.cfg.catUrl||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div><div class="lbl" style="margin:-4px 6px 10px">For Marketing › Website. That script's ADMIN_PASSWORD must be the same as the Access PIN.</div>
   <button class="btn" onclick="saveCfg()">Save settings</button></div>
   <div class="card"><button class="btn sec" onclick="pushSheets()">Send data to Sheets</button><button class="btn sec" onclick="pullSheets()">Load data from Sheets</button><div id="st">${esc(status)}</div></div>
   <div class="card"><button class="btn sec" onclick="backup()">Download backup (JSON)</button></div>
   <div class="lbl" style="padding:0 6px">Changes sync to Sheets automatically once the URL and PIN are set. Store data (sales, stock, attendance) comes from the store tablet (POS) through the same Sheet.</div>`;
 }
-function saveCfg(){const u=$('#cu').value.trim(),p=$('#cp').value;if(u!==S.cfg.url||p!==S.cfg.pin){S.cfg.pulled=0;S.cfg.dirty=0}S.cfg.url=u;S.cfg.pin=p;markUnlocked();save(false);setStatus('Settings saved');if(u)pullSheets()}
+function saveCfg(){const u=$('#cu').value.trim(),p=$('#cp').value;if(u!==S.cfg.url||p!==S.cfg.pin){S.cfg.pulled=0;S.cfg.dirty=0}S.cfg.url=u;S.cfg.pin=p;{const w=($('#cw')||{}).value;if(w!==undefined&&w.trim()!==(S.cfg.catUrl||'')){S.cfg.catUrl=w.trim();WEB.loaded=false;WEB.items=[]}}markUnlocked();save(false);setStatus('Settings saved');if(u)pullSheets()}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='wismir-backup-'+today()+'.json';a.click()}
 
 function showKpi(k){
