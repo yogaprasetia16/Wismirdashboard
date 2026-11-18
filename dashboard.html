@@ -336,6 +336,9 @@ function syncUi(on){
   if(syncN){show(true);return}
   setTimeout(()=>{if(!syncN)show(false)},Math.max(0,600-(Date.now()-syncT0)));
 }
+// owner 2026-11-18: a request that never answers must not freeze syncing; every Sheets request ends after 90 s
+let NET_MS=90000;
+function jfetch(u,o){const ac=new AbortController(),t=setTimeout(()=>ac.abort(),window.__netMs||NET_MS);return fetch(u,Object.assign({},o||{},{signal:ac.signal})).then(r=>r.json()).finally(()=>clearTimeout(t))}
 const tracked=f=>async function(...a){syncUi(true);try{return await f.apply(this,a)}finally{syncUi(false)}};
 const pushSheets=tracked(_pushSheets),pullSheets=tracked(_pullSheets);
 async function _pushSheets(tries=0){
@@ -348,13 +351,12 @@ async function _pushSheets(tries=0){
   for(const n in sent)if(JSON.stringify(sent[n])!==JSON.stringify(B0[n]))data[n]=sent[n];
   if(!Object.keys(data).length){if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();return setStatus('Synced '+hhmm())}
   try{
-    const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,data,base:S.cfg.ver})});
-    const j=await r.json();
+    const j=await jfetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.pin,data,base:S.cfg.ver})});
     if(j.ok){if(j.ver)S.cfg.ver=String(j.ver);S.base=sent;if(S.cfg.dirty===d0)S.cfg.dirty=0;persist();setStatus(rescued?rescued+' · sent back '+hhmm():'Synced '+hhmm());rescued='';if(S.cfg.dirty)save.t=setTimeout(pushSheets,1200)}
     else if(j.conflict&&tries<3){
       // Another device saved in the meantime: load its data, keep both sets of changes, send again
       setStatus('Merging changes from another device…');
-      const g=await (await fetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin))).json();
+      const g=await jfetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin));
       if(!g.ok)return setStatus('Failed: '+(g.error||'wrong PIN'));
       mergeInto(g.data);S.cfg.ver=String(g.ver);S.base=JSON.parse(JSON.stringify(g.data));
       for(const k in POSK){const d=g.data[POSK[k]];if(d)S.pos[k]=d}
@@ -372,8 +374,7 @@ async function _pullSheets(){
   }
   setStatus('Loading from Google Sheets…');
   try{
-    const r=await fetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin));
-    const j=await r.json();
+    const j=await jfetch(S.cfg.url+'?pin='+encodeURIComponent(S.cfg.pin));
     if(!j.ok)return setStatus('Failed: '+(j.error||'wrong PIN'));
     kmN=0;
     const busy=S.cfg.pulled&&S.cfg.dirty; // edited while loading: keep local, send it instead
