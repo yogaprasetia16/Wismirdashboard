@@ -105,7 +105,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 15;
+const CODE_VERSION = 16;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -158,12 +158,19 @@ function posDaily() {
   const d = new Date(); d.setDate(d.getDate() - 40);
   const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   const from = Utilities.formatDate(d, tz, 'yyyy-MM-dd'), agg = {};
-  readSheet('POS Kasir').forEach(function (r) {
-    const t = String(r.tanggal || '');
-    if (t < from || String(r.status) === 'VOID') return;
-    const k = t + '|' + r.shiftId;
-    const a = agg[k] || (agg[k] = { id: k, tanggal: t, shiftId: String(r.shiftId || ''), toko: String(r.toko || ''), total: 0, n: 0 });
-    a.total += Number(r.total) || 0; a.n++;
+  const sh = sheetFor('POS Kasir'), cols = colsFor('POS Kasir'), last = sh.getLastRow();
+  if (last < 2) return [];
+  // v16: hanya kolom yang perlu (tanggal s/d total, dan status), bukan rincian/isi struk yang panjang
+  const a = cols.indexOf('tanggal'), b = cols.indexOf('total'), si = cols.indexOf('status');
+  const blk = sh.getRange(2, a + 1, last - 1, b - a + 1).getValues(), st = sh.getRange(2, si + 1, last - 1, 1).getValues();
+  const col = function (c) { return cols.indexOf(c) - a; };
+  blk.forEach(function (r, i) {
+    let t = r[col('tanggal')];
+    t = t instanceof Date ? Utilities.formatDate(t, tz, 'yyyy-MM-dd') : String(t || '');
+    if (!t || t < from || String(st[i][0]) === 'VOID') return;
+    const sid = String(r[col('shiftId')] || ''), k = t + '|' + sid;
+    const g = agg[k] || (agg[k] = { id: k, tanggal: t, shiftId: sid, toko: String(r[col('toko')] || ''), total: 0, n: 0 });
+    g.total += Number(r[col('total')]) || 0; g.n++;
   });
   return Object.keys(agg).map(function (k) { return agg[k]; });
 }
@@ -172,8 +179,19 @@ function readSheet(name, since) {
   const last = sh.getLastRow();
   if (last < 2) return [];
   const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
-  const rows = sh.getRange(2, 1, last - 1, cols.length).getValues();
   const ui = cols.indexOf(UPD);
+  let first = 2, n = last - 1;
+  if (since && ui >= 0) {
+    // v16 (owner 2026-11-18: "sync mulai lama"): tablet menarik data tiap menit. Dulu SEMUA baris dibaca setiap kali
+    // (terus membesar tiap hari, sambil memegang kunci sehingga dashboard ikut antre). Sekarang baca kolom _upd saja,
+    // lalu hanya baris dari perubahan pertama sampai perubahan terakhir (biasanya beberapa baris di bawah).
+    const upd = sh.getRange(2, ui + 1, n, 1).getValues();
+    let lo = -1, hi = -1;
+    for (let i = 0; i < upd.length; i++) if (Number(upd[i][0]) >= since) { if (lo < 0) lo = i; hi = i; }
+    if (lo < 0) return [];
+    first = 2 + lo; n = hi - lo + 1;
+  }
+  const rows = sh.getRange(first, 1, n, cols.length).getValues();
   const res = [];
   rows.forEach(function (r) {
     if (r[0] === '') return;
