@@ -331,6 +331,10 @@ const DES={
 };
 const syncOn=()=>!!(S.cfg.url&&S.cfg.spin);
 let syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false,resetting=false,gen=0; // gen changes on 'Mulai baru': answers to older requests are thrown away
+// owner 2026-11-18 ("penjualan sore tidak masuk ke dashboard"): a request that never answers (Wi-Fi dropped mid-way) left
+// flushing/pulling stuck, so nothing was sent until the app was reopened. Every request now ends after 90 s and is retried.
+let NET_MS=90000;
+function jfetch(u,o){const ac=new AbortController(),t=setTimeout(()=>ac.abort(),window.__netMs||NET_MS);return fetch(u,Object.assign({},o||{},{signal:ac.signal})).then(r=>r.json()).catch(e=>{throw new Error(ac.signal.aborted?'Google Sheets tidak menjawab, dicoba lagi':(e&&e.message)||'Tidak ada koneksi')}).finally(()=>clearTimeout(t))}
 function enqueue(sheet,rec){if(!rec||!rec.id)return;S.outbox=S.outbox.filter(x=>!(x.s===sheet&&x.id===rec.id));S.outbox.push({s:sheet,id:rec.id,r:SER[sheet](rec)})}
 function kick(ms){if(!syncOn())return;clearTimeout(ft);ft=setTimeout(flush,ms==null?400:ms)}
 async function flush(){
@@ -338,8 +342,7 @@ async function flush(){
  if(!S.outbox.length)return pull();
  flushing=true;const batch=S.outbox.slice(0,200),rows={};batch.forEach(x=>(rows[x.s]=rows[x.s]||[]).push(x.r));
  try{
-  const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.spin,action:'upsert',rows:rows})});
-  const j=await r.json();if(!j.ok)throw new Error(j.error||'Ditolak server');
+  const j=await jfetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.spin,action:'upsert',rows:rows})});if(!j.ok)throw new Error(j.error||'Ditolak server');
   S.outbox=S.outbox.filter(x=>batch.indexOf(x)<0);tries=0;syncErr='';S.lastSync=Date.now();save();
   flushing=false;if(S.outbox.length)kick(0);else pull();
  }catch(e){flushing=false;tries++;syncErr=(e&&e.message)||'Tidak ada koneksi';kick(Math.min(60000,2000*Math.pow(2,tries-1)));syncUi()}
@@ -347,8 +350,7 @@ async function flush(){
 async function pull(){
  if(!syncOn()||pulling||resetting)return;pulling=true;const g=gen;
  try{
-  const r=await fetch(S.cfg.url+'?pos=1&pin='+encodeURIComponent(S.cfg.spin)+'&since='+(S.since||0));
-  const j=await r.json();if(!j.ok)throw new Error(j.error||'Ditolak server');
+  const j=await jfetch(S.cfg.url+'?pos=1&pin='+encodeURIComponent(S.cfg.spin)+'&since='+(S.since||0));if(!j.ok)throw new Error(j.error||'Ditolak server');
   if(g!==gen)return; // started before 'Mulai baru': stale
   // another device pressed "Mulai baru": drop this tablet's history too, then pull again from zero
   if(j.epoch&&String(j.epoch)!==S.epoch){gen++;wipeHistory(true);S.epoch=String(j.epoch);S.since=0;save();pulling=false;softRender();toast('Riwayat uji coba dibersihkan (Mulai baru)');kick(0);return}
