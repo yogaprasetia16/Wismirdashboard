@@ -44,5 +44,6 @@ start; run "POS brand + category names, one-tap Simpan" node pos_brand.js
 start; run "POS receipts: change payment / cancel, no owner mode" node pos_receipt.js
 start; run "POS printer over Bluetooth LE (no Web Serial)" node pos_ble.js
 start; run "POS printer auto-connect" node pos_autoconnect.js
+start; run "Marketing › Website: manage the wismir.id catalog" node web_catalog.js
 stop
 echo; [ $fails -eq 0 ] && echo "EVERYTHING PASSED" || echo "$fails SUITE(S) FAILED"; exit $fails

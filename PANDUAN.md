@@ -457,3 +457,20 @@ Banyak tombol yang dulu bertulisan sekarang berupa **ikon bulat**. Arahkan mouse
 - **Finance** sekarang dibuka di **Report**. Urutan ikonnya: Report, Financial, Transactions. Di Transactions ada ikon Income dan Expense.
 - **Report:** pilih toko (default **All stores**) dan bulan di kanan atas. Kotak ketiga sekarang **Expense** (total pengeluaran bulan itu), bukan cost dari COGS. Untuk bulan berjalan, tiap kotak menampilkan batang 7 hari terakhir. Grafik **Revenue vs expense** (Report) dan **Yearly growth** (Financial) juga memakai data pengeluaran.
 - **Financial:** semuanya muat satu layar. Ketuk batang **Cash / Material / Product** di kotak Valuation untuk melihat rinciannya. Ketuk **All** atau **Details** untuk daftar lengkap.
+
+## 30. Atur katalog website dari dashboard (Marketing › Website)
+
+Katalog di **wismir.id** sekarang diatur dari sini, tanpa membuka Google Sheet atau GitHub.
+
+**Pasang sekali per perangkat:**
+1. Pastikan "mesin" katalog sudah terpasang (Apps Script di Google Sheet **web**, lihat `admin/PANDUAN.md` di repo `Wismirmuslim`). Kalau sudah, URL-nya yang berakhiran `/exec` sudah ada.
+2. Di Google Sheet **web**: Ekstensi → Apps Script → Project Settings → Script properties. Ubah `ADMIN_PASSWORD` **sama persis dengan PIN dashboard** (disarankan 8 karakter atau lebih), lalu Save.
+3. Di dashboard: **Settings → Website catalog URL**, tempel URL `/exec` itu, lalu **Save settings**.
+
+**Memakai:** Marketing → ikon globe (**Website**).
+- Ketuk produk untuk mengubah nama, kategori, bahan, ukuran, deskripsi, detail, NEW, SALE, dan foto.
+- Foto: **+ Add photos** dari galeri HP, tombol ‹ › untuk mengubah urutan (foto pertama = foto utama), × untuk membuang.
+- **+** bulat di kanan atas untuk produk baru. **Delete** perlu dua kali ketuk.
+- Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
+
+**Keamanan:** jangan menaruh data rahasia (modal, HPP) di tab produk Google Sheet **web**, karena tab itu dipublikasikan ke web.
