@@ -482,3 +482,8 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 - PIN sebaiknya 8 karakter atau lebih.
 
 **Apps Script katalog yang lama** (di Google Sheet **web**) tidak dipakai lagi setelah langkah di atas berhasil. Boleh dibiarkan atau dihapus.
+
+## 30. Sync lebih cepat (Code.gs versi 16)
+
+Tablet kasir menarik data setiap menit. Dulu setiap tarikan membaca **seluruh** riwayat struk dan stok, yang terus bertambah setiap hari, sehingga dashboard ikut antre saat sync. Sejak **Code.gs versi 16**, tablet hanya membaca baris yang berubah. Pasang Code.gs versi 16 (langkahnya sama seperti biasa: Copy raw file → tempel di Apps Script → Ctrl+S → Deploy → Manage deployments → Edit → New version → Deploy). Selama belum dipasang, dashboard menampilkan "Update Code.gs" dan semua tetap berjalan seperti sebelumnya.
+
