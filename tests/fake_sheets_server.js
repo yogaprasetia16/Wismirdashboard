@@ -29,7 +29,7 @@ const PROPS={PIN:'9999',CATALOG_SHEET_ID:'CAT',GITHUB_REPO:'o/r',GITHUB_TOKEN:'t
 // Catalog (website) Sheet + GitHub contents API + script cache, for Marketing > Website (Code.gs v14)
 const CAT_HEAD=['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
 const CAT_SS={sheets:{},getSheetByName(n){return this.sheets[n]||null},getSheets(){return Object.values(this.sheets)}};
-let GH={},GHCALLS=[],CACHE={};
+let GH={},GHCALLS=[],CACHE={},SCRIPT_LOCK_HELD=false; // SCRIPT_LOCK_HELD simulates a dashboard/POS sync that is holding the script lock
 function resetCat(){CAT_SS.sheets={};const s=CAT_SS.sheets.produk=new Sheet('produk');
  s.v=[CAT_HEAD.slice(),['Gamis bordir','Gamis','Katun linen','M, L','ya','a.jpg|b.jpg|c.jpg','Adem','- Rapi',''],['Kulot polos','Bawahan','Linen','All size','','c.jpg|d.jpg','','','ya']];s.f=s.v.map(r=>r.map(()=>'@'));
  GH={'foto/a.jpg':'A','foto/b.jpg':'B','foto/c.jpg':'C','foto/d.jpg':'D'};GHCALLS=[];CACHE={}}
@@ -42,7 +42,7 @@ const ctx={SpreadsheetApp:{getActiveSpreadsheet:()=>SS,getActive:()=>SS,openById
    if(o.method==='put'){const b=JSON.parse(o.payload);GH[path]=Buffer.from(b.content,'base64').toString('latin1');return GHRES(201)}
    if(o.method==='delete'){delete GH[path];return GHRES(200)}return GHRES(400)}},
  ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({t,setMimeType(){return this}})},
- LockService:{getScriptLock:()=>({waitLock(){},tryLock(){return true},releaseLock(){}})},
+ LockService:{getScriptLock:()=>({waitLock(){if(SCRIPT_LOCK_HELD)throw new Error('Lock timeout')},tryLock(){return !SCRIPT_LOCK_HELD},releaseLock(){}}),getUserLock:()=>({waitLock(){},tryLock(){return true},releaseLock(){}})},
  Utilities:{sleep(){},formatDate:(d,tz,f)=>{const s=new Date(d.getTime()+7*3600e3).toISOString();return f==='HH:mm'?s.slice(11,16):s.slice(0,10)}},
  PropertiesService:{getScriptProperties:()=>({getProperty:k=>PROPS[k]||null,setProperty:(k,v)=>{PROPS[k]=v}})},
  console,Date,JSON,Number,String,Object,Math,isFinite};
@@ -59,7 +59,8 @@ http.createServer((req,res)=>{
   let b='';req.on('data',d=>b+=d);req.on('end',()=>{hits.post++;send(ctx.doPost({postData:{contents:b}}))});return;
  }
  if(u.pathname==='/dump-cat'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({rows:CAT_SS.sheets.produk.v.slice(0,CAT_SS.sheets.produk.getLastRow()),gh:Object.keys(GH).sort(),calls:GHCALLS,ghSize:Object.fromEntries(Object.entries(GH).map(([k,v])=>[k,v.length]))}))}
- if(u.pathname==='/reset-cat'){resetCat();res.writeHead(200);return res.end('ok')}
+ if(u.pathname==='/hold-lock'){SCRIPT_LOCK_HELD=u.searchParams.get('on')==='1';res.writeHead(200);return res.end('ok')}
+ if(u.pathname==='/reset-cat'){resetCat();SCRIPT_LOCK_HELD=false;res.writeHead(200);return res.end('ok')}
  if(u.pathname==='/dump'){res.writeHead(200,{'Content-Type':'application/json'});const o={};for(const n in SS.sheets)o[n]={v:SS.sheets[n].v.slice(0,SS.sheets[n].getLastRow()),f:SS.sheets[n].f.slice(0,3)};return res.end(JSON.stringify({hits,o}))}
  const f=path.join(ROOT,u.pathname);if(fs.existsSync(f)&&fs.statSync(f).isFile()){const T={'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png','.md':'text/plain'};res.writeHead(200,{'Content-Type':T[path.extname(f)]||'application/octet-stream'});return res.end(fs.readFileSync(f))}
  res.writeHead(404);res.end();
