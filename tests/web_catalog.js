@@ -29,6 +29,7 @@ const post=async o=>(await fetch(B+'/exec',{method:'POST',headers:{'Content-Type
  await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'list');
  ok(catPosts[0]==='catList','the list is read with action catList on the dashboard URL');
  ok(await D.isVisible('#webAdd')&&!(await D.isVisible('#cta')),'round + in the tab row, no header button');
+ ok(await D.isVisible('#webOpen')&&await D.$eval('#webOpen',e=>e.href==='https://wismir.id/'&&e.target==='_blank'&&e.rel.includes('noopener')),'link button beside Reload and + opens wismir.id in a new tab (owner 2026-11-18)');
  const t0=await D.$eval('#weblist .row',e=>e.textContent);ok(t0.includes('Gamis bordir')&&t0.includes('3 photos')&&t0.includes('NEW'),'row shows name, photo count and NEW: '+t0.replace(/\s+/g,' '));
  await D.fill('#webq','kulot');ok((await D.$$('#weblist .row')).length===1,'search filters the list');await D.fill('#webq','');
  // 3. edit: remove b.jpg (only this product), remove c.jpg (shared with Kulot), add a big photo, move it first, change fields
