@@ -487,3 +487,7 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 
 Tablet kasir menarik data setiap menit. Dulu setiap tarikan membaca **seluruh** riwayat struk dan stok, yang terus bertambah setiap hari, sehingga dashboard ikut antre saat sync. Sejak **Code.gs versi 16**, tablet hanya membaca baris yang berubah. Pasang Code.gs versi 16 (langkahnya sama seperti biasa: Copy raw file → tempel di Apps Script → Ctrl+S → Deploy → Manage deployments → Edit → New version → Deploy). Selama belum dipasang, dashboard menampilkan "Update Code.gs" dan semua tetap berjalan seperti sebelumnya.
 
+## 31. Penjualan kasir langsung terlihat di dashboard
+
+Penjualan dari shift yang **belum ditutup** sekarang langsung ikut terhitung di semua halaman dashboard (Overview, Finance › Report, Income, dan Financial), tidak perlu menunggu shift ditutup. Dashboard yang sedang terbuka mengambil data baru setiap **2 menit**, dan setiap kali dibuka kembali. Kalau ingin langsung, tekan tombol **Sync** di kanan atas. Butuh Code.gs versi 12 ke atas (sudah terpasang kalau Bapak sudah memasang versi 16).
+

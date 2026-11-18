@@ -402,9 +402,9 @@ async function _pullSheets(){
 function flushOnLeave(){if(S.cfg.url&&S.cfg.pulled&&S.cfg.dirty&&typeof navigator!=='undefined'&&navigator.sendBeacon){try{navigator.sendBeacon(S.cfg.url,new Blob([JSON.stringify({pin:S.cfg.pin,data:dashData(),base:S.cfg.ver})],{type:'text/plain'}))}catch(e){}}}
 addEventListener('pagehide',flushOnLeave);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushOnLeave();else refresh()});
-// Coming back to an open tab (or every 5 minutes): reload so this device never edits stale data
+// Coming back to an open tab (or every 2 minutes, owner 2026-11-18: sales on the tablets should show sooner): reload so this device never edits stale data
 function refresh(){const ae=document.activeElement;if(locked||!S.cfg.url||!S.cfg.pulled||$('#bg').classList.contains('open')||(ae&&ae.tagName==='INPUT'))return;if(Date.now()-(refresh.t||0)<20000)return;refresh.t=Date.now();pullSheets()}
-setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},300000);
+setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},120000);
 function setStatus(t){status=t;const e=$('#st');if(e)e.textContent=t;
   // anything that is not progress or success counts as a failed sync (red dot on the Sync button)
   if(!/…$/.test(t))syncOk=!/^(Failed|Could not|Your latest changes are not sent|Add your Google Sheets URL)/.test(t)}
@@ -481,7 +481,7 @@ function migratePos(){
 const posTx=()=>P('shift').filter(s=>+s.totalPenjualan).map(s=>({id:'pos:'+s.id,pos:1,jenis:'Income',tanggal:nd(s.tanggal),kategori:'Sales',channel:'Store',jumlah:+s.totalPenjualan,catatan:'POS · '+s.toko+' · '+(s.buka||'')+'–'+(s.tutup||'')}));
 const allTx=()=>S.tx.concat(posTx());
 // receipts of POS shifts that are not closed yet (closed shifts are already income through posTx)
-const liveSales=()=>{const shut=new Set(P('shift').map(s=>String(s.id)));return P('harian').filter(r=>!shut.has(String(r.shiftId))).map(r=>({tanggal:nd(r.tanggal),total:+r.total||0}))};
+const liveSales=()=>{const shut=new Set(P('shift').map(s=>String(s.id)));return P('harian').filter(r=>!shut.has(String(r.shiftId))).map(r=>({tanggal:nd(r.tanggal),toko:String(r.toko||''),total:+r.total||0}))};
 const daySales=k=>allTx().filter(t=>t.tanggal===k&&t.jenis==='Income').reduce((a,t)=>a+ +t.jumlah,0)+liveSales().filter(r=>r.tanggal===k).reduce((a,r)=>a+r.total,0);
 const openTasks=()=>S.tasks.filter(t=>!t.selesai);
 const dueTasks=()=>openTasks().filter(t=>!t.tempo||t.tempo<=today());
@@ -573,6 +573,9 @@ function salesRows(){
   const out=S.hist.map(h=>({m:String(h.bulan),st:String(h.toko||'?'),sku:String(h.sku||''),pid:'',q:+h.qty||0,v:+h.total||0,src:'imp'}));
   const have=new Set(out.map(r=>r.m+'|'+r.st));
   P('shift').forEach(x=>{const m=nd(x.tanggal).slice(0,7),st=String(x.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;out.push({m,st,sku:'',pid:'',q:0,v:+x.totalPenjualan||0,src:'pos'})});
+  // owner 2026-11-18 ("penjualan di POS sudah bertambah, di dashboard belum"): receipts of shifts not closed yet count as revenue
+  // everywhere (Report, Income, Financial), not only on the Overview; closing the shift replaces them with its total (liveSales skips closed shifts)
+  liveSales().forEach(x=>{const m=x.tanggal.slice(0,7),st=x.toko;if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;out.push({m,st,sku:'',pid:'',q:0,v:x.total,src:'pos'})});
   P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;const q=(x.ke==='Sale'?1:-1)*(+x.qty||0);out.push({m,st,sku:'',pid:String(x.pid||''),q,v:0,src:'pos'})});
   return out;
 }

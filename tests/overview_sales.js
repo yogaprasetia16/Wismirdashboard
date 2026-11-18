@@ -29,11 +29,14 @@ const nav=async(pg,t)=>{await pg.click('#menuBtn');await pg.click('#menu [data-t
  ok(t.includes('This week')&&!t.includes('This month')&&t.includes('Sales, last 7 days'),'labels: This week, Sales, last 7 days');
 const inc=await D.evaluate(()=>sums(monthTx()).i+150000).then(v=>v.toLocaleString('id-ID'));
  ok(t.includes("'s income Rp "+inc)&&t.includes("'s expense Rp 20.000"),'income this month includes the open shift; expenses of this month');
+ const mrev=()=>D.evaluate(()=>salesRows().filter(r=>r.m===today().slice(0,7)&&r.st==='Toko A').reduce((a,r)=>a+r.v,0));
+ ok(await mrev()===150000,'Finance revenue (Report/Income) of this month includes the open shift (owner 2026-11-18)');
  const bars=await D.$$eval('.hero .bars > div',e=>e.map(x=>({l:x.lastChild.textContent.trim(),v:x.querySelector('.bv').textContent,h:parseFloat(x.querySelector('i').style.height)})));
  ok(bars.length===7&&bars[6].l==='Today'&&bars[6].h===90&&bars[5].h===30&&bars[5].v==='0,1','7 bars, last = Today (tallest), yesterday 50.000 = a third: '+JSON.stringify(bars.slice(5)));
  await nav(A,'home');await A.click('[data-a=closeSheet]');await A.click('[data-a=doClose]');
  await until(()=>A.evaluate(()=>window.__wismir.S.outbox.length===0),10000,'closed');
  await D.evaluate(()=>pullSheets());await D.evaluate(()=>{tab='home';render()});t=txt(await D.textContent('#app'));
  ok(txt(await D.textContent('.hero .hbig'))==='Rp 150.000','after closing the shift: still 150.000 (not counted twice)');
+ ok(await mrev()===150000,'Finance revenue after closing the shift: still 150.000 (not counted twice)');
  await D.screenshot({path:'overview.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));await br.close();console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0)})().catch(e=>{console.error('ERROR',e.message);process.exit(1)});
