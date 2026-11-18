@@ -460,17 +460,25 @@ Banyak tombol yang dulu bertulisan sekarang berupa **ikon bulat**. Arahkan mouse
 
 ## 30. Atur katalog website dari dashboard (Marketing › Website)
 
-Katalog di **wismir.id** sekarang diatur dari sini, tanpa membuka Google Sheet atau GitHub.
+Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHub. Memakai **Apps Script dan PIN yang sama** dengan dashboard: kalau PIN diganti (menu WISMIR › Atur PIN), katalog ikut.
 
-**Pasang sekali per perangkat:**
-1. Pastikan "mesin" katalog sudah terpasang (Apps Script di Google Sheet **web**, lihat `admin/PANDUAN.md` di repo `Wismirmuslim`). Kalau sudah, URL-nya yang berakhiran `/exec` sudah ada.
-2. Di Google Sheet **web**: Ekstensi → Apps Script → Project Settings → Script properties. Ubah `ADMIN_PASSWORD` **sama persis dengan PIN dashboard** (disarankan 8 karakter atau lebih), lalu Save.
-3. Di dashboard: **Settings → Website catalog URL**, tempel URL `/exec` itu, lalu **Save settings**.
+**Pasang sekali (±10 menit):**
+1. **Perbarui `Code.gs`** (versi 14): buka https://github.com/yogaprasetia16/Wismirdashboard/blob/main/Code.gs → **Copy raw file** → di Apps Script Sheet dashboard, hapus semua isi, tempel, **Ctrl+S** → **Deploy → Manage deployments → Edit (pensil) → Version: New version → Deploy** (jangan "New deployment").
+2. Muat ulang Google Sheet dashboard. Menu **WISMIR** sekarang punya **Atur katalog website**. Klik, lalu isi tiga hal satu per satu:
+   - link Google Sheet katalog (yang bernama **web**, tempel saja linknya),
+   - nama repo website: `yogaprasetia16/Wismirmuslim`,
+   - token GitHub (hanya untuk repo itu, izin **Contents: Read and write**; buat di GitHub → Settings → Developer settings → Fine-grained tokens).
+3. Buka dashboard → **Marketing → ikon globe (Website)**. Kalau muncul "Update Code.gs", ulangi langkah 1 dan muat ulang dashboard.
 
-**Memakai:** Marketing → ikon globe (**Website**).
+**Memakai:** Marketing → **Website**.
 - Ketuk produk untuk mengubah nama, kategori, bahan, ukuran, deskripsi, detail, NEW, SALE, dan foto.
-- Foto: **+ Add photos** dari galeri HP, tombol ‹ › untuk mengubah urutan (foto pertama = foto utama), × untuk membuang.
+- Foto: **+ Add photos** dari galeri HP, tombol ‹ › untuk mengubah urutan (foto pertama = foto utama), × untuk membuang. Foto dikecilkan otomatis.
 - **+** bulat di kanan atas untuk produk baru. **Delete** perlu dua kali ketuk.
 - Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
 
-**Keamanan:** jangan menaruh data rahasia (modal, HPP) di tab produk Google Sheet **web**, karena tab itu dipublikasikan ke web.
+**Keamanan:**
+- Salah PIN **5 kali dalam 15 menit** mengunci **katalog** selama 10 menit (dashboard dan kasir tidak ikut terkunci). Cukup tunggu.
+- Jangan menaruh data rahasia (modal, HPP) di tab produk Google Sheet **web**, karena tab itu dipublikasikan ke web.
+- PIN sebaiknya 8 karakter atau lebih.
+
+**Apps Script katalog yang lama** (di Google Sheet **web**) tidak dipakai lagi setelah langkah di atas berhasil. Boleh dibiarkan atau dihapus.
