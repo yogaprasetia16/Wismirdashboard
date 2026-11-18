@@ -98,7 +98,31 @@ const post=async o=>(await fetch(B+'/exec',{method:'POST',headers:{'Content-Type
  await until(()=>D.evaluate(()=>/older version without the website catalog/.test(document.querySelector('#app').textContent)),8000,'old answer');
  ok(true,'an answer from an old script (ok, no cat:true) is recognised, not mistaken for a catalog');
  await ctx.unroute(B+'/exec');
- // 9. phone width
+ // 9. the catalog never waits for a dashboard/POS sync that holds the script lock (why "Loading the catalog" was slow)
+ await fetch(B+'/hold-lock?on=1');
+ const dsh2=await (await fetch(B+'/exec?pin=9999')).json();
+ ok(dsh2.ok===false,'(test setup) a dashboard sync is busy: the script lock is held, the dashboard read waits/fails');
+ const lst=await post({pin:'9999',action:'catList'});
+ ok(lst.ok===true&&lst.cat===true&&lst.items.length>=1,'the catalog list still answers at once while the script lock is held');
+ const sv2=await post({pin:'9999',action:'catSave',row:2,origNama:'Gamis bordir',data:{nama:'Gamis bordir',bahan:'Katun premium'}});
+ ok(sv2.ok===true,'saving a catalog product also works while the script lock is held');
+ await fetch(B+'/hold-lock?on=0');
+ // 10. the last list is kept on the device: the tab opens at once, then refreshes in the background
+ const P2=await ctx.newPage();P2.on('pageerror',e=>errs.push(e.message));
+ await P2.addInitScript(()=>{try{sessionStorage.setItem('wismir_unlocked','1')}catch(e){}}); // a second visit on this device: PIN already typed this session
+ await ctx.route(B+'/exec',async r=>{if(r.request().method()==='POST'&&/"action":"catList"/.test(r.request().postData()||''))await sleep(2500);r.continue()});
+ await P2.goto(B+'/dashboard.html');await until(()=>P2.evaluate(()=>S.cfg.pulled===1),10000,'p2');
+ await P2.evaluate(()=>{tab='mkt';mk='camp';render()});const tc=Date.now();await P2.click('#app .seg.ico button[title=Website]');
+ await P2.waitForSelector('#weblist .row',{timeout:1500});
+ ok(Date.now()-tc<1500&&(await P2.textContent('#app')).includes('Updating from Google Sheets'),'second time the Website tab shows the saved list at once ('+(Date.now()-tc)+' ms) with "Updating from Google Sheets…" while the answer is 2.5 s away');
+ await until(()=>P2.evaluate(()=>!/Updating from Google Sheets/.test(document.querySelector('#app').textContent)),8000,'refreshed');ok(true,'then it refreshes and the note disappears');
+ await ctx.unroute(B+'/exec');
+ // 11. a request that never answers ends with a clear message
+ await P2.evaluate(()=>{WEB_TIMEOUT=1200});await ctx.route(B+'/exec',async r=>{if(r.request().method()==='POST'&&/"action":"catList"/.test(r.request().postData()||''))await sleep(4000);r.continue()});
+ await P2.click('#app .impb[title=Reload]');await until(()=>P2.evaluate(()=>/taking too long/.test(document.querySelector('#app').textContent)),6000,'timeout');
+ ok((await P2.$$('#weblist .row')).length>=1,'a slow answer ends with "Google Sheets is taking too long. Try again in a moment." and keeps showing the saved list');
+ await ctx.unroute(B+'/exec');await P2.close();
+ // 12. phone width
  await D.setViewportSize({width:320,height:640});await D.click('#app .impb[title=Reload]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'reload3');
  ok(await D.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no sideways scroll at 320 px (list)');
  await D.click('[data-wr="2"]');ok(await D.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no sideways scroll at 320 px (edit form)');

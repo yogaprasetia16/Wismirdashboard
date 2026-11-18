@@ -300,7 +300,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=14;
+const NEED_CODE=15;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -1144,7 +1144,8 @@ function vCamp(){
 // same URL (S.cfg.url) and same PIN (S.cfg.pin), set up once with the Sheet menu WISMIR > Atur katalog website. Nothing here
 // goes through S / save(). An older Code.gs is detected (S.cfg.codeOld, or an answer without cat:true) and nothing is sent.
 const WEBSITE='https://wismir.id/',WEB_MAXSIDE=1400,WEB_Q=.82;
-let WEB={items:[],headers:[],loaded:false,busy:false,err:'',msg:'',q:''},WP=[];
+let WEB={items:[],headers:[],loaded:false,busy:false,stale:false,err:'',msg:'',q:''},WP=[],WEB_TIMEOUT=45000;
+const WEB_KEY='wismir_webcat_v1'; // last catalog list kept on this device (not synced): the Website tab opens at once, then refreshes
 const wTok=v=>String(v||'').split(/[\s|,]+/).filter(Boolean);
 const wUrl=t=>/^https?:/i.test(t);
 function wThumb(t){
@@ -1156,26 +1157,30 @@ async function webCall(action,payload){
   if(!S.cfg.url)throw new Error('Connect Google Sheets in Settings first.');
   if(!S.cfg.pin)throw new Error('Add the Access PIN in Settings first.');
   if(S.cfg.codeOld)throw new Error('Update Code.gs first (see the notice at the top of the page), then try again.');
-  let r;try{r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:S.cfg.pin,action:'cat'+action[0].toUpperCase()+action.slice(1),...(payload||{})})})}
-  catch(e){throw new Error('Cannot reach Google Sheets. Check the internet connection.')}
+  const ac=new AbortController(),to=setTimeout(()=>ac.abort(),WEB_TIMEOUT);let r;
+  try{r=await fetch(S.cfg.url,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:S.cfg.pin,action:'cat'+action[0].toUpperCase()+action.slice(1),...(payload||{})})})}
+  catch(e){clearTimeout(to);throw new Error(ac.signal.aborted?'Google Sheets is taking too long. Try again in a moment.':'Cannot reach Google Sheets. Check the internet connection.')}
+  clearTimeout(to);
   let j;try{j=await r.json()}catch(e){throw new Error('Google Sheets gave an unexpected answer. Check the URL in Settings.')}
   if(!j.cat&&j.ok)throw new Error('Update Code.gs first: the Apps Script is an older version without the website catalog.');
   if(!j.ok)throw new Error(/PIN salah/i.test(j.error||'')?'Wrong PIN. Check the Access PIN in Settings.':(j.error||'Something went wrong.'));
   return j}
 async function webLoad(){
-  if(WEB.busy)return;WEB.busy=true;WEB.err='';if(tab==='mkt'&&mk==='web')render();
-  try{const j=await webCall('list');WEB.items=j.items;WEB.headers=j.headers;WEB.loaded=true}
+  if(WEB.busy)return;WEB.busy=true;WEB.err='';
+  if(!WEB.loaded){try{const c=JSON.parse(localStorage.getItem(WEB_KEY)||'null');if(c&&c.items&&c.items.length){WEB.items=c.items;WEB.headers=c.headers||[];WEB.loaded=true;WEB.stale=true}}catch(e){}}
+  if(tab==='mkt'&&mk==='web')render();
+  try{const j=await webCall('list');WEB.items=j.items;WEB.headers=j.headers;WEB.loaded=true;WEB.stale=false;WEB.at=Date.now();try{localStorage.setItem(WEB_KEY,JSON.stringify({items:j.items,headers:j.headers}))}catch(e){}}
   catch(e){WEB.err=e.message}
   WEB.busy=false;if(tab==='mkt'&&mk==='web')render()}
 function webSeg(){
   const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
   const more=mk==='web'?`<div class="bha" style="margin-left:auto"><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
-  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&!WEB.loaded)webLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}</div>`}
+  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&(!WEB.loaded||Date.now()-(WEB.at||0)>60000))webLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}</div>`}
 function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():vCamp())}
 function vWeb(){
   if(!S.cfg.url)return `<div class="card">${empty('Connect Google Sheets in Settings to manage the wismir.id catalog here.')}</div>`;
-  const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
-  if(!WEB.loaded)return note+`<div class="card">${empty(WEB.busy?'Loading the catalog…':'The catalog is not loaded yet. Press the reload button above.')}</div>`;
+  const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating from Google Sheets…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
+  if(!WEB.loaded)return note+`<div class="card">${empty(WEB.busy?'Loading the catalog… the first time can take up to 20 seconds.':'The catalog is not loaded yet. Press the reload button above.')}</div>`;
   const t=WEB.q.trim().toLowerCase(),L=WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t));
   return note+`<div class="f"><input id="webq" type="search" placeholder="Search product" aria-label="Search product" value="${esc(WEB.q)}" oninput="WEB.q=this.value;webList()"></div><div id="weblist">${webListHtml(L)}</div>
   <div class="lbl" style="padding:0 6px">${WEB.items.length} products on wismir.id. Changes show on the website in about 1–5 minutes.</div>`}

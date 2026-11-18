@@ -105,7 +105,7 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 14;
+const CODE_VERSION = 15;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -318,7 +318,7 @@ function catLockedMinutes() {
 }
 function catNoteFail() {
   try {
-    const lock = LockService.getScriptLock();
+    const lock = LockService.getUserLock();
     lock.waitLock(5000);
     try {
       const c = CacheService.getScriptCache(), n = Number(c.get('catFails') || 0) + 1;
@@ -338,24 +338,24 @@ function catSheet() {
 function catHeaders(sh) {
   return sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(function (h) { return String(h).trim(); });
 }
+// Katalog memakai kunci PENGGUNA, bukan kunci script milik dashboard/kasir: Sheet katalog terpisah dari Sheet dashboard, jadi
+// katalog tidak perlu menunggu sinkron dashboard/POS yang sedang berjalan (itu yang membuat "Loading the catalog" lama).
 function catWithLock(fn) {
-  const lock = LockService.getScriptLock();
+  const lock = LockService.getUserLock();
   lock.waitLock(20000);
   try { return fn(); } finally { lock.releaseLock(); }
 }
 
-function catList() {
-  return catWithLock(function () {
-    const sh = catSheet(), head = catHeaders(sh), last = sh.getLastRow(), items = [];
-    if (last > 1) {
-      sh.getRange(2, 1, last - 1, head.length).getDisplayValues().forEach(function (r, i) {
-        const o = { _row: i + 2 };
-        head.forEach(function (h, c) { if (h) o[h.toLowerCase()] = String(r[c]).trim(); });
-        if (o.nama) items.push(o);
-      });
-    }
-    return { ok: true, headers: head.filter(String).map(function (h) { return h.toLowerCase(); }), items: items };
-  });
+function catList() { // hanya membaca: tanpa kunci apa pun
+  const sh = catSheet(), head = catHeaders(sh), last = sh.getLastRow(), items = [];
+  if (last > 1) {
+    sh.getRange(2, 1, last - 1, head.length).getDisplayValues().forEach(function (r, i) {
+      const o = { _row: i + 2 };
+      head.forEach(function (h, c) { if (h) o[h.toLowerCase()] = String(r[c]).trim(); });
+      if (o.nama) items.push(o);
+    });
+  }
+  return { ok: true, headers: head.filter(String).map(function (h) { return h.toLowerCase(); }), items: items };
 }
 
 function catRowCheck(sh, head, row, nama) {
