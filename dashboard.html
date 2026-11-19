@@ -520,7 +520,7 @@ function render(){
   // animate the Overview chart only when the page is opened
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'||(tab==='mkt'&&mk==='web')?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'||(tab==='mkt'&&(mk==='web'||mk==='testi'))?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
   $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store',exp:'New expense'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
@@ -1149,12 +1149,14 @@ function vCamp(){
 // script (owner 2026-11-19: separate script = steady speed, nothing shared with the cashier tablets). This page calls it at
 // S.cfg.catUrl with S.cfg.catPass (empty = the Access PIN) as the password. Nothing here goes through S / save() / Code.gs.
 const WEBSITE='https://wismir.id/',WEB_MAXSIDE=1400,WEB_Q=.82;
+let WPP={dir:'foto/',max:1400,q:.82},WPT={dir:'testimoni/',max:2000,q:.85},WPCFG=WPP;
+let TW={items:[],loaded:false,busy:false,stale:false,err:'',msg:'',at:0};const TESTI_KEY='wismir_testi_v1'; // testimonials: last list kept on this device (not synced)
 let WEB={items:[],headers:[],loaded:false,busy:false,stale:false,err:'',msg:'',q:''},WP=[],WEB_TIMEOUT=45000;
 const WEB_KEY='wismir_webcat_v1'; // last catalog list kept on this device (not synced): the Website tab opens at once, then refreshes
 const wTok=v=>String(v||'').split(/[\s|,]+/).filter(Boolean);
 const wUrl=t=>/^https?:/i.test(t);
-function wThumb(t){
-  if(!wUrl(t))return WEBSITE+'foto/'+encodeURIComponent(t.replace(/^foto\//,''));
+function wThumb(t,dir){
+  if(!wUrl(t))return WEBSITE+(dir||'foto/')+encodeURIComponent(t.replace(/^foto\//,''));
   const m=t.match(/drive\.google\.com\/file\/d\/([\w-]+)/)||(/drive\.google\.com/.test(t)&&t.match(/[?&]id=([\w-]+)/));
   return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:t}
 const wYes=v=>/^(ya|y|yes|true|1)$/i.test(String(v||'').trim());
@@ -1177,10 +1179,11 @@ async function webLoad(){
   catch(e){WEB.err=e.message}
   WEB.busy=false;if(tab==='mkt'&&mk==='web')render()}
 function webSeg(){
-  const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
+  const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',testi:'<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-6.5L8 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 9.5h8M8 12.5h5"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
   const more=mk==='web'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
-  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&(!WEB.loaded||Date.now()-(WEB.at||0)>60000))webLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}</div>`}
-function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():vCamp())}
+  const moreT=mk==='testi'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}#testimoni" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="testiLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="testiAdd" onclick="testiEdit(null)" title="New testimonial" aria-label="New testimonial"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
+  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website'],['testi','Testimonials']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&(!WEB.loaded||Date.now()-(WEB.at||0)>60000))webLoad();if('${x[0]}'==='testi'&&(!TW.loaded||Date.now()-(TW.at||0)>60000))testiLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}${moreT}</div>`}
+function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():mk==='testi'?vTesti():vCamp())}
 function vWeb(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
   const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the catalog…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
@@ -1206,7 +1209,7 @@ function webListHtml(L){
 const WAREA=['deskripsi','detail'],WYN=['terbaru','sale'];
 const WLABEL={nama:'Product name',kategori:'Category',bahan:'Material',ukuran:'Sizes',terbaru:'Show in New collection',sale:'Mark as Sale',deskripsi:'Short description',detail:'Details (one point per line, start with -)',harga:'Price (e.g. Rp 199.000)',harga_normal:'Normal price before discount',warna:'Colour'};
 function webEdit(row){
-  closePop();const it=row==null?null:WEB.items.find(x=>x._row===row);if(row!=null&&!it)return;
+  closePop();WPCFG=WPP;const it=row==null?null:WEB.items.find(x=>x._row===row);if(row!=null&&!it)return;
   WP=it?wTok(it.foto).map(t=>({old:1,t})):[];
   const cats=[...new Set(['Gamis','Atasan','Bawahan','Oneset',...WEB.items.map(i=>i.kategori).filter(Boolean)])];
   const H=WEB.headers.length?WEB.headers:['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
@@ -1223,19 +1226,19 @@ function webEdit(row){
   if(it){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}webDelete(it)}}}
 function webPhotos(){
   const g=$('#wpg');if(!g)return;
-  g.innerHTML=WP.map((p,i)=>`<div class="wph${i?'':' cov'}"><img src="${esc(p.old?wThumb(p.t):p.url)}" alt="Photo ${i+1}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${p.old?'':'<span class="wnew">NEW</span>'}<button type="button" class="wx" data-wx="${i}" aria-label="Remove photo">×</button><div class="wct"><button type="button" data-wm="${i}:-1" aria-label="Move left"${i?'':' disabled'}>‹</button><button type="button" data-wm="${i}:1" aria-label="Move right"${i<WP.length-1?'':' disabled'}>›</button></div></div>`).join('')+`<label class="wadd"><input type="file" id="wfile" accept="image/*" multiple hidden>+ Add photos</label>`;
+  g.innerHTML=WP.map((p,i)=>`<div class="wph${i?'':' cov'}"><img src="${esc(p.old?wThumb(p.t,WPCFG.dir):p.url)}" alt="Photo ${i+1}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${p.old?'':'<span class="wnew">NEW</span>'}<button type="button" class="wx" data-wx="${i}" aria-label="Remove photo">×</button><div class="wct"><button type="button" data-wm="${i}:-1" aria-label="Move left"${i?'':' disabled'}>‹</button><button type="button" data-wm="${i}:1" aria-label="Move right"${i<WP.length-1?'':' disabled'}>›</button></div></div>`).join('')+`<label class="wadd"><input type="file" id="wfile" accept="image/*" multiple hidden>+ Add photos</label>`;
   $('#wfile').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;err('Preparing photos…');
-    try{for(const f of fs){const b=await webShrink(f);WP.push({b,n:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.jpg',url:URL.createObjectURL(b)})}err('')}catch(x){err(x.message)}webPhotos()}}
+    try{for(const f of fs){const b=await webShrink(f,WPCFG.max,WPCFG.q);WP.push({b,n:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.jpg',url:URL.createObjectURL(b)})}err('')}catch(x){err(x.message)}webPhotos()}}
 document.addEventListener('click',e=>{
   const x=e.target.closest('[data-wx]'),m=e.target.closest('[data-wm]');if(!x&&!m)return;
   if(x){WP.splice(+x.dataset.wx,1);webPhotos()}
   if(m){const [i,d]=m.dataset.wm.split(':').map(Number),j=i+d;if(WP[j]){[WP[i],WP[j]]=[WP[j],WP[i]];webPhotos()}}});
-async function webShrink(file){
+async function webShrink(file,max=WEB_MAXSIDE,qual=WEB_Q){
   let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}
   catch(e){bmp=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('This photo cannot be read: '+file.name));i.src=URL.createObjectURL(file)})}
-  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,r=Math.min(1,WEB_MAXSIDE/Math.max(w,h)),c=document.createElement('canvas');
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,r=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');
   c.width=Math.round(w*r);c.height=Math.round(h*r);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
-  return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('Could not prepare the photo')),'image/jpeg',WEB_Q))}
+  return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('Could not prepare the photo')),'image/jpeg',qual))}
 const webB64=b=>new Promise((ok,no)=>{const f=new FileReader();f.onload=()=>ok(String(f.result).split(',')[1]);f.onerror=()=>no(new Error('Could not read the photo'));f.readAsDataURL(b)});
 // photo files of this product that no other product uses (safe to delete from the website repo)
 function webOrphans(removed,exceptRow){
@@ -1258,6 +1261,51 @@ async function webDelete(it){
   try{await webCall('delete',{row:it._row,nama:it.nama,deleteFiles:webOrphans(wTok(it.foto),it._row)});close();WEB.msg='Product deleted. It disappears from wismir.id in about 1–5 minutes.';await webLoad()}
   catch(e){err(e.message);$('#rm').disabled=false}}
 
+
+
+// ---- Marketing > Testimonials (owner 2026-11-19): the "Kata Pelanggan" section of wismir.id. The list is testimoni/testimoni.json
+// in the website repo (photos in testimoni/), written by the same catalog Apps Script (actions testiList / testiSave / testiDelete).
+// A testimonial = optional photos (e.g. chat screenshots) + optional name + optional comment; at least a photo or a comment.
+async function testiLoad(){
+  if(TW.busy)return;TW.busy=true;TW.err='';
+  if(!TW.loaded){try{const c=JSON.parse(localStorage.getItem(TESTI_KEY)||'null');if(c&&c.items&&c.items.length){TW.items=c.items;TW.loaded=true;TW.stale=true}}catch(e){}}
+  if(tab==='mkt'&&mk==='testi')render();
+  try{const j=await webCall('testiList');TW.items=j.items;TW.loaded=true;TW.stale=false;TW.at=Date.now();try{localStorage.setItem(TESTI_KEY,JSON.stringify({items:j.items}))}catch(e){}}
+  catch(e){TW.err=e.message}
+  TW.busy=false;if(tab==='mkt'&&mk==='testi')render()}
+const testiClip=(t,n)=>{t=String(t||'').replace(/\s+/g,' ').trim();return t.length>n?t.slice(0,n-1)+'…':t};
+function vTesti(){
+  if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the testimonials of wismir.id here.')}</div>`;
+  const note=TW.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(TW.err)}</div>`:TW.busy&&TW.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the testimonials…</div>`:TW.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(TW.msg)}</div>`:'';
+  if(!TW.loaded)return note+`<div class="card">${empty(TW.busy?'Loading the testimonials… the first time can take up to 20 seconds.':'The testimonials are not loaded yet. Press the reload button above.')}</div>`;
+  return note+`<div class="card">${TW.items.length?TW.items.map(t=>{const p=(t.foto||[])[0];return `<div class="row" data-tr="${esc(t.id)}" onclick="testiEdit('${esc(t.id)}')"><span class="th" style="overflow:hidden">${p?`<img src="${esc(wThumb(p,'testimoni/'))}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:'<svg viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-6.5L8 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/></svg>'}</span><div class="grow"><div class="t">${esc(t.nama||'(no name)')}</div><div class="lbl">${esc(testiClip(t.komentar,90))||'<i>Photo only</i>'}</div><div class="lbl">${(t.foto||[]).length} photo${(t.foto||[]).length===1?'':'s'}</div></div></div>`}).join(''):empty('No testimonials yet. Press + to add the first one.')}</div>
+  <div class="lbl" style="padding:0 6px">${TW.items.length} testimonial${TW.items.length===1?'':'s'} on wismir.id (newest first). Changes show on the website in about 1–5 minutes.</div>`}
+function testiEdit(id){
+  closePop();WPCFG=WPT;const it=id==null?null:TW.items.find(x=>x.id===id);if(id!=null&&!it)return;
+  WP=it?(it.foto||[]).map(t=>({old:1,t})):[];
+  $('#sheet').oninput=null;
+  $('#sheet').innerHTML=`<h3>${it?'Edit testimonial':'New testimonial'}</h3>
+  <div class="f"><label>Photos (optional, e.g. a chat screenshot; the first is shown first)</label><div class="wpg" id="wpg"></div></div>
+  <div class="f"><label>Customer name (optional)</label><input data-t="nama" maxlength="80" value="${esc(it?it.nama||'':'')}"></div>
+  <div class="f"><label>Comment (optional if there is a photo)</label><textarea data-t="komentar" rows="4" maxlength="1000">${esc(it?it.komentar||'':'')}</textarea></div>
+  <div class="lbl" style="margin:-4px 6px 10px">Without a photo, the comment is shown on the website as a quote.</div>
+  <div id="err" class="lbl neg" style="margin:2px 6px 8px"></div><button class="btn" id="ok">Save</button>${it?`<button class="btn del" id="rm">Delete</button>`:''}<button class="btn sec" id="no" style="margin-top:8px">Cancel</button>`;
+  webPhotos();$('#bg').classList.add('open');$('#no').onclick=close;$('#ok').onclick=()=>testiSave(it);
+  if(it){let armed=false;$('#rm').onclick=()=>{if(!armed){armed=true;$('#rm').textContent='Tap again to confirm delete';return}testiDelete(it)}}}
+async function testiSave(it){
+  const nama=$('#sheet [data-t=nama]').value.trim(),komentar=$('#sheet [data-t=komentar]').value.trim();
+  if(!WP.length&&!komentar)return err('Add at least a photo or a comment.');
+  const keep=new Set(WP.filter(p=>p.old).map(p=>p.t)),removed=it?(it.foto||[]).filter(t=>!keep.has(t)):[],news=WP.filter(p=>!p.old);
+  $('#ok').disabled=true;$('#ok').textContent=news.length?'Saving and uploading photos…':'Saving…';err('');
+  try{
+    const np=[];for(const p of news)np.push({name:p.n,b64:await webB64(p.b)});
+    await webCall('testiSave',{id:it?it.id:null,orig:it?{foto:it.foto||[],nama:it.nama||'',komentar:it.komentar||''}:null,data:{nama,komentar,foto:WP.map(p=>p.old?p.t:p.n)},newPhotos:np,deleteFiles:removed});
+    close();TW.msg='Saved. It shows on wismir.id in about 1–5 minutes (new photos 1–2 minutes).';await testiLoad()
+  }catch(e){err(e.message);$('#ok').disabled=false;$('#ok').textContent='Save'}}
+async function testiDelete(it){
+  $('#rm').disabled=true;err('');
+  try{await webCall('testiDelete',{id:it.id,deleteFiles:it.foto||[]});close();TW.msg='Testimonial deleted. It disappears from wismir.id in about 1–5 minutes.';await testiLoad()}
+  catch(e){err(e.message);$('#rm').disabled=false}}
 
 // ---- Operational > Expense (owner 2026-11-10): enter the store's monthly expenses (same data as Finance > Expense)
 // and recurring expenses (tab Recurring: id, kategori, jumlah, catatan, repeat, next). A recurring expense adds an
