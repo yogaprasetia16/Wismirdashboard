@@ -1143,10 +1143,10 @@ function vCamp(){
 
 
 // ---- Marketing > Website (owner 2026-11-18): manage the wismir.id catalog from the dashboard.
-// The catalog lives in its own Google Sheet ("web") and photos in the wismir.id GitHub repo (folder foto/). Since Code.gs v14
-// (owner 2026-11-18: "1 tempat saja") the SAME Apps Script as the dashboard does this: actions catList / catSave / catDelete,
-// same URL (S.cfg.url) and same PIN (S.cfg.pin), set up once with the Sheet menu WISMIR > Atur katalog website. Nothing here
-// goes through S / save(). An older Code.gs is detected (S.cfg.codeOld, or an answer without cat:true) and nothing is sent.
+// The catalog lives in its own Google Sheet ("web") and photos in the wismir.id GitHub repo (folder foto/). A SEPARATE catalog
+// Apps Script (repo Wismirmuslim, apps-script/Code.gs, bound to that Sheet) is the only bridge; it is NOT the dashboard/POS
+// script (owner 2026-11-19: separate script = steady speed, nothing shared with the cashier tablets). This page calls it at
+// S.cfg.catUrl with S.cfg.catPass (empty = the Access PIN) as the password. Nothing here goes through S / save() / Code.gs.
 const WEBSITE='https://wismir.id/',WEB_MAXSIDE=1400,WEB_Q=.82;
 let WEB={items:[],headers:[],loaded:false,busy:false,stale:false,err:'',msg:'',q:''},WP=[],WEB_TIMEOUT=45000;
 const WEB_KEY='wismir_webcat_v1'; // last catalog list kept on this device (not synced): the Website tab opens at once, then refreshes
@@ -1158,16 +1158,15 @@ function wThumb(t){
   return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:t}
 const wYes=v=>/^(ya|y|yes|true|1)$/i.test(String(v||'').trim());
 async function webCall(action,payload){
-  if(!S.cfg.url)throw new Error('Connect Google Sheets in Settings first.');
-  if(!S.cfg.pin)throw new Error('Add the Access PIN in Settings first.');
-  if(S.cfg.codeOld)throw new Error('Update Code.gs first (see the notice at the top of the page), then try again.');
+  if(!S.cfg.catUrl)throw new Error('Add the Website catalog URL in Settings first.');
+  const pass=S.cfg.catPass||S.cfg.pin;
+  if(!pass)throw new Error('Add the catalog password (or the Access PIN) in Settings first.');
   const ac=new AbortController(),to=setTimeout(()=>ac.abort(),WEB_TIMEOUT);let r;
-  try{r=await fetch(S.cfg.url,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:S.cfg.pin,action:'cat'+action[0].toUpperCase()+action.slice(1),...(payload||{})})})}
-  catch(e){clearTimeout(to);throw new Error(ac.signal.aborted?'Google Sheets is taking too long. Try again in a moment.':'Cannot reach Google Sheets. Check the internet connection.')}
+  try{r=await fetch(S.cfg.catUrl,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pass,action,...(payload||{})})})}
+  catch(e){clearTimeout(to);throw new Error(ac.signal.aborted?'The catalog script is taking too long. Try again in a moment.':'Cannot reach the catalog script. Check the internet connection and the URL in Settings.')}
   clearTimeout(to);
-  let j;try{j=await r.json()}catch(e){throw new Error('Google Sheets gave an unexpected answer. Check the URL in Settings.')}
-  if(!j.cat&&j.ok)throw new Error('Update Code.gs first: the Apps Script is an older version without the website catalog.');
-  if(!j.ok)throw new Error(/PIN salah/i.test(j.error||'')?'Wrong PIN. Check the Access PIN in Settings.':(j.error||'Something went wrong.'));
+  let j;try{j=await r.json()}catch(e){throw new Error('The catalog script gave an unexpected answer. Check that it is deployed as a Web app with access "Anyone", and the URL in Settings.')}
+  if(!j.ok)throw new Error(/sandi/i.test(j.error||'')?'Wrong password. It must match ADMIN_PASSWORD of the catalog script (Settings: catalog password, or the Access PIN if that field is empty).':(j.error||'Something went wrong.'));
   return j}
 async function webLoad(){
   if(WEB.busy)return;WEB.busy=true;WEB.err='';
@@ -1182,8 +1181,8 @@ function webSeg(){
   return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&(!WEB.loaded||Date.now()-(WEB.at||0)>60000))webLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}</div>`}
 function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():vCamp())}
 function vWeb(){
-  if(!S.cfg.url)return `<div class="card">${empty('Connect Google Sheets in Settings to manage the wismir.id catalog here.')}</div>`;
-  const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating from Google Sheets…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
+  if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
+  const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the catalog…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
   if(!WEB.loaded)return note+`<div class="card">${empty(WEB.busy?'Loading the catalog… the first time can take up to 20 seconds.':'The catalog is not loaded yet. Press the reload button above.')}</div>`;
   const t=WEB.q.trim().toLowerCase(),L=WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t));
   return note+`<div class="f"><input id="webq" type="search" placeholder="Search product" aria-label="Search product" value="${esc(WEB.q)}" oninput="WEB.q=this.value;webList()"></div><div id="weblist">${webListHtml(L)}</div>
@@ -1594,12 +1593,14 @@ $('#app').addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changed
 function vSet(){
   return `<h1>Settings</h1><div class="card"><div class="f"><label>Google Apps Script Web App URL</label><input id="cu" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
   <div class="f"><label>Access PIN</label><input id="cp" type="password" value="${esc(S.cfg.pin)}"></div><div class="lbl" style="margin:-4px 6px 10px">This PIN also unlocks the dashboard on this device.</div>
+  <div class="f"><label>Website catalog URL (Apps Script, for Marketing › Website)</label><input id="cw" value="${esc(S.cfg.catUrl||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>
+  <div class="f"><label>Website catalog password (empty = same as the Access PIN)</label><input id="cwp" type="password" value="${esc(S.cfg.catPass||'')}"></div><div class="lbl" style="margin:-4px 6px 10px">Must match ADMIN_PASSWORD of the catalog script. It is separate from the dashboard script, so the cashier tablets are not affected.</div>
   <button class="btn" onclick="saveCfg()">Save settings</button></div>
   <div class="card"><button class="btn sec" onclick="pushSheets()">Send data to Sheets</button><button class="btn sec" onclick="pullSheets()">Load data from Sheets</button><div id="st">${esc(status)}</div></div>
   <div class="card"><button class="btn sec" onclick="backup()">Download backup (JSON)</button></div>
   <div class="lbl" style="padding:0 6px">Changes sync to Sheets automatically once the URL and PIN are set. Store data (sales, stock, attendance) comes from the store tablet (POS) through the same Sheet.</div>`;
 }
-function saveCfg(){const u=$('#cu').value.trim(),p=$('#cp').value;if(u!==S.cfg.url||p!==S.cfg.pin){S.cfg.pulled=0;S.cfg.dirty=0}S.cfg.url=u;S.cfg.pin=p;markUnlocked();save(false);setStatus('Settings saved');if(u)pullSheets()}
+function saveCfg(){const u=$('#cu').value.trim(),p=$('#cp').value;if(u!==S.cfg.url||p!==S.cfg.pin){S.cfg.pulled=0;S.cfg.dirty=0}S.cfg.url=u;S.cfg.pin=p;{const w=($('#cw')||{}).value,wp=($('#cwp')||{}).value;if(w!==undefined&&(w.trim()!==(S.cfg.catUrl||'')||wp!==(S.cfg.catPass||''))){S.cfg.catUrl=w.trim();S.cfg.catPass=wp;WEB.loaded=false;WEB.items=[];try{localStorage.removeItem(WEB_KEY)}catch(e){}}}markUnlocked();save(false);setStatus('Settings saved');if(u)pullSheets()}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='wismir-backup-'+today()+'.json';a.click()}
 
 function showKpi(k){

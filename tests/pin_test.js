@@ -14,21 +14,11 @@ ok(!/GANTI-PIN|const PIN\s*=/.test(fs.readFileSync(require('path').join(__dirnam
 const g=pin=>JSON.parse(vm.runInContext(`doGet({parameter:{pin:${JSON.stringify(pin)}}}).t`,ctx));
 ok(g('x').error.includes('Atur PIN'),'before a PIN is set, requests are refused with a hint');
 vm.runInContext('setup()',ctx);ok(alerts.pop().includes('Atur PIN'),'setup works without editing code and tells the next step');
-vm.runInContext('onOpen()',ctx);ok(menu.join()==='Atur PIN:setPin,Atur katalog website:setCatalog,Siapkan tab:setup','menu WISMIR: Atur PIN, Atur katalog website, Siapkan tab');
+vm.runInContext('onOpen()',ctx);ok(menu.join()==='Atur PIN:setPin,Siapkan tab:setup','menu WISMIR: Atur PIN, Siapkan tab');
 answer='12';vm.runInContext('setPin()',ctx);ok(!props.PIN&&alerts.pop().includes('minimal'),'too-short PIN rejected');
 answer='wismir2580';vm.runInContext('setPin()',ctx);ok(props.PIN==='wismir2580','PIN saved in Script Properties');
 ok(g('wrong').error==='PIN salah'&&g('wismir2580').ok===true,'wrong PIN refused, right PIN accepted');
 // simulate a code update: fresh context, same properties
 const ctx2=vm.createContext({...ctx});vm.runInContext(fs.readFileSync(require('path').join(__dirname,'..','Code.gs'),'utf8'),ctx2);
 ok(JSON.parse(vm.runInContext(`doGet({parameter:{pin:'wismir2580'}}).t`,ctx2)).ok,'PIN survives pasting new code');
-// menu WISMIR > Atur katalog website (Code.gs v14): three prompts saved in Script Properties
-const asks=q=>{ui.prompt=()=>{const a=q.shift();return {getSelectedButton:()=>a===null?'C':'OK',getResponseText:()=>a===undefined?'':a}}};
-asks(['https://docs.google.com/spreadsheets/d/1_UkxV3CDi6BwB7jq4qosS3zowH3sl364v2xvT-jngus/edit?gid=0','yogaprasetia16/Wismirmuslim','github_pat_TEST']);alerts.length=0;vm.runInContext('setCatalog()',ctx);
-ok(props.CATALOG_SHEET_ID==='1_UkxV3CDi6BwB7jq4qosS3zowH3sl364v2xvT-jngus'&&props.GITHUB_REPO==='yogaprasetia16/Wismirmuslim'&&props.GITHUB_TOKEN==='github_pat_TEST','Atur katalog website: Sheet link (ID cut out), repo and token saved in Script Properties');
-ok(alerts.pop().includes('Semua pengaturan lengkap'),'it says when all three are set');
-asks(['','','']);vm.runInContext('setCatalog()',ctx);ok(props.GITHUB_TOKEN==='github_pat_TEST'&&props.GITHUB_REPO==='yogaprasetia16/Wismirmuslim','blank answers keep the saved values');
-asks(['bukan link','a/b','x']);alerts.length=0;vm.runInContext('setCatalog()',ctx);ok(props.GITHUB_REPO==='yogaprasetia16/Wismirmuslim'&&alerts.pop().includes('tidak dikenali'),'a link that is not a Sheet is refused, nothing changes');
-asks(['','salah repo','x']);alerts.length=0;vm.runInContext('setCatalog()',ctx);ok(props.GITHUB_TOKEN==='github_pat_TEST'&&alerts.pop().includes('pemilik/nama-repo'),'a repo name in the wrong form is refused, nothing changes');
-asks([null]);vm.runInContext('setCatalog()',ctx);ok(true,'Cancel at the first question changes nothing');
-ok(!/github_pat_|ghp_/.test(fs.readFileSync(require('path').join(__dirname,'..','Code.gs'),'utf8')),'no GitHub token written in the code');
 console.log(fail?fail+' FAILED':'ALL PASSED');process.exit(fail?1:0);

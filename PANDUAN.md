@@ -460,28 +460,28 @@ Banyak tombol yang dulu bertulisan sekarang berupa **ikon bulat**. Arahkan mouse
 
 ## 30. Atur katalog website dari dashboard (Marketing › Website)
 
-Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHub. Memakai **Apps Script dan PIN yang sama** dengan dashboard: kalau PIN diganti (menu WISMIR › Atur PIN), katalog ikut.
+Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHub. Dashboard memakai **Apps Script katalog yang terpisah** (di Google Sheet **web**), bukan Apps Script dashboard/kasir, jadi kecepatan katalog tidak ikut terpengaruh sinkron kasir.
 
-**Pasang sekali (±10 menit):**
-1. **Perbarui `Code.gs`** (versi 14): buka https://github.com/yogaprasetia16/Wismirdashboard/blob/main/Code.gs → **Copy raw file** → di Apps Script Sheet dashboard, hapus semua isi, tempel, **Ctrl+S** → **Deploy → Manage deployments → Edit (pensil) → Version: New version → Deploy** (jangan "New deployment").
-2. Muat ulang Google Sheet dashboard. Menu **WISMIR** sekarang punya **Atur katalog website**. Klik, lalu isi tiga hal satu per satu:
-   - link Google Sheet katalog (yang bernama **web**, tempel saja linknya),
-   - nama repo website: `yogaprasetia16/Wismirmuslim`,
-   - token GitHub (hanya untuk repo itu, izin **Contents: Read and write**; buat di GitHub → Settings → Developer settings → Fine-grained tokens).
-3. Buka dashboard → **Marketing → ikon globe (Website)**. Kalau muncul "Update Code.gs", ulangi langkah 1 dan muat ulang dashboard.
+**Pasang sekali per perangkat:**
+1. Pastikan Apps Script katalog sudah terpasang di Google Sheet **web** (langkah lengkap: `admin/PANDUAN.md` di repo `Wismirmuslim`). Alamat `/exec`-nya yang dipakai di bawah.
+2. Di dashboard: **Settings**.
+   - **Website catalog URL**: tempel alamat `/exec` Apps Script katalog.
+   - **Website catalog password**: isi kata sandi katalog (`ADMIN_PASSWORD` di Apps Script katalog). **Kosongkan** kalau kata sandinya sama dengan Access PIN.
+   - Klik **Save settings**.
+3. Buka **Marketing → ikon globe (Website)**.
 
 **Memakai:** Marketing → **Website**.
 - Ketuk produk untuk mengubah nama, kategori, bahan, ukuran, deskripsi, detail, NEW, SALE, dan foto.
 - Foto: **+ Add photos** dari galeri HP, tombol ‹ › untuk mengubah urutan (foto pertama = foto utama), × untuk membuang. Foto dikecilkan otomatis.
-- **+** bulat di kanan atas untuk produk baru. **Delete** perlu dua kali ketuk.
+- **+** bulat di kanan atas untuk produk baru. **Delete** perlu dua kali ketuk. Ikon tautan membuka wismir.id.
 - Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
+- Daftar terakhir disimpan di perangkat, jadi tab Website langsung tampil lalu diperbarui sendiri.
 
 **Keamanan:**
-- Salah PIN **5 kali dalam 15 menit** mengunci **katalog** selama 10 menit (dashboard dan kasir tidak ikut terkunci). Cukup tunggu.
+- Salah kata sandi **5 kali dalam 15 menit** mengunci **katalog** selama 10 menit (dashboard dan kasir tidak ikut terkunci). Cukup tunggu.
+- Mengganti kata sandi katalog: ubah `ADMIN_PASSWORD` di Script properties Apps Script katalog, lalu samakan di Settings dashboard (atau samakan dengan PIN).
 - Jangan menaruh data rahasia (modal, HPP) di tab produk Google Sheet **web**, karena tab itu dipublikasikan ke web.
-- PIN sebaiknya 8 karakter atau lebih.
-
-**Apps Script katalog yang lama** (di Google Sheet **web**) tidak dipakai lagi setelah langkah di atas berhasil. Boleh dibiarkan atau dihapus.
+- Token GitHub hanya ada di Script properties Apps Script katalog. Apps Script dashboard tidak menyimpan token apa pun.
 
 ## 30. Sync lebih cepat (Code.gs versi 16)
 

@@ -63,7 +63,6 @@ const NO_PIN = 'PIN belum diatur. Buka Google Sheet > menu WISMIR > Atur PIN.';
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('WISMIR')
     .addItem('Atur PIN', 'setPin')
-    .addItem('Atur katalog website', 'setCatalog')
     .addItem('Siapkan tab', 'setup')
     .addToUi();
 }
@@ -105,7 +104,8 @@ function setup() {
 // Versi data dashboard: berubah setiap kali dashboard menyimpan.
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
-const CODE_VERSION = 16;
+// v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
+const CODE_VERSION = 17;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -243,8 +243,6 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const cat = catRoute(e); // v14: katalog website (Marketing > Website)
-  if (cat) return cat;
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -291,177 +289,6 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
-}
-
-// ============ Katalog website (v14, Marketing > Website di dashboard) ============
-// Mengatur katalog wismir.id: tab "produk" di Google Sheet katalog (bukan Sheet dashboard) dan foto di repo GitHub website.
-// Memakai PIN yang sama dengan dashboard. Pengaturan lewat menu WISMIR > Atur katalog website (disimpan di Script Properties,
-// tidak pernah di kode): CATALOG_SHEET_ID, GITHUB_REPO, GITHUB_TOKEN (opsional GITHUB_BRANCH = main, CATALOG_TAB = produk).
-// Aksi: catList, catSave, catDelete. Jawaban katalog selalu memuat cat:true (dashboard memakainya untuk mengenali kode versi baru).
-// Foto dikirim ke GitHub TANPA memegang kunci Sheet, supaya tablet kasir tidak menunggu.
-const CAT_DIR = 'foto/';
-const CAT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(jpe?g|png|webp)$/i;
-const CAT_MAX_FAILS = 5, CAT_FAIL_WINDOW_S = 900, CAT_LOCK_S = 600; // 5 kali PIN salah dalam 15 menit = katalog dikunci 10 menit (kasir/dashboard tidak ikut terkunci)
-
-function catRoute(e) {
-  const raw = (e && e.postData && e.postData.contents) || '';
-  if (raw.indexOf('"action":"cat') < 0) return null; // dashboard/POS saves (can be large) are not parsed twice
-  let body;
-  try { body = JSON.parse(raw); } catch (err) { return null; }
-  const act = String((body && body.action) || '');
-  if (act.indexOf('cat') !== 0) return null;
-  const pin = getPin();
-  if (!pin) return out({ ok: false, error: NO_PIN });
-  const left = catLockedMinutes();
-  if (left) return out({ ok: false, error: 'Terlalu banyak percobaan salah. Coba lagi dalam ' + left + ' menit.' });
-  if (body.pin !== pin) { catNoteFail(); Utilities.sleep(800); return out({ ok: false, error: 'PIN salah' }); }
-  catNoteOk();
-  try {
-    if (act === 'catList') return out(Object.assign({ cat: true }, catList()));
-    if (act === 'catSave') return out(Object.assign({ cat: true }, catSave(body)));
-    if (act === 'catDelete') return out(Object.assign({ cat: true }, catDelete(body)));
-    return out({ ok: false, cat: true, error: 'Aksi katalog tidak dikenal.' });
-  } catch (err) {
-    return out({ ok: false, cat: true, error: String((err && err.message) || err) });
-  }
-}
-
-function catProp(k, d) { return PropertiesService.getScriptProperties().getProperty(k) || d || ''; }
-
-function catLockedMinutes() {
-  try {
-    const left = Number(CacheService.getScriptCache().get('catLockUntil') || 0) - Date.now();
-    return left > 0 ? Math.ceil(left / 60000) : 0;
-  } catch (e) { return 0; } // cache bermasalah: pemilik tidak diblokir
-}
-function catNoteFail() {
-  try {
-    const lock = LockService.getUserLock();
-    lock.waitLock(5000);
-    try {
-      const c = CacheService.getScriptCache(), n = Number(c.get('catFails') || 0) + 1;
-      if (n >= CAT_MAX_FAILS) { c.put('catLockUntil', String(Date.now() + CAT_LOCK_S * 1000), CAT_LOCK_S + 60); c.remove('catFails'); }
-      else c.put('catFails', String(n), CAT_FAIL_WINDOW_S);
-    } finally { lock.releaseLock(); }
-  } catch (e) {}
-}
-function catNoteOk() { try { CacheService.getScriptCache().remove('catFails'); } catch (e) {} }
-
-function catSheet() {
-  const id = catProp('CATALOG_SHEET_ID');
-  if (!id) throw new Error('Katalog website belum diatur. Di Google Sheet dashboard: menu WISMIR > Atur katalog website.');
-  const ss = SpreadsheetApp.openById(id), tab = catProp('CATALOG_TAB', 'produk');
-  return ss.getSheetByName(tab) || ss.getSheets()[0];
-}
-function catHeaders(sh) {
-  return sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(function (h) { return String(h).trim(); });
-}
-// Katalog memakai kunci PENGGUNA, bukan kunci script milik dashboard/kasir: Sheet katalog terpisah dari Sheet dashboard, jadi
-// katalog tidak perlu menunggu sinkron dashboard/POS yang sedang berjalan (itu yang membuat "Loading the catalog" lama).
-function catWithLock(fn) {
-  const lock = LockService.getUserLock();
-  lock.waitLock(20000);
-  try { return fn(); } finally { lock.releaseLock(); }
-}
-
-function catList() { // hanya membaca: tanpa kunci apa pun
-  const sh = catSheet(), head = catHeaders(sh), last = sh.getLastRow(), items = [];
-  if (last > 1) {
-    sh.getRange(2, 1, last - 1, head.length).getDisplayValues().forEach(function (r, i) {
-      const o = { _row: i + 2 };
-      head.forEach(function (h, c) { if (h) o[h.toLowerCase()] = String(r[c]).trim(); });
-      if (o.nama) items.push(o);
-    });
-  }
-  return { ok: true, headers: head.filter(String).map(function (h) { return h.toLowerCase(); }), items: items };
-}
-
-function catRowCheck(sh, head, row, nama) {
-  const last = sh.getLastRow();
-  if (!row || row < 2 || row > last) throw new Error('Baris produk tidak ditemukan. Muat ulang katalog.');
-  const c = head.map(function (h) { return h.toLowerCase(); }).indexOf('nama');
-  if (nama != null && String(sh.getRange(row, c + 1).getValue()).trim() !== String(nama).trim()) throw new Error('Data berubah di Sheet katalog. Muat ulang katalog lalu coba lagi.');
-}
-
-function catSave(req) {
-  const d = req.data || {};
-  if (!String(d.nama || '').trim()) throw new Error('Nama produk wajib diisi.');
-  const photos = req.newPhotos || [];
-  photos.forEach(function (p) { if (!CAT_NAME_RE.test(p.name || '')) throw new Error('Nama foto tidak valid: ' + p.name); });
-  catSheet(); // gagal lebih awal kalau katalog belum diatur, sebelum ada foto yang dikirim
-  photos.forEach(function (p) { catGhPut(CAT_DIR + p.name, p.b64, 'Foto produk: ' + d.nama); });
-  catWithLock(function () {
-    const sh = catSheet(), head = catHeaders(sh), lower = head.map(function (h) { return h.toLowerCase(); });
-    let vals = head.map(function (h, i) { const k = lower[i]; return k && d[k] != null ? String(d[k]) : ''; });
-    if (req.row) {
-      const r = Number(req.row);
-      catRowCheck(sh, head, r, req.origNama);
-      const cur = sh.getRange(r, 1, 1, head.length).getValues()[0];
-      vals = vals.map(function (v, i) { return lower[i] && d[lower[i]] != null ? v : cur[i]; });
-      sh.getRange(r, 1, 1, head.length).setValues([vals]);
-    } else {
-      sh.appendRow(vals);
-    }
-  });
-  return { ok: true, uploaded: photos.map(function (p) { return p.name; }), deleted: catDeleteFiles(req.deleteFiles) };
-}
-
-function catDelete(req) {
-  catWithLock(function () {
-    const sh = catSheet(), head = catHeaders(sh), r = Number(req.row);
-    catRowCheck(sh, head, r, req.nama);
-    sh.deleteRow(r);
-  });
-  return { ok: true, deleted: catDeleteFiles(req.deleteFiles) };
-}
-
-function catDeleteFiles(names) {
-  const done = [];
-  (names || []).forEach(function (n) { if (CAT_NAME_RE.test(n) && catGhDelete(CAT_DIR + n)) done.push(n); });
-  return done;
-}
-
-function catGh(method, path, body) {
-  let url = 'https://api.github.com/repos/' + catProp('GITHUB_REPO') + '/contents/' + path.split('/').map(encodeURIComponent).join('/');
-  if (method === 'get') url += '?ref=' + encodeURIComponent(catProp('GITHUB_BRANCH', 'main'));
-  const opt = { method: method, muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + catProp('GITHUB_TOKEN'), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } };
-  if (body) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(body); }
-  return UrlFetchApp.fetch(url, opt);
-}
-function catGhPut(path, b64, msg) {
-  if (!catProp('GITHUB_TOKEN') || !catProp('GITHUB_REPO')) throw new Error('Token GitHub belum diatur. Di Google Sheet dashboard: menu WISMIR > Atur katalog website.');
-  const body = { message: msg, content: b64, branch: catProp('GITHUB_BRANCH', 'main') };
-  const ex = catGh('get', path);
-  if (ex.getResponseCode() === 200) body.sha = JSON.parse(ex.getContentText()).sha;
-  const res = catGh('put', path, body);
-  if (res.getResponseCode() >= 300) throw new Error('Gagal mengirim foto ke GitHub (' + res.getResponseCode() + '). Cek token dan nama repo di menu WISMIR > Atur katalog website.');
-}
-function catGhDelete(path) {
-  const ex = catGh('get', path);
-  if (ex.getResponseCode() !== 200) return false;
-  const res = catGh('delete', path, { message: 'Hapus foto produk', sha: JSON.parse(ex.getContentText()).sha, branch: catProp('GITHUB_BRANCH', 'main') });
-  return res.getResponseCode() < 300;
-}
-
-// Menu WISMIR > Atur katalog website: simpan Sheet katalog + repo + token GitHub di Script Properties.
-function setCatalog() {
-  const ui = SpreadsheetApp.getUi(), P = PropertiesService.getScriptProperties();
-  const ask = function (title, text) { const r = ui.prompt(title, text, ui.ButtonSet.OK_CANCEL); return r.getSelectedButton() === ui.Button.OK ? r.getResponseText().trim() : null; };
-  const a = ask('Katalog website 1/3: Google Sheet katalog',
-    'Tempel link Google Sheet katalog (yang bernama "web"), atau ID-nya. ' + (catProp('CATALOG_SHEET_ID') ? 'Sudah ada; kosongkan untuk tidak mengubah.' : ''));
-  if (a === null) return;
-  const m = a.match(/\/d\/([\w-]{20,})/) || a.match(/^([\w-]{20,})$/);
-  if (a && !m) { ui.alert('Link atau ID Sheet tidak dikenali. Tidak ada yang diubah.'); return; }
-  const b = ask('Katalog website 2/3: repo GitHub website', 'Contoh: yogaprasetia16/Wismirmuslim. ' + (catProp('GITHUB_REPO') ? 'Sekarang: ' + catProp('GITHUB_REPO') + '. Kosongkan untuk tidak mengubah.' : ''));
-  if (b === null) return;
-  if (b && !/^[\w.-]+\/[\w.-]+$/.test(b)) { ui.alert('Nama repo harus berbentuk pemilik/nama-repo. Tidak ada yang diubah.'); return; }
-  const c = ask('Katalog website 3/3: token GitHub', 'Token yang hanya boleh mengubah isi repo website (Contents: Read and write). ' + (catProp('GITHUB_TOKEN') ? 'Sudah ada; kosongkan untuk tidak mengubah.' : ''));
-  if (c === null) return;
-  if (m) P.setProperty('CATALOG_SHEET_ID', m[1]);
-  if (b) P.setProperty('GITHUB_REPO', b);
-  if (c) P.setProperty('GITHUB_TOKEN', c);
-  ui.alert('Tersimpan. Buka dashboard > Marketing > Website. ' + (catProp('CATALOG_SHEET_ID') && catProp('GITHUB_REPO') && catProp('GITHUB_TOKEN') ? 'Semua pengaturan lengkap.' : 'Masih ada yang kosong: ' + ['CATALOG_SHEET_ID', 'GITHUB_REPO', 'GITHUB_TOKEN'].filter(function (k) { return !catProp(k); }).join(', ') + '.'));
 }
 
 function upsert(name, items) {
