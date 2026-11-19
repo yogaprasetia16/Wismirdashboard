@@ -8,8 +8,8 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ms=8000,label=''){const t=Date.now();while(Date.now()-t<ms){try{if(await fn())return true}catch(e){}await sleep(150)}throw new Error('timeout '+label)}
 const H=['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
-let rows,calls,mode,delay;
-const reset=()=>{rows=[
+let rows,calls,mode,delay,testi;
+const reset=()=>{testi=[{id:'t1',foto:['x1.jpg'],nama:'Ibu Siti',komentar:'Bahannya adem sekali'},{id:'t2',foto:[],nama:'',komentar:'Pelayanannya ramah'}];rows=[
  {_row:2,nama:'Gamis bordir',kategori:'Gamis',bahan:'Katun linen',ukuran:'M, L',terbaru:'ya',foto:'a.jpg|b.jpg|c.jpg',deskripsi:'Adem',detail:'- Rapi',sale:''},
  {_row:3,nama:'Kulot polos',kategori:'Bawahan',bahan:'Linen',ukuran:'All size',terbaru:'',foto:'c.jpg|d.jpg',deskripsi:'',detail:'',sale:'ya'}];calls=[];mode='ok';delay=0};
 async function api(route){
@@ -21,6 +21,9 @@ async function api(route){
  else if(req.action==='list')out={ok:true,headers:H,items:rows.map(r=>({...r}))};
  else if(req.action==='save'){const d=req.data;if(req.row){const r=rows.find(x=>x._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else Object.assign(r,d)}else rows.push({_row:rows.length+2,...d});out.uploaded=(req.newPhotos||[]).map(p=>p.name)}
  else if(req.action==='delete'){const i=rows.findIndex(x=>x._row===req.row);if(i<0)out={ok:false,error:'x'};else rows.splice(i,1);rows.forEach((r,k)=>r._row=k+2)}
+ else if(req.action==='testiList')out={ok:true,items:testi.map(t=>({...t}))};
+ else if(req.action==='testiSave'){const d=req.data;if(!d.komentar&&!d.foto.length)out={ok:false,error:'Isi minimal satu foto atau komentar.'};else if(req.id){const t=testi.find(x=>x.id===req.id);if(!t)out={ok:false,error:'Testimoni tidak ditemukan. Muat ulang daftar.'};else Object.assign(t,d)}else{out.id='n'+(testi.length+1);testi.unshift({id:out.id,...d})}}
+ else if(req.action==='testiDelete'){testi=testi.filter(x=>x.id!==req.id)}
  return route.fulfill({status:200,headers:h,body:JSON.stringify(out)})}
 (async()=>{
  reset();
@@ -31,7 +34,7 @@ async function api(route){
  await D.goto(B+'/dashboard.html');
  // 1. Marketing: two icon tabs, campaigns first; Website without a catalog URL
  await D.evaluate(()=>{tab='mkt';render()});
- ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title).join())==='Campaigns,Website','Marketing has icon tabs Campaigns and Website');
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title).join())==='Campaigns,Website,Testimonials','Marketing has icon tabs Campaigns, Website and Testimonials');
  ok((await D.textContent('#app')).includes('Spent')&&await D.isVisible('#cta'),'Campaigns is the default and keeps its New campaign button');
  await D.click('#app .seg.ico button[title=Website]');
  ok((await D.textContent('#app')).includes('Website catalog URL in Settings')&&!(await D.isVisible('#cta')),'without a catalog URL it asks for one in Settings (header button hidden)');
@@ -107,6 +110,36 @@ async function api(route){
  const dl=calls.find(c=>c.action==='delete');ok(dl.row===3&&dl.nama==='Kulot polos','delete names the row and the product');
  ok(dl.deleteFiles.join()==='c.jpg,d.jpg'||dl.deleteFiles.join()==='d.jpg','only photos nobody else uses are deleted: '+dl.deleteFiles.join());
  await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'after delete');
+ // 6b. Testimonials (owner 2026-11-19): list, add (photo + name + comment), comment only, edit, delete
+ await D.click('#app .seg.ico button[title=Testimonials]');
+ await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'testi list');
+ const tl=await D.$$eval('#app [data-tr]',r=>r.map(x=>x.textContent.replace(/\s+/g,' ')));
+ ok(tl[0].includes('Ibu Siti')&&tl[0].includes('Bahannya adem sekali')&&tl[0].includes('1 photo')&&tl[1].includes('(no name)')&&tl[1].includes('Pelayanannya ramah'),'testimonials list: name, comment, photo count; "(no name)" when empty: '+tl.join(' | '));
+ ok(await D.isVisible('#testiAdd')&&!(await D.isVisible('#cta'))&&await D.$eval('#webOpen',e=>e.href==='https://wismir.id/#testimoni'),'round + in the tab row; the link icon opens the testimonials section of wismir.id');
+ await D.click('#testiAdd');ok((await D.$$('#wpg .wph')).length===0,'new testimonial starts without photos');
+ await D.click('#ok');ok((await D.textContent('#err')).includes('at least a photo or a comment'),'a photo or a comment is required');
+ await D.evaluate(()=>{const c=document.createElement('canvas');c.width=3000;c.height=4000;const x=c.getContext('2d');x.fillStyle='#39c';x.fillRect(0,0,3000,4000);for(let i=0;i<3000;i++){x.fillStyle='rgb('+(i*37%255)+','+(i*91%255)+','+(i*53%255)+')';x.fillRect(i*7%3000,i*13%4000,60,60)}window.__t=c.toDataURL('image/jpeg',.9)});
+ const tb=Buffer.from((await D.evaluate(()=>window.__t)).split(',')[1],'base64');
+ await D.setInputFiles('#wfile',{name:'chat.jpg',mimeType:'image/jpeg',buffer:tb});await until(()=>D.$$eval('#wpg .wph',e=>e.length===1),8000,'testi photo');
+ await D.fill('#sheet [data-t=nama]','Kak Dewi');await D.fill('#sheet [data-t=komentar]','Mantap sekali, bahannya premium');await D.click('#ok');
+ await until(()=>calls.some(c=>c.action==='testiSave'),8000,'testi save');
+ const ts=calls.find(c=>c.action==='testiSave');
+ ok(ts.id===null&&ts.data.nama==='Kak Dewi'&&ts.data.komentar==='Mantap sekali, bahannya premium'&&/^p[a-z0-9]+\.jpg$/.test(ts.data.foto[0])&&ts.newPhotos.length===1&&ts.newPhotos[0].name===ts.data.foto[0],'add sends name, comment and the new photo');
+ const szt=await D.evaluate(async()=>{const f=await (await fetch(window.__t)).blob();const b=await webShrink(f,2000,.85);const im=await createImageBitmap(b);return [im.width,im.height,b.size]});
+ ok(Math.max(szt[0],szt[1])===2000&&szt[2]<900000,'testimonial photos are shrunk to 2000 px (not 1400), so chat text stays readable ('+szt[0]+'x'+szt[1]+', '+Math.round(szt[2]/1024)+' KB)');
+ await until(()=>D.$$eval('#app [data-tr]',r=>r.length===3),8000,'3 testi');
+ ok((await D.$eval('#app [data-tr]',e=>e.textContent)).includes('Kak Dewi'),'the new testimonial is first (newest first)');
+ await D.click('[data-tr="t1"]');ok(await D.$eval('#sheet [data-t=nama]',e=>e.value)==='Ibu Siti'&&(await D.$$('#wpg .wph')).length===1,'edit form shows the saved name, comment and photo');
+ await D.click('[data-wx="0"]');await D.fill('#sheet [data-t=komentar]','Sudah dipakai, nyaman');await D.click('#ok');
+ await until(()=>calls.filter(c=>c.action==='testiSave').length===2,8000,'testi edit');
+ const te=calls.filter(c=>c.action==='testiSave')[1];
+ ok(te.id==='t1'&&te.orig.komentar==='Bahannya adem sekali'&&te.data.foto.length===0&&te.deleteFiles.join()==='x1.jpg'&&te.data.komentar==='Sudah dipakai, nyaman','edit sends the id and the original values (to detect changes elsewhere), and deletes the removed photo');
+ await until(()=>D.$$eval('#app [data-tr]',r=>r.some(x=>x.textContent.includes('Sudah dipakai'))),8000,'testi reload');
+ await D.click('[data-tr="t2"]');await D.click('#rm');ok((await D.textContent('#rm')).includes('Tap again')&&!calls.some(c=>c.action==='testiDelete'),'delete needs a second tap');
+ await D.click('#rm');await until(()=>calls.some(c=>c.action==='testiDelete'),8000,'testi delete');
+ ok(calls.find(c=>c.action==='testiDelete').id==='t2','delete names the testimonial');
+ await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'2 testi');
+ await D.click('#app .seg.ico button[title=Website]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'back to website');ok(true,'switching back to Website still works');
  // 7. wrong password / locked messages
  mode='wrong';await D.click('#app .impb[title=Reload]');
  await until(()=>D.evaluate(()=>/Wrong password/.test(document.querySelector('#app').textContent)),8000,'wrong pw');

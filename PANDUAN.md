@@ -478,6 +478,14 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 - Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
 - Daftar terakhir disimpan di perangkat, jadi tab Website langsung tampil lalu diperbarui sendiri.
 
+**Testimoni pelanggan (Marketing → ikon balon percakapan, "Testimonials"):** mengatur bagian "Kata Pelanggan" di wismir.id.
+- **+** untuk testimoni baru: pilih foto (misalnya tangkapan layar chat pelanggan, boleh lebih dari satu), isi nama dan komentar. Foto, nama, dan komentar semuanya opsional, tapi minimal ada satu foto **atau** komentar. Tanpa foto, komentar tampil di web sebagai kutipan.
+- Ketuk testimoni untuk mengubah atau menghapus (hapus perlu dua kali ketuk; fotonya ikut terhapus). Yang terbaru tampil paling depan.
+- Foto testimoni dikecilkan sampai 2000 piksel (lebih besar dari foto produk) supaya tulisan di tangkapan layar tetap terbaca.
+- Datanya disimpan di repo website (`testimoni/testimoni.json`), bukan di Google Sheet, jadi tidak perlu "Publish to web". Tampil di wismir.id sekitar 1 sampai 5 menit setelah Simpan.
+- Perlu **Apps Script katalog versi terbaru** (di Sheet "web"): salin `apps-script/Code.gs` dari repo `Wismirmuslim`, tempel, simpan, lalu Deploy → Manage deployments → Edit → New version → Deploy.
+- Izin token GitHub yang sudah ada (Contents: Read and write) sudah cukup.
+
 **Keamanan:**
 - Salah kata sandi **5 kali dalam 15 menit** mengunci **katalog** selama 10 menit (dashboard dan kasir tidak ikut terkunci). Cukup tunggu.
 - Mengganti kata sandi katalog: ubah `ADMIN_PASSWORD` di Script properties Apps Script katalog, lalu samakan di Settings dashboard (atau samakan dengan PIN).
