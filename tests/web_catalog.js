@@ -8,6 +8,7 @@ let fail=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fail++};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ms=8000,label=''){const t=Date.now();while(Date.now()-t<ms){try{if(await fn())return true}catch(e){}await sleep(150)}throw new Error('timeout '+label)}
 const H=['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
+const statRows=[['2026-11-19','visit','instagram',6],['2026-11-19','visit','direct',3],['2026-11-18','visit','tiktok',4],['2026-11-17','visit','google',2],['2026-11-19','product','gamis-bordir',7],['2026-11-18','product','kulot-polos',3],['2026-11-18','product','tunik-lama',1],['2026-11-19','wa','gamis-bordir',2],['2026-11-18','wa','umum',1],['2026-11-19','share','gamis-bordir',2]];
 let rows,calls,mode,delay,testi;
 const reset=()=>{testi=[{id:'t1',foto:['x1.jpg'],nama:'Ibu Siti',komentar:'Bahannya adem sekali'},{id:'t2',foto:[],nama:'',komentar:'Pelayanannya ramah'}];rows=[
  {_row:2,nama:'Gamis bordir',kategori:'Gamis',bahan:'Katun linen',ukuran:'M, L',terbaru:'ya',foto:'a.jpg|b.jpg|c.jpg',deskripsi:'Adem',detail:'- Rapi',sale:''},
@@ -21,6 +22,7 @@ async function api(route){
  else if(req.action==='list')out={ok:true,headers:H,items:rows.map(r=>({...r}))};
  else if(req.action==='save'){const d=req.data;if(req.row){const r=rows.find(x=>x._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else Object.assign(r,d)}else rows.push({_row:rows.length+2,...d});out.uploaded=(req.newPhotos||[]).map(p=>p.name)}
  else if(req.action==='delete'){const i=rows.findIndex(x=>x._row===req.row);if(i<0)out={ok:false,error:'x'};else rows.splice(i,1);rows.forEach((r,k)=>r._row=k+2)}
+ else if(req.action==='statsGet'){if(mode==='oldstats')out={ok:false,error:'Aksi tidak dikenal.'};else out={ok:true,from:'2026-11-01',today:'2026-11-19',rows:statRows.map(r=>r.slice())}}
  else if(req.action==='testiList')out={ok:true,items:testi.map(t=>({...t}))};
  else if(req.action==='testiSave'){const d=req.data;if(!d.komentar&&!d.foto.length)out={ok:false,error:'Isi minimal satu foto atau komentar.'};else if(req.id){const t=testi.find(x=>x.id===req.id);if(!t)out={ok:false,error:'Testimoni tidak ditemukan. Muat ulang daftar.'};else Object.assign(t,d)}else{out.id='n'+(testi.length+1);testi.unshift({id:out.id,...d})}}
  else if(req.action==='testiDelete'){testi=testi.filter(x=>x.id!==req.id)}
@@ -111,10 +113,10 @@ async function api(route){
  ok(dl.deleteFiles.join()==='c.jpg,d.jpg'||dl.deleteFiles.join()==='d.jpg','only photos nobody else uses are deleted: '+dl.deleteFiles.join());
  await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'after delete');
  // 6b. Testimonials (owner 2026-11-19): list, add (photo + name + comment), comment only, edit, delete
- ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog*,Testimonials','inside Website a toggle Catalog | Testimonials (like Products | History in Stock); Catalog is on');
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog*,Testimonials,Visitors','inside Website a toggle Catalog | Testimonials | Visitors (like Products | History in Stock); Catalog is on');
  await D.click('#app .seg.ico button[title=Testimonials]');
  await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'testi list');
- ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog,Testimonials*','the toggle switches to Testimonials');
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog,Testimonials*,Visitors','the toggle switches to Testimonials');
  await D.click('#app .seg.ico button[title=Campaigns]');ok((await D.$$('#app .seg.ico button')).length===2,'the toggle only exists inside Website');
  await D.click('#app .seg.ico button[title=Website]');await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'testi again');ok(true,'Website remembers the last toggle (Testimonials)');
  const tl=await D.$$eval('#app [data-tr]',r=>r.map(x=>x.textContent.replace(/\s+/g,' ')));
@@ -143,6 +145,22 @@ async function api(route){
  await D.click('#rm');await until(()=>calls.some(c=>c.action==='testiDelete'),8000,'testi delete');
  ok(calls.find(c=>c.action==='testiDelete').id==='t2','delete names the testimonial');
  await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'2 testi');
+ // 6c. Visitors (owner 2026-11-19): the website's own counter, shown from the catalog script's statsGet
+ await D.click('#app .seg.ico button[title=Visitors]');
+ await until(()=>D.evaluate(()=>/Where visitors come from/.test(document.querySelector('#app').textContent)),8000,'stats');
+ ok(calls.some(c=>c.action==='statsGet'&&c.days===30&&c.pass==='9999'),'Visitors asks the catalog script for the last 30 days (statsGet) with the same password');
+ const kp=await D.$$eval('#app .card .lbl',e=>e.map(x=>x.textContent));
+ const kv=await D.evaluate(()=>[...document.querySelectorAll('#app .card')].filter(c=>c.querySelector('.lbl')&&/^(Visits|Product views|WhatsApp clicks|WhatsApp per 100 visits)$/.test(c.querySelector('.lbl').textContent)).map(c=>c.querySelector('.lbl').textContent+'='+c.children[1].textContent));
+ ok(kv.join('|')==='Visits=15|Product views=11|WhatsApp clicks=3|WhatsApp per 100 visits=20','four numbers: visits 15, product views 11, WhatsApp clicks 3, WhatsApp per 100 visits 20: '+kv.join(' | '));
+ const sc=await D.evaluate(()=>document.querySelector('#app').textContent);
+ ok(sc.includes('Instagram')&&sc.includes('40%')&&sc.includes('Direct')&&sc.includes('TikTok')&&sc.includes('Google'),'sources are listed with their share (Instagram 6 of 15 = 40%)');
+ const tp=await D.evaluate(()=>{const g=[...document.querySelectorAll('#app .card')].find(c=>c.querySelector('.sub')&&c.querySelector('.sub').textContent==='Top products');return [...g.querySelectorAll('div[style*="border-top"]')].map(x=>x.textContent)});
+ ok(tp.slice(0,3).join('|')==='Gamis bordir|7|2'&&tp[3]==='kulot-polos'&&tp[6]==='tunik-lama','top products: names come from the catalog (Gamis bordir 7 views 2 WhatsApp); the slug is shown for products no longer in it (Kulot polos was deleted earlier in this test): '+tp.join(','));
+ ok((await D.$$('#app div[title*="visits"]')).length===30,'chart: one bar per day for the last 30 days');
+ ok(await D.isVisible('#webOpen')&&await D.isVisible('#statReload')&&!(await D.isVisible('#webAdd')),'Visitors has the site link and Reload, but no +');
+ await D.selectOption('#statDays','7');await until(()=>calls.some(c=>c.action==='statsGet'&&c.days===7),8000,'7 days');ok(true,'changing the period asks for that many days');
+ ok((await D.$$('#app div[title*="visits"]')).length===7,'chart shows 7 bars for 7 days');
+ mode='oldstats';await D.click('#statReload');await until(()=>D.evaluate(()=>/Update the catalog Apps Script first/.test(document.querySelector('#app').textContent)),8000,'old script');ok(true,'with an older catalog script the page says to update it (instead of "Aksi tidak dikenal")');mode='ok';
  await D.click('#app .seg.ico button[title=Catalog]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'back to catalog');ok(true,'switching back to Catalog still works');
  // 7. wrong password / locked messages
  mode='wrong';await D.click('#app .impb[title=Reload]');
