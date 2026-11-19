@@ -49,6 +49,20 @@ async function api(route){
  ok(await D.isVisible('#webOpen')&&await D.$eval('#webOpen',e=>e.href==='https://wismir.id/'&&e.target==='_blank'&&e.rel.includes('noopener')),'link button beside Reload and + opens wismir.id in a new tab');
  const t0=await D.$eval('#weblist .row',e=>e.textContent);ok(t0.includes('Gamis bordir')&&t0.includes('3 photos')&&t0.includes('NEW'),'row shows name, photo count and NEW: '+t0.replace(/\s+/g,' '));
  await D.fill('#webq','kulot');ok((await D.$$('#weblist .row')).length===1,'search filters the list');await D.fill('#webq','');
+ // 2b. product link buttons (owner 2026-11-19): copy + open at the far right of every row
+ const lkz=await D.$$eval('#weblist .row',r=>r.map(x=>({c:!!x.querySelector('[data-wcopy]'),o:x.querySelector('[data-wopen]').href,t:x.querySelector('[data-wopen]').target,rel:x.querySelector('[data-wopen]').rel,right:x.querySelector('[data-wopen]').getBoundingClientRect().right-x.getBoundingClientRect().right})));
+ ok(lkz.length===2&&lkz.every(x=>x.c)&&lkz[0].o==='https://wismir.id/p/gamis-bordir/'&&lkz[1].o==='https://wismir.id/p/kulot-polos/','every row has copy and open buttons; the link is https://wismir.id/p/<slug>/ : '+lkz.map(x=>x.o).join(' '));
+ ok(lkz.every(x=>x.t==='_blank'&&x.rel.includes('noopener')&&x.right<=1&&x.right>-24),'open link opens a new tab (noopener) and the buttons sit at the far right of the row');
+ await D.fill('#webq','kulot');ok(await D.$eval('#weblist [data-wopen]',e=>e.href)==='https://wismir.id/p/kulot-polos/','a filtered list keeps each product own link');await D.fill('#webq','');
+ const par=await D.evaluate(()=>webSlugs(['Gamis bordir','Gamis bordir','Kulot polos','Blus Çantik & Manis!','Tunik Linen','  --  ','Ünï Çödé','Gamis bordir'].map(n=>({nama:n}))).join(' '));
+ ok(par==='gamis-bordir gamis-bordir-2 kulot-polos blus-cantik-manis tunik-linen produk uni-code gamis-bordir-3','slug rule is identical to the website (accents, symbols, duplicates numbered): '+par);
+ await D.evaluate(()=>{window.__cp=null;Object.defineProperty(navigator,'clipboard',{value:{writeText:async x=>{window.__cp=x}},configurable:true})});
+ await D.click('[data-wcopy="2"]');
+ ok(await D.evaluate(()=>window.__cp)==='https://wismir.id/p/gamis-bordir/'&&await D.$eval('[data-wcopy="2"]',e=>e.title)==='Copied','copy puts the product link on the clipboard and the button says Copied');
+ ok(!(await D.evaluate(()=>document.querySelector('#bg').classList.contains('open'))),'copying does not open the edit form');
+ await sleep(1900);ok(await D.$eval('[data-wcopy="2"]',e=>e.title)==='Copy product link','the button goes back to normal after a moment');
+ const [np]=await Promise.all([ctx.waitForEvent('page'),D.click('[data-wopen="2"]')]);await np.close().catch(()=>{});
+ ok(!(await D.evaluate(()=>document.querySelector('#bg').classList.contains('open'))),'opening the link does not open the edit form');
  // 3. edit: remove b.jpg (only this product), remove c.jpg (shared with Kulot), add a big photo, move it first, change fields
  await D.click('[data-wr="2"]');
  const labels=await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent));
@@ -122,6 +136,7 @@ async function api(route){
  // 11. phone width
  await D.setViewportSize({width:320,height:640});await D.click('#app .impb[title=Reload]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'reload3');
  ok(await D.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no sideways scroll at 320 px (list)');
+ ok(await D.evaluate(()=>{const r=document.querySelector('#weblist .row'),g=r.querySelector('.grow').getBoundingClientRect(),o=r.querySelector('[data-wopen]').getBoundingClientRect();return o.right<=innerWidth&&g.width>=70}),'at 320 px both link buttons stay on screen and the product name keeps room');
  await D.click('[data-wr="2"]');ok(await D.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no sideways scroll at 320 px (edit form)');
  await D.screenshot({path:'web-catalog.png'});
  ok(errs.length===0,'no page errors '+errs.join(';'));
