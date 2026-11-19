@@ -1150,6 +1150,7 @@ function vCamp(){
 // S.cfg.catUrl with S.cfg.catPass (empty = the Access PIN) as the password. Nothing here goes through S / save() / Code.gs.
 const WEBSITE='https://wismir.id/',WEB_MAXSIDE=1400,WEB_Q=.82;
 let WPP={dir:'foto/',max:1400,q:.82},WPT={dir:'testimoni/',max:2000,q:.85},WPCFG=WPP;
+let ST={rows:[],loaded:false,busy:false,err:'',days:30,today:'',at:0};const STAT_KEY='wismir_stats_v1'; // visitor statistics: last numbers kept on this device (not synced)
 let TW={items:[],loaded:false,busy:false,stale:false,err:'',msg:'',at:0};const TESTI_KEY='wismir_testi_v1'; // testimonials: last list kept on this device (not synced)
 let WEB={items:[],headers:[],loaded:false,busy:false,stale:false,err:'',msg:'',q:''},WP=[],WEB_TIMEOUT=45000;
 const WEB_KEY='wismir_webcat_v1'; // last catalog list kept on this device (not synced): the Website tab opens at once, then refreshes
@@ -1182,11 +1183,12 @@ function webSeg(){
   const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',testi:'<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-6.5L8 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 9.5h8M8 12.5h5"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
   const more=mk==='web'&&wv==='cat'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
   const moreT=mk==='web'&&wv==='testi'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}#testimoni" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="testiLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="testiAdd" onclick="testiEdit(null)" title="New testimonial" aria-label="New testimonial"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
-  const SUB={cat:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',testi:IC.testi};
-  const loadFor=k=>k==='testi'?"if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()":"if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()";
-  const sub=mk==='web'?`<div class="seg ico">${[['cat','Catalog'],['testi','Testimonials']].map(x=>`<button class="${wv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="wv='${x[0]}';render();${loadFor(x[0])}"><svg viewBox="0 0 24 24">${SUB[x[0]]}</svg></button>`).join('')}</div>`:'';
-  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();${x[0]==='web'?"if(wv==='testi'){if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()}else if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()":''}"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${sub}${more}${moreT}</div>`}
-function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?(wv==='testi'?vTesti():vWeb()):vCamp())}
+  const moreS=mk==='web'&&wv==='stat'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" id="statReload" onclick="statsLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button></div>`:'';
+  const SUB={stat:'<path d="M5 19v-7M12 19V5M19 19v-10"/>',cat:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',testi:IC.testi};
+  const loadFor=k=>k==='stat'?"if(!ST.loaded||Date.now()-(ST.at||0)>60000)statsLoad()":k==='testi'?"if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()":"if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()";
+  const sub=mk==='web'?`<div class="seg ico">${[['cat','Catalog'],['testi','Testimonials'],['stat','Visitors']].map(x=>`<button class="${wv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="wv='${x[0]}';render();${loadFor(x[0])}"><svg viewBox="0 0 24 24">${SUB[x[0]]}</svg></button>`).join('')}</div>`:'';
+  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();${x[0]==='web'?"if(wv==='stat'){if(!ST.loaded||Date.now()-(ST.at||0)>60000)statsLoad()}else if(wv==='testi'){if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()}else if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()":''}"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${sub}${more}${moreT}${moreS}</div>`}
+function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?(wv==='stat'?vStats():wv==='testi'?vTesti():vWeb()):vCamp())}
 function vWeb(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
   const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the catalog…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
@@ -1265,6 +1267,54 @@ async function webDelete(it){
   catch(e){err(e.message);$('#rm').disabled=false}}
 
 
+
+
+// ---- Marketing > Website > Visitors (owner 2026-11-19): the website's own visitor counter (no cookies, no IP, no third party).
+// wismir.id sends tiny counts (visit with its source, product opened, WhatsApp click, Share click) to the catalog Apps Script, which keeps
+// one row per date + event + key in the tab "Statistik" of the catalog Sheet; action statsGet (password) returns the last N days.
+// Own visits are excluded by opening https://wismir.id/?nt=1 once on a device.
+async function statsLoad(){
+  if(ST.busy)return;ST.busy=true;ST.err='';
+  if(!ST.loaded){try{const c=JSON.parse(localStorage.getItem(STAT_KEY)||'null');if(c&&c.rows&&c.days===ST.days){ST.rows=c.rows;ST.today=c.today||'';ST.loaded=true}}catch(e){}}
+  if(!WEB.loaded&&!WEB.busy)webLoad(); // product names for the slugs
+  if(tab==='mkt'&&mk==='web'&&wv==='stat')render();
+  try{const j=await webCall('statsGet',{days:ST.days});ST.rows=j.rows;ST.today=j.today;ST.loaded=true;ST.at=Date.now();try{localStorage.setItem(STAT_KEY,JSON.stringify({rows:j.rows,today:j.today,days:ST.days}))}catch(e){}}
+  catch(e){ST.err=/tidak dikenal/i.test(e.message)?'Update the catalog Apps Script first: Visitors needs its latest version (see the guide, section 30).':e.message}
+  ST.busy=false;if(tab==='mkt'&&mk==='web'&&wv==='stat')render()}
+const statN=n=>Math.round(n).toLocaleString('id-ID');
+function statAgg(){
+  const A={visits:0,products:0,wa:0,share:0,day:{},src:{},prod:{},waBy:{}};
+  ST.rows.forEach(r=>{const [d,ev,k,n]=r;
+    if(ev==='visit'){A.visits+=n;A.day[d]=(A.day[d]||0)+n;A.src[k]=(A.src[k]||0)+n}
+    else if(ev==='product'){A.products+=n;A.prod[k]=(A.prod[k]||0)+n}
+    else if(ev==='wa'){A.wa+=n;A.waBy[k]=(A.waBy[k]||0)+n}
+    else if(ev==='share')A.share+=n});
+  return A}
+const SRC_LABEL={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',whatsapp:'WhatsApp',google:'Google',x:'X (Twitter)',marketplace:'Marketplace',direct:'Direct',lain:'Other websites'};
+function vStats(){
+  if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to see the visitors of wismir.id here.')}</div>`;
+  const sel=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:150px"><select id="statDays" aria-label="Period" onchange="ST.days=+this.value;ST.loaded=false;statsLoad()">${[7,30,90].map(d=>`<option value="${d}" ${d===ST.days?'selected':''}>Last ${d} days</option>`).join('')}</select></div></div>`;
+  const note=ST.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(ST.err)}</div>`:ST.busy&&ST.loaded?`<div class="lbl" style="margin:0 6px 10px">Updating…</div>`:'';
+  if(!ST.loaded)return sel+note+`<div class="card">${empty(ST.busy?'Loading the statistics…':'The statistics are not loaded yet. Press the reload button above.')}</div>`;
+  const A=statAgg();
+  if(!ST.rows.length)return sel+note+`<div class="card">${empty('No visits recorded yet. Counting starts once the catalog Apps Script is updated to the latest version (guide, section 30). Your own visits are not counted after you open wismir.id/?nt=1 once on a device.')}</div>`;
+  const kpi=(l,v,sub)=>`<div class="card" style="padding:14px 16px;margin:0"><div class="lbl">${l}</div><div style="font-size:26px;font-weight:800;letter-spacing:-.02em">${v}</div>${sub?`<div class="lbl">${sub}</div>`:''}</div>`;
+  const ratio=A.visits?(A.wa/A.visits*100):0;
+  // visits per day, last 30 days at most (oldest left)
+  const nd=Math.min(ST.days,30),end=new Date((ST.today||today())+'T00:00:00'),days=[];
+  for(let i=nd-1;i>=0;i--){const d=new Date(end);d.setDate(d.getDate()-i);days.push(ymd(d))}
+  const mx=Math.max(1,...days.map(d=>A.day[d]||0));
+  const bars=`<div style="display:flex;align-items:flex-end;gap:3px;height:96px;margin:10px 0 4px">${days.map(d=>`<div title="${d}: ${statN(A.day[d]||0)} visits" style="flex:1;min-width:0;background:var(--viz2);border-radius:4px 4px 0 0;height:${Math.max(2,Math.round((A.day[d]||0)/mx*100))}%;opacity:${(A.day[d]||0)?1:.25}"></div>`).join('')}</div><div class="lbl" style="display:flex;justify-content:space-between"><span>${fmtD(days[0])}</span><span>${fmtD(days[days.length-1])}</span></div>`;
+  const srcs=Object.entries(A.src).sort((a,b)=>b[1]-a[1]);
+  const srcHtml=srcs.length?srcs.map(([k,n])=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0"><div style="flex:0 0 118px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(SRC_LABEL[k]||k)}</div><div style="flex:1;height:8px;border-radius:99px;background:var(--seg);overflow:hidden"><div style="height:100%;width:${Math.round(n/A.visits*100)}%;background:var(--viz2)"></div></div><div style="flex:0 0 78px;text-align:right" class="lbl">${statN(n)} · ${Math.round(n/A.visits*100)}%</div></div>`).join(''):empty('No visits yet.');
+  const names={};if(WEB.loaded){const sl=webSlugs(WEB.items);WEB.items.forEach((i,k)=>names[sl[k]]=i.nama)}
+  const keys=[...new Set([...Object.keys(A.prod),...Object.keys(A.waBy)])].filter(k=>k!=='umum').sort((a,b)=>(A.prod[b]||0)-(A.prod[a]||0)||(A.waBy[b]||0)-(A.waBy[a]||0)).slice(0,15);
+  const prodHtml=keys.length?`<div style="display:grid;grid-template-columns:minmax(0,1fr) 54px 54px;gap:4px 8px;align-items:center"><div class="lbl">Product</div><div class="lbl" style="text-align:right">Views</div><div class="lbl" style="text-align:right">WhatsApp</div>${keys.map(k=>`<div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 0;border-top:1px solid var(--line)">${esc(names[k]||k)}</div><div style="text-align:right;padding:6px 0;border-top:1px solid var(--line)">${statN(A.prod[k]||0)}</div><div style="text-align:right;padding:6px 0;border-top:1px solid var(--line)">${statN(A.waBy[k]||0)}</div>`).join('')}</div>`:empty('No product views yet.');
+  return sel+note+`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">${kpi('Visits',statN(A.visits),'sessions, not unique people')}${kpi('Product views',statN(A.products))}${kpi('WhatsApp clicks',statN(A.wa),A.waBy.umum?statN(A.waBy.umum)+' from general buttons':'')}${kpi('WhatsApp per 100 visits',ratio.toFixed(ratio<10?1:0))}</div>
+  <div class="card"><div class="sub">Visits per day${ST.days>30?' (last 30 days)':''}</div>${bars}</div>
+  <div class="card"><div class="sub">Where visitors come from</div>${srcHtml}</div>
+  <div class="card"><div class="sub">Top products</div>${prodHtml}</div>
+  <div class="lbl" style="padding:0 6px">${A.share?statN(A.share)+' product links shared. ':''}Visits are counted once per browser tab session. <b>Direct</b> = a typed link, or an app (e.g. WhatsApp, Instagram) that does not say where the visit came from. Bots and your own devices are not counted: open <b>wismir.id/?nt=1</b> once on each of your devices. Tag links in your bio with <b>?ref=instagram</b> or <b>?ref=tiktok</b> to see them as a source.</div>`}
 
 // ---- Marketing > Testimonials (owner 2026-11-19): the "Kata Pelanggan" section of wismir.id. The list is testimoni/testimoni.json
 // in the website repo (photos in testimoni/), written by the same catalog Apps Script (actions testiList / testiSave / testiDelete).

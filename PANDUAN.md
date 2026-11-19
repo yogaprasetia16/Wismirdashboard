@@ -486,6 +486,13 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 - Perlu **Apps Script katalog versi terbaru** (di Sheet "web"): salin `apps-script/Code.gs` dari repo `Wismirmuslim`, tempel, simpan, lalu Deploy → Manage deployments → Edit → New version → Deploy.
 - Izin token GitHub yang sudah ada (Contents: Read and write) sudah cukup.
 
+**Statistik pengunjung (Marketing → Website → ikon grafik batang "Visitors"):** penghitung pengunjung wismir.id milik sendiri, tanpa cookie, tanpa menyimpan IP, dan tanpa layanan pihak ketiga.
+- Yang dihitung: **Visits** (kunjungan per sesi tab, bukan orang unik), **Product views** (produk yang dibuka), **WhatsApp clicks** (klik tombol Pesan, per produk), dan berapa klik WhatsApp per 100 kunjungan.
+- Grafik kunjungan per hari, **dari mana pengunjung datang** (Instagram, TikTok, Google, WhatsApp, dan lainnya), serta **produk teratas**. Pilihan periode 7, 30, atau 90 hari.
+- **Kunjunganmu sendiri jangan ikut terhitung:** buka `wismir.id/?nt=1` **sekali** di setiap perangkat yang kamu pakai (HP, laptop, tablet toko). Sesudah itu perangkat itu tidak dihitung lagi.
+- **Supaya sumber terbaca:** beri tanda di link yang kamu taruh, misalnya link bio Instagram `wismir.id/?ref=instagram`, bio TikTok `wismir.id/?ref=tiktok`, dan di status WhatsApp `wismir.id/?ref=wa`. "Direct" berarti link diketik, atau aplikasi yang tidak memberi tahu asal kunjungan.
+- Perlu **Apps Script katalog versi terbaru** (langkah memperbarui sama seperti di atas). Data tersimpan di tab "Statistik" pada Google Sheet "web" (tab itu tidak ikut dipublikasikan). Hitungan mulai tercatat setelah Apps Script diperbarui.
+
 **Keamanan:**
 - Salah kata sandi **5 kali dalam 15 menit** mengunci **katalog** selama 10 menit (dashboard dan kasir tidak ikut terkunci). Cukup tunggu.
 - Mengganti kata sandi katalog: ubah `ADMIN_PASSWORD` di Script properties Apps Script katalog, lalu samakan di Settings dashboard (atau samakan dengan PIN).
