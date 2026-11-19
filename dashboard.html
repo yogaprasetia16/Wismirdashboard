@@ -275,7 +275,7 @@ const DKEYS=['tanggal','date','start','end','joined','tempo','paidOn','next'];
 const normRow=o=>{DKEYS.forEach(k=>{if(k in o)o[k]=nd(o[k])});return o};
 for(const k in SHEET)S[k]=(S[k]||[]).map(normRow);
 S.tx.forEach(t=>{t.jenis=t.jenis==='Masuk'?'Income':t.jenis==='Keluar'?'Expense':t.jenis});
-let RST='all',fv='report',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',mk='camp',txf='Income',status='',stv='list';
+let RST='all',fv='report',SY='',SSt='all',EY='',ECat='all',OM='',PY='',MY='',SPY='',PRY='',FM='',pop=null,tf='all',tab='home',ops='stock',pt='purch',mk='camp',wv='cat',txf='Income',status='',stv='list';
 // stock history filters
 const HF={per:'30d',from:'',to:'',loc:'all',cat:'all',brand:'all',type:'all',q:'',n:200};
 const IC={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -520,7 +520,7 @@ function render(){
   // animate the Overview chart only when the page is opened
   $('#top').innerHTML=topNav();
   document.querySelectorAll('nav button,#top button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));moveInd();
-  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'||(tab==='mkt'&&(mk==='web'||mk==='testi'))?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
+  $('#cta').style.display=tab==='set'||(tab==='tx'&&(fv!=='tx'||txf!=='Expense'))||tab==='ops'||tab==='prod'||tab==='task'||(tab==='mkt'&&mk==='web')?'none':''; // Reminders: each division has its own + (owner 2026-11-15) // Operational: + in the tab row (2026-11-15) // Production: each column has its own + (owner 2026-11-15: no header button there)
   $('#cta span').textContent={task:'New reminder',tx:'New expense',prod:pt==='purch'?'New purchase':'New order',mkt:'New campaign',ops:{stock:'New product',staff:'New staff',store:'New store',exp:'New expense'}[ops]}[tab]||'New transaction';
   const h=new Date().getHours();
   $('#hi').innerHTML=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+',<br>Yoga';
@@ -1174,16 +1174,19 @@ async function webCall(action,payload){
 async function webLoad(){
   if(WEB.busy)return;WEB.busy=true;WEB.err='';
   if(!WEB.loaded){try{const c=JSON.parse(localStorage.getItem(WEB_KEY)||'null');if(c&&c.items&&c.items.length){WEB.items=c.items;WEB.headers=c.headers||[];WEB.loaded=true;WEB.stale=true}}catch(e){}}
-  if(tab==='mkt'&&mk==='web')render();
+  if(tab==='mkt'&&mk==='web'&&wv==='cat')render();
   try{const j=await webCall('list');WEB.items=j.items;WEB.headers=j.headers;WEB.loaded=true;WEB.stale=false;WEB.at=Date.now();try{localStorage.setItem(WEB_KEY,JSON.stringify({items:j.items,headers:j.headers}))}catch(e){}}
   catch(e){WEB.err=e.message}
-  WEB.busy=false;if(tab==='mkt'&&mk==='web')render()}
+  WEB.busy=false;if(tab==='mkt'&&mk==='web'&&wv==='cat')render()}
 function webSeg(){
   const IC={camp:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6"/>',testi:'<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-6.5L8 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 9.5h8M8 12.5h5"/>',web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'};
-  const more=mk==='web'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
-  const moreT=mk==='testi'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}#testimoni" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="testiLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="testiAdd" onclick="testiEdit(null)" title="New testimonial" aria-label="New testimonial"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
-  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website'],['testi','Testimonials']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();if('${x[0]}'==='web'&&(!WEB.loaded||Date.now()-(WEB.at||0)>60000))webLoad();if('${x[0]}'==='testi'&&(!TW.loaded||Date.now()-(TW.at||0)>60000))testiLoad()"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${more}${moreT}</div>`}
-function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?vWeb():mk==='testi'?vTesti():vCamp())}
+  const more=mk==='web'&&wv==='cat'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="webLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="webAdd" onclick="webEdit(null)" title="New product" aria-label="New product"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
+  const moreT=mk==='web'&&wv==='testi'?`<div class="bha" style="margin-left:auto"><a class="impb lg" id="webOpen" href="${WEBSITE}#testimoni" target="_blank" rel="noopener" title="Open wismir.id" aria-label="Open wismir.id"><svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></a><button class="impb lg" onclick="testiLoad()" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg></button><button class="addd lg" id="testiAdd" onclick="testiEdit(null)" title="New testimonial" aria-label="New testimonial"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:'';
+  const SUB={cat:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',testi:IC.testi};
+  const loadFor=k=>k==='testi'?"if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()":"if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()";
+  const sub=mk==='web'?`<div class="seg ico">${[['cat','Catalog'],['testi','Testimonials']].map(x=>`<button class="${wv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="wv='${x[0]}';render();${loadFor(x[0])}"><svg viewBox="0 0 24 24">${SUB[x[0]]}</svg></button>`).join('')}</div>`:'';
+  return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();${x[0]==='web'?"if(wv==='testi'){if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()}else if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()":''}"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${sub}${more}${moreT}</div>`}
+function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?(wv==='testi'?vTesti():vWeb()):vCamp())}
 function vWeb(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
   const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the catalog…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
@@ -1269,10 +1272,10 @@ async function webDelete(it){
 async function testiLoad(){
   if(TW.busy)return;TW.busy=true;TW.err='';
   if(!TW.loaded){try{const c=JSON.parse(localStorage.getItem(TESTI_KEY)||'null');if(c&&c.items&&c.items.length){TW.items=c.items;TW.loaded=true;TW.stale=true}}catch(e){}}
-  if(tab==='mkt'&&mk==='testi')render();
+  if(tab==='mkt'&&mk==='web'&&wv==='testi')render();
   try{const j=await webCall('testiList');TW.items=j.items;TW.loaded=true;TW.stale=false;TW.at=Date.now();try{localStorage.setItem(TESTI_KEY,JSON.stringify({items:j.items}))}catch(e){}}
   catch(e){TW.err=e.message}
-  TW.busy=false;if(tab==='mkt'&&mk==='testi')render()}
+  TW.busy=false;if(tab==='mkt'&&mk==='web'&&wv==='testi')render()}
 const testiClip=(t,n)=>{t=String(t||'').replace(/\s+/g,' ').trim();return t.length>n?t.slice(0,n-1)+'…':t};
 function vTesti(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the testimonials of wismir.id here.')}</div>`;

@@ -478,7 +478,7 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 - Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
 - Daftar terakhir disimpan di perangkat, jadi tab Website langsung tampil lalu diperbarui sendiri.
 
-**Testimoni pelanggan (Marketing → ikon balon percakapan, "Testimonials"):** mengatur bagian "Kata Pelanggan" di wismir.id.
+**Testimoni pelanggan (Marketing → Website → pilih ikon balon percakapan "Testimonials"):** di dalam Website ada dua pilihan seperti Products | History di Stock: **Catalog** (ikon kotak-kotak, daftar produk) dan **Testimonials** (ikon balon percakapan). Testimoni mengatur bagian "Kata Pelanggan" di wismir.id.
 - **+** untuk testimoni baru: pilih foto (misalnya tangkapan layar chat pelanggan, boleh lebih dari satu), isi nama dan komentar. Foto, nama, dan komentar semuanya opsional, tapi minimal ada satu foto **atau** komentar. Tanpa foto, komentar tampil di web sebagai kutipan.
 - Ketuk testimoni untuk mengubah atau menghapus (hapus perlu dua kali ketuk; fotonya ikut terhapus). Yang terbaru tampil paling depan.
 - Foto testimoni dikecilkan sampai 2000 piksel (lebih besar dari foto produk) supaya tulisan di tangkapan layar tetap terbaca.
