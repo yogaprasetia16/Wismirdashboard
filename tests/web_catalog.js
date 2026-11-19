@@ -34,7 +34,7 @@ async function api(route){
  await D.goto(B+'/dashboard.html');
  // 1. Marketing: two icon tabs, campaigns first; Website without a catalog URL
  await D.evaluate(()=>{tab='mkt';render()});
- ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title).join())==='Campaigns,Website,Testimonials','Marketing has icon tabs Campaigns, Website and Testimonials');
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title).join())==='Campaigns,Website','Marketing has two icon tabs, Campaigns and Website (testimonials are inside Website)');
  ok((await D.textContent('#app')).includes('Spent')&&await D.isVisible('#cta'),'Campaigns is the default and keeps its New campaign button');
  await D.click('#app .seg.ico button[title=Website]');
  ok((await D.textContent('#app')).includes('Website catalog URL in Settings')&&!(await D.isVisible('#cta')),'without a catalog URL it asks for one in Settings (header button hidden)');
@@ -111,8 +111,12 @@ async function api(route){
  ok(dl.deleteFiles.join()==='c.jpg,d.jpg'||dl.deleteFiles.join()==='d.jpg','only photos nobody else uses are deleted: '+dl.deleteFiles.join());
  await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'after delete');
  // 6b. Testimonials (owner 2026-11-19): list, add (photo + name + comment), comment only, edit, delete
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog*,Testimonials','inside Website a toggle Catalog | Testimonials (like Products | History in Stock); Catalog is on');
  await D.click('#app .seg.ico button[title=Testimonials]');
  await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'testi list');
+ ok(await D.$$eval('#app .seg.ico button',b=>b.map(x=>x.title+(x.classList.contains('on')?'*':'')).join())==='Campaigns,Website*,Catalog,Testimonials*','the toggle switches to Testimonials');
+ await D.click('#app .seg.ico button[title=Campaigns]');ok((await D.$$('#app .seg.ico button')).length===2,'the toggle only exists inside Website');
+ await D.click('#app .seg.ico button[title=Website]');await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'testi again');ok(true,'Website remembers the last toggle (Testimonials)');
  const tl=await D.$$eval('#app [data-tr]',r=>r.map(x=>x.textContent.replace(/\s+/g,' ')));
  ok(tl[0].includes('Ibu Siti')&&tl[0].includes('Bahannya adem sekali')&&tl[0].includes('1 photo')&&tl[1].includes('(no name)')&&tl[1].includes('Pelayanannya ramah'),'testimonials list: name, comment, photo count; "(no name)" when empty: '+tl.join(' | '));
  ok(await D.isVisible('#testiAdd')&&!(await D.isVisible('#cta'))&&await D.$eval('#webOpen',e=>e.href==='https://wismir.id/#testimoni'),'round + in the tab row; the link icon opens the testimonials section of wismir.id');
@@ -139,7 +143,7 @@ async function api(route){
  await D.click('#rm');await until(()=>calls.some(c=>c.action==='testiDelete'),8000,'testi delete');
  ok(calls.find(c=>c.action==='testiDelete').id==='t2','delete names the testimonial');
  await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'2 testi');
- await D.click('#app .seg.ico button[title=Website]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'back to website');ok(true,'switching back to Website still works');
+ await D.click('#app .seg.ico button[title=Catalog]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'back to catalog');ok(true,'switching back to Catalog still works');
  // 7. wrong password / locked messages
  mode='wrong';await D.click('#app .impb[title=Reload]');
  await until(()=>D.evaluate(()=>/Wrong password/.test(document.querySelector('#app').textContent)),8000,'wrong pw');
