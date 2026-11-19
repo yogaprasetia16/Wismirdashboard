@@ -474,6 +474,7 @@ Katalog di **wismir.id** diatur dari sini, tanpa membuka Google Sheet atau GitHu
 - Ketuk produk untuk mengubah nama, kategori, bahan, ukuran, deskripsi, detail, NEW, SALE, dan foto.
 - Foto: **+ Add photos** dari galeri HP, tombol ‹ › untuk mengubah urutan (foto pertama = foto utama), × untuk membuang. Foto dikecilkan otomatis.
 - **+** bulat di kanan atas untuk produk baru. **Delete** perlu dua kali ketuk. Ikon tautan membuka wismir.id.
+- Di sisi paling kanan tiap produk ada dua ikon bulat: **salin link** (menyalin `wismir.id/p/nama-produk/` ke clipboard, ikon berubah jadi centang sebentar) dan **buka link** (membuka halaman produk itu di tab baru). Link ini yang dibagikan ke WhatsApp atau Instagram, dan pratinjaunya menampilkan foto produk. Produk yang baru ditambahkan tetap bisa dibuka; pratinjau fotonya baru lengkap setelah halamannya dibuat otomatis (paling lama 6 jam).
 - Perubahan tampil di wismir.id sekitar **1 sampai 5 menit** setelah Save.
 - Daftar terakhir disimpan di perangkat, jadi tab Website langsung tampil lalu diperbarui sendiri.
 
