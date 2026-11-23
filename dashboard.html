@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* palette (owner 2026-11-14): 60% beige cream (page, cards, panels), 30% black (navigation, hero, main buttons, text), 10% sunset orange (accents); green/red stay for up/down */
-:root{--viz1:#2b2622;--viz2:#ee6a2c;--viz1s:#bfb3a2;--ink:#1a1714;--dark:#181512;--mute:#776b5d;--line:#e5d9c5;--green:#3e7a52;--good:#3e7a52;--acc:#ee6a2c;--acct:#b2471b;--onacc:#1a1512;--amber:#ee6a2c;--red:#c0392b;--blue:#9a4318;--card:#fbf6ee;--panel:rgba(251,246,238,.74);--pborder:rgba(255,251,244,.9);--seg:#eadfcd;--sec:#eee4d3;--sheet:#f8f1e6;--thbg:#ebdcc4;--warnbg:#f7ddc9;--bg1:#eeddc2;--bg2:#f6ebdd;--bg3:#f3eadb;--hmute:#a89b8a;--hsoft:#d8cdbe;--chkb:#c9bba5;--segon:#fdfaf4;color-scheme:light}
+:root{--k1:#2b2622;--k2:#ee6a2c;--k3:#c9a27e;--k4:#7c8b6f;--k5:#5b7a99;--k6:#bfb3a2;--viz1:#2b2622;--viz2:#ee6a2c;--viz1s:#bfb3a2;--ink:#1a1714;--dark:#181512;--mute:#776b5d;--line:#e5d9c5;--green:#3e7a52;--good:#3e7a52;--acc:#ee6a2c;--acct:#b2471b;--onacc:#1a1512;--amber:#ee6a2c;--red:#c0392b;--blue:#9a4318;--card:#fbf6ee;--panel:rgba(251,246,238,.74);--pborder:rgba(255,251,244,.9);--seg:#eadfcd;--sec:#eee4d3;--sheet:#f8f1e6;--thbg:#ebdcc4;--warnbg:#f7ddc9;--bg1:#eeddc2;--bg2:#f6ebdd;--bg3:#f3eadb;--hmute:#a89b8a;--hsoft:#d8cdbe;--chkb:#c9bba5;--segon:#fdfaf4;color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
 body{font:15px/1.45 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);min-height:100vh;background:radial-gradient(900px 500px at 0% 0%,var(--bg1),transparent 60%),radial-gradient(800px 500px at 100% 20%,var(--bg2),transparent 60%),var(--bg3);background-attachment:fixed;padding-top:env(safe-area-inset-top,0)}
@@ -127,7 +127,7 @@ nav button.on{color:var(--dark)}
 .tbh{display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px}
 .tbh button{border-radius:99px;font-size:13px;font-weight:600;padding:6px 14px;cursor:pointer}
 .fut{opacity:.55}
-html[data-theme=dark]{--viz1:#e9dfcf;--viz2:#f07a3e;--viz1s:#6e655a;--ink:#f3eadb;--dark:#2a241e;--mute:#a89b8a;--line:#352d25;--green:#6db587;--good:#6db587;--acc:#f07a3e;--acct:#f59b66;--onacc:#1a1512;--amber:#f07a3e;--red:#e2705a;--blue:#f2a878;--card:#1e1a16;--panel:rgba(32,27,22,.74);--pborder:rgba(255,240,220,.07);--seg:#2a241e;--sec:#2c2620;--sheet:#1a1613;--thbg:#3a2a1e;--warnbg:#3a2618;--bg1:#2a1c12;--bg2:#1a1612;--bg3:#12100d;--hmute:#a89b8a;--hsoft:#d8cdbe;--chkb:#6e655a;--segon:#3e352c;color-scheme:dark}
+html[data-theme=dark]{--k1:#e9dfcf;--k2:#f07a3e;--k3:#d8b48f;--k4:#9fb08f;--k5:#84a3c2;--k6:#6e655a;--viz1:#e9dfcf;--viz2:#f07a3e;--viz1s:#6e655a;--ink:#f3eadb;--dark:#2a241e;--mute:#a89b8a;--line:#352d25;--green:#6db587;--good:#6db587;--acc:#f07a3e;--acct:#f59b66;--onacc:#1a1512;--amber:#f07a3e;--red:#e2705a;--blue:#f2a878;--card:#1e1a16;--panel:rgba(32,27,22,.74);--pborder:rgba(255,240,220,.07);--seg:#2a241e;--sec:#2c2620;--sheet:#1a1613;--thbg:#3a2a1e;--warnbg:#3a2618;--bg1:#2a1c12;--bg2:#1a1612;--bg3:#12100d;--hmute:#a89b8a;--hsoft:#d8cdbe;--chkb:#6e655a;--segon:#3e352c;color-scheme:dark}
 .ind{position:absolute;left:0;top:0;width:0;height:0;border-radius:99px;background:var(--amber);z-index:0;pointer-events:none}
 nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,height .38s}
 #bot{gap:2px}#bot button{width:38px}
@@ -205,7 +205,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .fhead.tabh{margin:-21px 0 0 -21px;flex-wrap:wrap;row-gap:8px}.fhead.tabh .lg{flex-wrap:nowrap;white-space:nowrap;margin-left:auto}.rtop .fhead.tabh{margin:-17px 0 0 -19px}.ctab{display:inline-flex;align-items:center;gap:7px;background:var(--seg);color:var(--ink);font-size:12.5px;font-weight:700;letter-spacing:.2px;padding:9px 16px 9px 13px;border-radius:20px 0 18px 0;white-space:nowrap}.ctab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .fintop>.rk,#rProd,#rStore,#rChart{min-height:0}.rtop>.fcard{padding:16px 18px!important;gap:6px}.rk{position:relative}.nocb{position:absolute;top:18px;right:18px;font-size:11.5px!important;margin:0!important}.rtop .fbig{font-size:23px!important}.rtop .fhead .fic{width:28px;height:28px}.rtop .mrank{gap:7px}.rk{gap:8px}.rk .fsub{padding-top:8px}.rdon svg{width:100px!important;height:100px!important}.rk .kpr{align-items:center}.rk .spk{width:76px;flex:none}.rk .fsub{margin-top:auto}.nocb{margin:0;padding:0;text-align:left}
 .rdon{display:flex;align-items:center;gap:14px;flex:1}.rdon svg{width:118px;height:118px;flex:none}.rdon svg.anim circle+circle{animation:ringIn 1s cubic-bezier(.3,.8,.3,1) both}@keyframes ringIn{from{stroke-dasharray:0 100}}
-.rleg{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}.rleg>div{display:grid;grid-template-columns:10px 1fr;column-gap:8px;align-items:center}.rleg i{width:10px;height:10px;border-radius:3px}.rleg b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rleg span{grid-column:2;font-size:12px;color:var(--mute)}
+.rleg{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}.rleg>div{display:grid;grid-template-columns:10px 1fr;column-gap:8px;align-items:center}.rleg i{width:10px;height:10px;border-radius:3px}.rleg b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rleg span{grid-column:2;font-size:12px;color:var(--mute)}.rleg.many{gap:6px}.rleg.many>div{grid-template-columns:10px minmax(0,1fr) auto}.rleg.many span{grid-column:3;font-size:11.5px;margin-left:6px;white-space:nowrap}.rleg.many b{font-size:12.5px}.rdon:has(.rleg.many){gap:10px}.rdon:has(.rleg.many) svg{width:96px;height:96px}
 .rfil{display:flex;gap:8px;flex-wrap:wrap}.rfil .f{min-width:180px}.rfil .f:last-child{min-width:220px}@media (max-width:520px){.rfil{width:100%}.rfil .f{flex:1;min-width:0!important}.rfil .f:last-child{flex:1.4}}.dbars{display:flex;align-items:flex-end;gap:4px;height:36px;width:84px;flex:none}.dbars i{flex:1;border-radius:4px;background:var(--viz1s)}.dbars i:last-child{background:var(--acc)}.dbars.anim i{transform-origin:bottom;animation:barUp .75s cubic-bezier(.2,.9,.25,1.12) both;animation-delay:var(--d,0ms)}@media (prefers-reduced-motion:reduce){.dbars.anim i{animation:none}}.rplot{height:128px}.rplot .col .b{background:var(--viz1)}.rplot .dot{background:var(--acc)}.rvl{position:absolute;transform:translateX(-50%);font-size:10.5px;font-weight:700;white-space:nowrap;pointer-events:none}.rplot .ov,.rplot .dot,.rvl{pointer-events:none}.rplot.anim .dot,.rplot.anim .rvl{animation:fadeIn .9s .3s both}.rplot.anim .col .b{animation:barUp .75s cubic-bezier(.2,.9,.25,1.12) both;transform-origin:bottom}.rplot.anim .ov{animation:fadeIn .9s .3s both}@keyframes fadeIn{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.rdon svg.anim circle,.rplot.anim .col .b,.rplot.anim .ov{animation:none}}
 .lnkt{margin-left:auto;border:0;background:none;color:var(--acct);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:4px 2px}
@@ -306,7 +306,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=16;
+const NEED_CODE=18;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -578,12 +578,19 @@ function editTx(id){const t=S.tx.find(x=>x.id===id);form(t.jenis==='Expense'?'Ed
 const HMON=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'short'});
 function salesRows(){
   const out=S.hist.map(h=>({m:String(h.bulan),st:String(h.toko||'?'),sku:String(h.sku||''),pid:'',q:+h.qty||0,v:+h.total||0,src:'imp'}));
-  const have=new Set(out.map(r=>r.m+'|'+r.st));
-  P('shift').forEach(x=>{const m=nd(x.tanggal).slice(0,7),st=String(x.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;out.push({m,st,sku:'',pid:'',q:0,v:+x.totalPenjualan||0,src:'pos'})});
+  const have=new Set(out.map(r=>r.m+'|'+r.st)),tot={},pv={},add=(o,k,v)=>o[k]=(o[k]||0)+v;
+  const shopOf={};P('harian').forEach(r=>{if(r.toko)shopOf[String(r.shiftId)]=String(r.toko)});P('shift').forEach(x=>{if(x.toko)shopOf[String(x.id)]=String(x.toko)});
+  P('shift').forEach(x=>{const m=nd(x.tanggal).slice(0,7),st=String(x.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;add(tot,m+'|'+st,+x.totalPenjualan||0)});
   // owner 2026-11-18 ("penjualan di POS sudah bertambah, di dashboard belum"): receipts of shifts not closed yet count as revenue
   // everywhere (Report, Income, Financial), not only on the Overview; closing the shift replaces them with its total (liveSales skips closed shifts)
-  liveSales().forEach(x=>{const m=x.tanggal.slice(0,7),st=x.toko;if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;out.push({m,st,sku:'',pid:'',q:0,v:x.total,src:'pos'})});
-  P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;const q=(x.ke==='Sale'?1:-1)*(+x.qty||0);out.push({m,st,sku:'',pid:String(x.pid||''),q,v:0,src:'pos'})});
+  liveSales().forEach(x=>{const m=x.tanggal.slice(0,7),st=x.toko;if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;add(tot,m+'|'+st,x.total)});
+  // owner 2026-11-23 (product ranked "?" / Uncategorized for the running month): the shift sale rows carry the rupiah value per
+  // product ('nilai', POS + Code.gs v18), so POS months rank products and categories by revenue too. A sale row belongs to the
+  // store of its shift (ref), not the stock location (an online store sells from another store's stock). Revenue no product row
+  // explains (rows from before 'nilai' existed) stays as one row without a product.
+  P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=shopOf[String(x.ref||'')]||String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;
+    const sg=x.ke==='Sale'?1:-1,q=sg*(+x.qty||0),v=x.nilai!==''&&x.nilai!=null?sg*(+x.nilai||0):0;add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(x.pid||''),q,v,src:'pos'})});
+  Object.keys(tot).forEach(k=>{const r=tot[k]-(pv[k]||0),[m,st]=[k.slice(0,7),k.slice(8)];if(r>=1)out.push({m,st,sku:'',pid:'',q:0,v:r,src:'pos'})});
   return out;
 }
 const skuName=k=>{const p=S.products.find(x=>String(x.sku||'').trim().toLowerCase()===String(k).trim().toLowerCase());return p?p.nama:''};
@@ -704,9 +711,12 @@ function vReport(){
  const RP=ct.map((z,j)=>[+((j+.5)/n*100).toFixed(2),PH-Y(z.rev)]),rline=RP.map((p,i)=>i?`C${((RP[i-1][0]+p[0])/2).toFixed(2)},${RP[i-1][1]} ${((RP[i-1][0]+p[0])/2).toFixed(2)},${p[1]} ${p[0]},${p[1]}`:`M${p[0]},${p[1]}`).join(' ');
  const cols=ct.map((z,j)=>`<button class="col${P.isY||cmo[j]===FM?'':' off'}" onclick="FM='${cmo[j]}';render()" data-tip="<b>${MONL(cmo[j])}</b><br>Revenue ${jt(z.rev)}<br>Expense ${jt(z.ex)}" aria-label="Show ${MONL(cmo[j])}"><div class="b" style="height:${Math.max(2,Y(z.ex))}px"></div></button>`).join('');
  const dots=ct.map((z,j)=>`<div class="dot" style="left:${RP[j][0]}%;bottom:${Y(z.rev)}px"></div><div class="rvl" style="left:${RP[j][0]}%;bottom:${Y(z.rev)+8}px">${c1(z.rev/1e6)}</div>`).join('');
- // categories: top category vs the rest in the donut (two validated colours), every category in the table
- const cat=fGroup(sel,'cat'),top=cat[0],shTop=rev&&top?top.rev/rev*100:0,CC=['var(--viz1)','var(--viz2)'];
+ // categories: one colour per category in the donut (top 4-5, the rest as Other), every category in the table
+ const cat=fGroup(sel,'cat'),top=cat[0],shTop=rev&&top?top.rev/rev*100:0,CC=catCols(cat.length);
+ // owner 2026-11-23: every category its own colour (up to 5, the rest together as "Other"), not only the top one
+ const seg=cat.length<=5?cat.map(c=>({n:c.n,rev:c.rev})):cat.slice(0,4).map(c=>({n:c.n,rev:c.rev})).concat([{n:'Other ('+(cat.length-4)+')',rev:cat.slice(4).reduce((a,c)=>a+c.rev,0)}]);
  const ring=(col,l,off)=>l<=0?'':`<circle cx="100" cy="100" r="70" fill="none" stroke="${col}" stroke-width="26" pathLength="100" stroke-dasharray="${Math.max(0,l-.6).toFixed(2)} ${(100-l+.6).toFixed(2)}" stroke-dashoffset="${off}" transform="rotate(-90 100 100)"/>`;
+ let acc=0;const rings=seg.map((c,i)=>{const l=rev?c.rev/rev*100:0,o=ring(CC[i],l,(-acc).toFixed(2));acc+=l;return o}).join('');
  const prods=fGroup(sel,'key','name'),stores=fGroup(sel,'st');
  const nNoc=new Set(sel.filter(r=>r.noc).map(r=>r.key)).size,A=repAnim;
  // owner 2026-11-16: the Cost card = expenses (Finance › Expense) of the chosen period, not COGS; expenses have no store
@@ -721,8 +731,8 @@ function vReport(){
   ${kc('rPcs','<span class="fic"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>','Products sold',units.toLocaleString('id-ID')+' pcs','pcs',units,dBars(P,A,'q'),fchg(units,fSum(pr,'q')))}
   ${kc('rCost','<span class="fic"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>','Expense',jt(ex),'jt',ex,dBars(P,A,'exp'),fchgC(ex,exP),`<div class="fsub"><span class="lbl">Revenue − expense${rev?' · '+pc((rev-ex)/rev*100):''}</span><b class="${rev-ex<0?'neg':''}">${jt(rev-ex)}</b></div>`)}
   <div class="card fcard rk" id="rCat"><div class="fhead tabh"><span class="ctab"><svg viewBox="0 0 24 24"><path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg>Category</span><button class="lnkt" onclick="repSheet('cat')">All</button></div>
-   <div class="rdon"><svg viewBox="0 0 200 200" class="${A?'anim':''}" role="img" aria-label="Revenue share by category"><circle cx="100" cy="100" r="70" fill="none" stroke="var(--seg)" stroke-width="26"/>${ring(CC[0],shTop,0)}${ring(CC[1],rev?100-shTop:0,(-shTop).toFixed(2))}<text x="100" y="108" text-anchor="middle" font-size="30" font-weight="700" fill="var(--ink)">${Math.round(shTop)}%</text></svg>
-   <div class="rleg"><div><i style="background:${CC[0]}"></i><b>${esc(top?top.n:'–')}</b><span>${top?jt(top.rev):''}</span></div>${cat.length>1?`<div><i style="background:${CC[1]}"></i><b>${cat.length===2?esc(cat[1].n):'Other ('+(cat.length-1)+')'}</b><span>${jt(rev-(top?top.rev:0))}</span></div>`:''}</div></div></div>
+   <div class="rdon"><svg viewBox="0 0 200 200" class="${A?'anim':''}" role="img" aria-label="Revenue share by category"><circle cx="100" cy="100" r="70" fill="none" stroke="var(--seg)" stroke-width="26"/>${rings}<text x="100" y="108" text-anchor="middle" font-size="30" font-weight="700" fill="var(--ink)">${Math.round(shTop)}%</text></svg>
+   <div class="rleg${seg.length>2?' many':''}">${seg.length?seg.map((c,i)=>`<div><i style="background:${CC[i]}"></i><b title="${esc(c.n)} · ${jt(c.rev)}">${esc(c.n)}</b><span>${seg.length>2?(rev?Math.round(c.rev/rev*100):0)+'%':jt(c.rev)}</span></div>`).join(''):'<div><i></i><b>–</b></div>'}</div></div></div>
  <div class="card fcard viz" id="rChart"><div class="fhead tabh"><span class="ctab"><svg viewBox="0 0 24 24"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg>Revenue vs expense · ${cy}</span><div class="lg" style="margin-left:auto"><span><i class="ln" style="background:var(--acc)"></i>Revenue</span><span><i style="background:var(--viz1)"></i>Expense</span></div></div>
   <div class="plot rplot${A?' anim':''}">${[0,25,50,75].map(p=>`<div class="gl" style="top:${p}%"></div>`).join('')}<div class="cols">${cols}</div><svg class="ov" viewBox="0 0 100 ${PH}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="rgr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--acc)" stop-opacity=".38"/><stop offset="1" stop-color="var(--acc)" stop-opacity="0"/></linearGradient></defs>${n>1?`<path d="${rline} L${RP[n-1][0]},${PH} L${RP[0][0]},${PH} Z" fill="url(#rgr)" stroke="none"/><path d="${rline}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`:''}</svg>${dots}</div>
   <div class="xl">${cmo.map(m=>`<div>${!P.isY&&m===FM?'<b>'+HMON(m)+'</b>':HMON(m)}</div>`).join('')}</div></div>
@@ -730,6 +740,7 @@ function vReport(){
  <div class="card fcard" id="rStore"><div class="fhead tabh"><span class="ctab"><svg viewBox="0 0 24 24"><path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6zM9.5 20v-6h5v6"/></svg>Store ranked</span><button class="lnkt" onclick="repSheet('store')">All</button></div>${miniRank(stores,rev,A,true,true)}</div></div>`;
 }
 let REP={};
+const catCols=n=>['var(--k1)','var(--k2)','var(--k3)','var(--k4)','var(--k5)','var(--k6)'].slice(0,Math.max(2,Math.min(n,5)));
 // owner 2026-11-16: Report revenue card shows the sales of the last 7 days (like the Overview), bars only, no numbers.
 // Shown only when the current month is chosen (owner 2026-11-16); Products sold = pieces, Cost = pieces × COGS; the store filter applies.
 const dayRev=(k,st)=>{if(st==='all')return daySales(k);const shut=new Set(P('shift').map(s=>String(s.id)));
@@ -743,7 +754,7 @@ function dBars(Pd,anim,k){const t=today();if(Pd.isY||FM!==t.slice(0,7))return ''
     const q=(m.ke==='Sale'?1:-1)*(+m.qty||0);g[dt]+=k==='q'?q:q*(cg[String(m.pid)]||0)});v=days.map(x=>Math.max(0,g[x]))}
   const mx=Math.max(1,...v);return `<div class="dbars${anim?' anim':''}" role="img" aria-label="Last 7 days">${v.map((x,i)=>`<i style="height:${Math.max(3,Math.round(x/mx*34))}px;--d:${i*60}ms"></i>`).join('')}</div>`}
 function repSheet(k){const F=REP;if(!F.sel)return;closePop();$('#sheet').oninput=null;let t='',h='';
-  if(k==='cat'){t='Category ranked';h=`<div class="lbl" style="margin:-8px 6px 12px">Share of total revenue · ${F.label} · categories come from the product list (matched by SKU)</div><div class="card donut">${rankT(['Category','Quantity','Revenue','% of revenue'],F.cat.map((c,i)=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:${F.CC[i?1:0]}"></i>${esc(c.n)}</td><td>${c.q.toLocaleString('id-ID')}</td><td><b>${rp(c.rev)}</b></td><td><b>${F.rev?pc(c.rev/F.rev*100):'–'}</b></td></tr>`))}</div>`}
+  if(k==='cat'){t='Category ranked';h=`<div class="lbl" style="margin:-8px 6px 12px">Share of total revenue · ${F.label} · categories come from the product list (matched by SKU)</div><div class="card donut">${rankT(['Category','Quantity','Revenue','% of revenue'],F.cat.map((c,i)=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:${F.CC[F.cat.length<=5?i:Math.min(i,4)]}"></i>${esc(c.n)}</td><td>${c.q.toLocaleString('id-ID')}</td><td><b>${rp(c.rev)}</b></td><td><b>${F.rev?pc(c.rev/F.rev*100):'–'}</b></td></tr>`))}</div>`}
   else if(k==='prod'){t='Product ranked';h=`<div class="lbl" style="margin:-8px 6px 12px">Ranked by revenue · ${F.label}</div><div class="card" id="rProdAll">${prodRank(F.prods,F.rev)}</div>`}
   else if(k==='store'){t='Store ranked';h=`<div class="lbl" style="margin:-8px 6px 12px">Tap a store to see what it sold · ${F.label}</div><div class="card">${storeRank(F.stores,F.rev,true)}</div>`}
   else if(k==='noc'){t='Products without COGS';h=F.noc}

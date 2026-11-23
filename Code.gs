@@ -51,7 +51,7 @@ const NUM = {
   Keuangan: ['jumlah'], Stok: ['stokToko', 'stokOnline', 'min', 'harga', 'cogs'], Tugas: ['every'],
   Purchasing: ['qty', 'total'], Production: ['qty', 'matQty', 'unitCost', 'total'],
   Marketing: ['budget', 'spent', 'revenue'], Supplier: ['total'], Penjualan: ['qty', 'total'], Recurring: ['jumlah'], Annual: ['jumlah'],
-  'POS Stok': ['qty'], 'POS Kasir': ['total', 'dibayar', 'kembalian'],
+  'POS Stok': ['qty', 'nilai'], 'POS Kasir': ['total', 'dibayar', 'kembalian'],
   'POS Shift': ['kasAwal', 'penjualanTunai', 'kasMasuk', 'kasKeluar', 'kasSeharusnya', 'tunai', 'transfer', 'edc', 'totalPenjualan', 'transaksi'],
 };
 
@@ -105,7 +105,7 @@ function setup() {
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
 // v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
-const CODE_VERSION = 17;
+const CODE_VERSION = 18;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -114,7 +114,10 @@ function posEpoch() { return PropertiesService.getScriptProperties().getProperty
 function out(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
-function colsFor(name) { return HEADERS[name] || POS[name].concat([UPD]); }
+// v18: kolom POS baru ditaruh SESUDAH _upd, supaya kolom yang sudah ada (termasuk _upd) tidak bergeser di Sheet.
+// POS Stok 'nilai' = rupiah penjualan baris penjualan per shift per produk (owner 2026-11-23: product ranked bulan berjalan "?").
+const POS_MORE = { 'POS Stok': ['nilai'] };
+function colsFor(name) { return HEADERS[name] || POS[name].concat([UPD]).concat(POS_MORE[name] || []); }
 function isNum(name, col) { return col === UPD || (NUM[name] || []).indexOf(col) >= 0; }
 
 function sheetFor(name) {
