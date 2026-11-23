@@ -22,6 +22,7 @@ async function api(route){
  else if(req.action==='list')out={ok:true,headers:H,items:rows.map(r=>({...r}))};
  else if(req.action==='save'){const d=req.data;if(req.row){const r=rows.find(x=>x._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else Object.assign(r,d)}else rows.push({_row:rows.length+2,...d});out.uploaded=(req.newPhotos||[]).map(p=>p.name)}
  else if(req.action==='delete'){const i=rows.findIndex(x=>x._row===req.row);if(i<0)out={ok:false,error:'x'};else rows.splice(i,1);rows.forEach((r,k)=>r._row=k+2)}
+ else if(req.action==='hide'){if(mode==='oldhide')out={ok:false,error:'Aksi tidak dikenal.'};else{const r=rows.find(q=>q._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else r.sembunyi=req.hidden?'ya':''}}
  else if(req.action==='statsGet'){if(mode==='oldstats')out={ok:false,error:'Aksi tidak dikenal.'};else out={ok:true,from:'2026-11-01',today:'2026-11-19',rows:statRows.map(r=>r.slice())}}
  else if(req.action==='testiList')out={ok:true,items:testi.map(t=>({...t}))};
  else if(req.action==='testiSave'){const d=req.data;if(!d.komentar&&!d.foto.length)out={ok:false,error:'Isi minimal satu foto atau komentar.'};else if(req.id){const t=testi.find(x=>x.id===req.id);if(!t)out={ok:false,error:'Testimoni tidak ditemukan. Muat ulang daftar.'};else Object.assign(t,d)}else{out.id='n'+(testi.length+1);testi.unshift({id:out.id,...d})}}
@@ -172,6 +173,22 @@ async function api(route){
  await D.click('#rm');await until(()=>calls.some(c=>c.action==='testiDelete'),8000,'testi delete');
  ok(calls.find(c=>c.action==='testiDelete').id==='t2','delete names the testimonial');
  await until(()=>D.$$eval('#app [data-tr]',r=>r.length===2),8000,'2 testi');
+ // 6b. eye button (owner 2026-11-23): hide a product from wismir.id without deleting it
+ await D.click('#app .seg.ico button[title=Catalog]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'catalog list');
+ ok(await D.$$eval('#weblist .row',r=>r.every(x=>x.querySelector('[data-weye]'))),'every product row has an eye button beside copy and open');
+ ok(await D.$eval('[data-weye="2"]',e=>e.getAttribute('aria-label'))==='Hide from website'&&!/HIDDEN/.test(await D.textContent('#weblist')),'visible product: open eye, no HIDDEN tag');
+ calls.length=0;await D.click('[data-weye="2"]');
+ await until(()=>calls.some(c=>c.action==='hide'),8000,'hide call');
+ const hc=calls.find(c=>c.action==='hide');ok(hc.row===2&&hc.origNama==='Gamis bordir'&&hc.hidden===true,'hide names the row, the product and hidden=true');
+ await until(()=>D.$eval('[data-weye="2"]',e=>e.getAttribute('aria-label')==='Show on website'),8000,'eye crossed');
+ ok(/HIDDEN/.test(await D.textContent('#weblist'))&&await D.$eval('[data-wr="2"]',e=>e.style.opacity==='0.55')&&!(await D.$$('#sheet.open')).length,'hidden product: crossed eye, HIDDEN tag, dimmed, and the edit form did NOT open');
+ ok(/1 products on wismir.id · 1 hidden/.test(await D.textContent('#webcount')),'count line says 1 hidden: '+await D.textContent('#webcount'));
+ await D.click('[data-wr="2"]');ok(!(await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent))).some(l=>/sembunyi/i.test(l)),'the edit form has no "sembunyi" field');await D.click('#no');
+ await D.click('[data-weye="2"]');await until(()=>calls.filter(c=>c.action==='hide').length===2&&calls.filter(c=>c.action==='hide')[1].hidden===false,8000,'show again');
+ await until(()=>D.$eval('[data-weye="2"]',e=>e.getAttribute('aria-label')==='Hide from website'),8000,'eye open again');
+ ok(!/HIDDEN/.test(await D.textContent('#weblist')),'shown again: no HIDDEN tag');
+ mode='oldhide';await D.click('[data-weye="3"]');await until(()=>D.evaluate(()=>/Update the catalog Apps Script first/.test(document.querySelector('#app').textContent)),8000,'old script message');
+ ok(await D.$eval('[data-weye="3"]',e=>e.getAttribute('aria-label'))==='Hide from website','with an old catalog script the product stays visible and a clear message is shown');mode='ok';
  // 6c. Visitors (owner 2026-11-19): the website's own counter, shown from the catalog script's statsGet
  await D.click('#app .seg.ico button[title=Visitors]');
  await until(()=>D.evaluate(()=>/Where visitors come from/.test(document.querySelector('#app').textContent)),8000,'stats');
