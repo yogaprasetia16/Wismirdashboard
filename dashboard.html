@@ -242,6 +242,11 @@ html[data-theme=dark] .gp.up{background:#1f3a2b}html[data-theme=dark] .gp.dn{bac
 #valKpi .vcell{grid-column:2;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;min-height:0!important;padding:9px 14px!important;border-radius:99px}
 #valKpi .vcell .kn{margin:0;font-size:15px}
 @media (max-width:520px){#valKpi{grid-template-columns:1fr}.vchart{grid-column:1;min-height:140px}}
+
+/* iPhone/iPad zoom into a text field whose text is smaller than 16px and stay zoomed (owner 2026-11-23: "tampilan agak ngezoom"
+   after the PIN screen). Touch screens get 16px fields, so the page never zooms by itself; pinch zoom still works. */
+@media (hover:none) and (pointer:coarse){input,select,textarea{font-size:16px!important}}
+@supports (-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body>
