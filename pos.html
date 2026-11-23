@@ -291,13 +291,21 @@ function stockMap(loc){const m={};for(const x of S.moves){if(x.status==='void')c
 function perRc(){const s=new Set();for(const x of S.moves){const r=String(x.ref||'');if(String(x.id)==='S-'+r+'-'+x.pid&&S.txs.some(t=>t.id===r))s.add(r)}return s}
 function liveShift(id){return !!(S.shift&&S.shift.id===id&&S.shift.live)||S.moves.some(m=>String(m.id).startsWith('S-'+id+'-'))}
 function covered(){const s=perRc();S.txs.forEach(t=>{if(liveShift(t.shiftId))s.add(t.id)});return s}
+// The shift row also carries the rupiah value of what it sold (val -> Sheet column 'nilai', Code.gs v18, owner 2026-11-23),
+// so the dashboard can rank products and categories by revenue for months that come from the POS.
 function syncShiftMoves(shId){
  const sh=S.shift&&S.shift.id===shId?S.shift:S.shifts.find(x=>x.id===shId);if(!sh)return;
- const skip=perRc(),q={};S.txs.forEach(t=>{if(t.shiftId!==shId||t.void||skip.has(t.id))return;t.items.forEach(i=>q[i.pid]=(q[i.pid]||0)+i.qty)});
+ const skip=perRc(),q={},v={};S.txs.forEach(t=>{if(t.shiftId!==shId||t.void||skip.has(t.id))return;t.items.forEach(i=>{q[i.pid]=(q[i.pid]||0)+i.qty;v[i.pid]=(v[i.pid]||0)+i.qty*(+i.price||0)})});
  const pids=new Set(Object.keys(q));S.moves.forEach(m=>{if(String(m.id)==='S-'+shId+'-'+m.pid)pids.add(m.pid)});
  pids.forEach(pid=>{const id='S-'+shId+'-'+pid,n=q[pid]||0;let m=S.moves.find(x=>x.id===id);
-  if(!m){if(!n)return;m={id:id,t:Date.now(),pid:pid,from:SRC(sh.store),to:'Sale',qty:n,by:'Sistem',note:'Penjualan shift '+shId,status:'ok',kind:'sale',ref:shId};S.moves.push(m);enqueue('POS Stok',m);return}
-  const st=n?'ok':'void',qq=n||m.qty;if(m.qty!==qq||m.status!==st){m.qty=qq;m.status=st;enqueue('POS Stok',m)}})}
+  if(!m){if(!n)return;m={id:id,t:Date.now(),pid:pid,from:SRC(sh.store),to:'Sale',qty:n,by:'Sistem',note:'Penjualan shift '+shId,status:'ok',kind:'sale',ref:shId,val:v[pid]||0};S.moves.push(m);enqueue('POS Stok',m);return}
+  const st=n?'ok':'void',qq=n||m.qty,vv=n?(v[pid]||0):(m.val||0);if(m.qty!==qq||m.status!==st||(m.val!=null&&m.val!==vv)){m.qty=qq;m.status=st;m.val=vv;enqueue('POS Stok',m)}})}
+// Once after the update: shift rows sent before 'nilai' existed get their value from this tablet's own receipts. Only when the
+// receipts here add up to exactly the row's quantity (so a tablet that does not hold all receipts of a shift never changes it).
+function fillShiftValues(){let n=0;const skip=perRc(),byShift={};
+ S.txs.forEach(t=>{if(t.void||skip.has(t.id))return;const b=byShift[t.shiftId]||(byShift[t.shiftId]={});t.items.forEach(i=>{const x=b[i.pid]||(b[i.pid]={q:0,v:0});x.q+=i.qty;x.v+=i.qty*(+i.price||0)})});
+ S.moves.forEach(m=>{if(m.val!=null||m.status==='void'||!m.ref)return;if(String(m.id)!=='S-'+m.ref+'-'+m.pid)return;const x=(byShift[m.ref]||{})[m.pid];if(!x||x.q!==m.qty)return;m.val=x.v;enqueue('POS Stok',m);n++});
+ if(n){save();kick(2000)}return n}
 function soldNow(){const m={};if(!S.shift)return m;const done=covered();for(const t of S.txs){if(t.shiftId!==S.shift.id||t.void||done.has(t.id))continue;for(const i of t.items)m[i.pid]=(m[i.pid]||0)+i.qty}return m}
 function availMap(loc){const m=stockMap(loc);if(S.shift&&SRC(S.shift.store)===loc){const s=soldNow();for(const k in s)m[k]=(m[k]||0)-s[k]}return m}
 function shiftStats(sh){sh=sh||S.shift;if(!sh)return null;const tx=S.txs.filter(t=>t.shiftId===sh.id&&!t.void);const by={};let total=0;tx.forEach(t=>{total+=t.total;if(t.pays)t.pays.forEach(x=>by[x.method]=(by[x.method]||0)+x.amount);else by[t.method]=(by[t.method]||0)+t.total});const cash=by.Tunai||0;const cm=sh.cashMoves||[];const cin=sum(cm.filter(x=>x.type==='in'),x=>x.amount),cout=sum(cm.filter(x=>x.type==='out'),x=>x.amount);return{tx:tx,total:total,by:by,cash:cash,cin:cin,cout:cout,n:tx.length,expected:sh.cashStart+cash+cin-cout}}
@@ -316,7 +324,7 @@ const s0=v=>v==null?'':String(v);
 const SER={
  'POS Produk':p=>({id:p.id,nama:p.name,kategori:p.category||'',aktif:p.active===false?'0':'1'}),
  'POS Karyawan':k=>({id:k.id,nama:k.name,aktif:k.active===false?'0':'1'}),
- 'POS Stok':m=>({id:m.id,tanggal:ymd(m.t),jam:hm(m.t),produk:pname(m.pid),dari:m.from,ke:m.to,qty:m.qty,oleh:m.by||'',catatan:m.note||'',status:m.status||'ok',jenis:m.kind||'',ref:m.ref||'',pid:m.pid,t:String(m.t)}),
+ 'POS Stok':m=>({id:m.id,tanggal:ymd(m.t),jam:hm(m.t),produk:pname(m.pid),dari:m.from,ke:m.to,qty:m.qty,oleh:m.by||'',catatan:m.note||'',status:m.status||'ok',jenis:m.kind||'',ref:m.ref||'',pid:m.pid,t:String(m.t),nilai:m.val==null?'':m.val}),
  'POS Kasir':t=>({id:t.id,tanggal:ymd(t.t),jam:hm(t.t),toko:t.store,shiftId:t.shiftId,metode:t.method,total:t.total,dibayar:t.paid,kembalian:t.change||0,rincian:t.items.map(i=>i.name+' x'+i.qty+' @'+dot(i.price)).join('; '),status:t.void?'VOID':t.edited?'DIUBAH':'OK',items:JSON.stringify(t.items),pays:JSON.stringify(t.pays||[]),t:String(t.t)}),
  'POS Shift':h=>({id:h.id,tanggal:ymd(h.openedAt),toko:h.store,buka:hm(h.openedAt),tutup:hm(h.closedAt),karyawan:(h.staff||[]).join(', '),kasAwal:h.cashStart||0,penjualanTunai:h.cashSales||0,kasMasuk:h.cashIn||0,kasKeluar:h.cashOut||0,kasSeharusnya:h.expected||0,tunai:(h.by||{}).Tunai||0,transfer:(h.by||{}).Transfer||0,edc:(h.by||{}).EDC||0,totalPenjualan:h.total||0,transaksi:h.n||0,mutasiKas:JSON.stringify(h.cashMoves||[]),tBuka:String(h.openedAt),tTutup:String(h.closedAt)}),
  'POS Absen':a=>({id:a.id,tanggal:a.date||ymd(a.t),jam:hm(a.t),toko:a.store,nama:a.name,shiftId:a.shiftId,staffId:a.staffId,t:String(a.t)})
@@ -324,13 +332,13 @@ const SER={
 const DES={
  'POS Produk':r=>({id:s0(r.id),name:s0(r.nama),category:s0(r.kategori),active:s0(r.aktif)!=='0'}),
  'POS Karyawan':r=>({id:s0(r.id),name:s0(r.nama),active:s0(r.aktif)!=='0'}),
- 'POS Stok':r=>{const o={id:s0(r.id),t:+r.t||0,pid:s0(r.pid),from:s0(r.dari),to:s0(r.ke),qty:+r.qty||0,by:s0(r.oleh),note:s0(r.catatan),status:s0(r.status)||'ok',kind:s0(r.jenis)||'manual'};if(r.ref)o.ref=s0(r.ref);return o},
+ 'POS Stok':r=>{const o={id:s0(r.id),t:+r.t||0,pid:s0(r.pid),from:s0(r.dari),to:s0(r.ke),qty:+r.qty||0,by:s0(r.oleh),note:s0(r.catatan),status:s0(r.status)||'ok',kind:s0(r.jenis)||'manual'};if(r.ref)o.ref=s0(r.ref);if(r.nilai!==''&&r.nilai!=null)o.val=+r.nilai||0;return o},
  'POS Kasir':r=>{const o={id:s0(r.id),shiftId:s0(r.shiftId),store:s0(r.toko),t:+r.t||0,method:s0(r.metode),pays:J(r.pays,[]),total:+r.total||0,paid:+r.dibayar||0,change:+r.kembalian||0,items:J(r.items,[])};if(r.status==='VOID')o.void=true;if(r.status==='DIUBAH')o.edited=true;return o},
  'POS Shift':r=>{const by={};[['Tunai',r.tunai],['Transfer',r.transfer],['EDC',r.edc]].forEach(x=>{if(+x[1])by[x[0]]=+x[1]});const st=s0(r.karyawan);return{id:s0(r.id),store:s0(r.toko),openedAt:+r.tBuka||0,closedAt:+r.tTutup||0,staff:st?st.split(', '):[],cashStart:+r.kasAwal||0,cashSales:+r.penjualanTunai||0,expected:+r.kasSeharusnya||0,cashIn:+r.kasMasuk||0,cashOut:+r.kasKeluar||0,cashMoves:J(r.mutasiKas,[]),cashEnd:null,diff:null,total:+r.totalPenjualan||0,by:by,n:+r.transaksi||0}},
  'POS Absen':r=>({id:s0(r.id),shiftId:s0(r.shiftId),t:+r.t||0,date:s0(r.tanggal),store:s0(r.toko),staffId:s0(r.staffId),name:s0(r.nama)})
 };
 const syncOn=()=>!!(S.cfg.url&&S.cfg.spin);
-let syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false,resetting=false,gen=0; // gen changes on 'Mulai baru': answers to older requests are thrown away
+let fillDone=false,syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false,resetting=false,gen=0; // gen changes on 'Mulai baru': answers to older requests are thrown away
 // owner 2026-11-18 ("penjualan sore tidak masuk ke dashboard"): a request that never answers (Wi-Fi dropped mid-way) left
 // flushing/pulling stuck, so nothing was sent until the app was reopened. Every request now ends after 90 s and is retried.
 let NET_MS=90000;
@@ -372,6 +380,7 @@ async function pull(){
   if(ch){S.shifts.sort((a,b)=>a.closedAt-b.closedAt);S.txs.sort((a,b)=>a.t-b.t)}
   S.since=Math.max(0,(+j.now||0)-5000);S.lastSync=Date.now();syncErr='';save();
   if(ch)softRender();
+  if(!fillDone&&(+j.v||0)>=18){fillDone=true;fillShiftValues()} // once per app start, only when the Sheet keeps 'nilai' (Code.gs v18)
  }catch(e){syncErr=(e&&e.message)||'Tidak ada koneksi'}
  finally{pulling=false;syncUi()}
 }
@@ -1200,7 +1209,7 @@ buildNav();render();fsUi();
 if(typeof navigator!=='undefined'&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 kick(800);
 prRetry(300); // printer: connect to the saved one as soon as the POS opens
-window.__wismir={get S(){return S}};
+window.__wismir={get S(){return S},fill:()=>fillShiftValues()};
 })();
 </script>
 </body>

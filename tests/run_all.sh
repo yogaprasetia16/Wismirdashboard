@@ -19,6 +19,7 @@ start; run "store types, online stock source, products per store" node stores.js
 start; run "POS: sales sent right away in the background" node pos_live.js
 start; run "Code.gs v16: tablets pull only changed rows" node pull_since.js
 start; run "POS: a request that never answers does not stop sending" node pos_hang.js
+start; run "Report: POS months ranked by rupiah per product, a colour per category" node product_value.js
 start; run "Overview: sales of the last 7 days + today" node overview_sales.js
 start; run "stock table: tap a number to count; POS history filter" node stock_cell.js
 start; run "Operational › Expense › Annually" node annual.js
