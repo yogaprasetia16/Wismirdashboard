@@ -34,6 +34,10 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  await D.evaluate(()=>pullSheets());
  const pr=await D.evaluate(()=>{const m=today().slice(0,7);const g={};finRows().filter(r=>r.m===m).forEach(r=>{const k=r.name||'?';g[k]=(g[k]||0)+r.v});return g});
  ok(pr['Gamis Alpha']===550000&&pr['Kulot Beta']===100000&&pr['Blus Gama']===90000&&!pr['?'],'Report: running month revenue per product, no "?" row: '+JSON.stringify(pr));
+ const pr2=await D.evaluate(()=>{S.pos.stok.forEach(x=>x.nilai='');const m=today().slice(0,7);const g={};finRows().filter(r=>r.m===m).forEach(r=>{const k=r.name||'?';g[k]=(g[k]||0)+r.v});return g});
+ ok(pr2['Gamis Alpha']===550000&&!pr2['?'],'Code.gs v19: rupiah per product comes from the receipts on the Sheet even when the stock rows have no value: '+JSON.stringify(pr2));
+ const pcs=await D.evaluate(()=>{const m=today().slice(0,7);return finRows().filter(r=>r.m===m&&r.name==='Gamis Alpha').reduce((a,r)=>a+r.q,0)});
+ ok(pcs===3,'pieces are not counted twice (stock rows only): '+pcs);
  await D.evaluate(()=>{tab='tx';fv='report';FM='';render()});await D.waitForTimeout(1300);
  const leg=await D.$$eval('#rCat .rleg>div',e=>e.map(x=>[x.querySelector('b').textContent,getComputedStyle(x.querySelector('i')).backgroundColor]));
  ok(leg.length===3&&leg[0][0]==='Gamis'&&new Set(leg.map(x=>x[1])).size===3,'Category: each category its own colour: '+JSON.stringify(leg));
