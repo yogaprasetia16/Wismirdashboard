@@ -105,7 +105,7 @@ function setup() {
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
 // v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
-const CODE_VERSION = 18;
+const CODE_VERSION = 19;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -177,6 +177,31 @@ function posDaily() {
   });
   return Object.keys(agg).map(function (k) { return agg[k]; });
 }
+// v19 (owner 2026-11-23: Report bulan berjalan "?" / Uncategorized): rupiah dan pcs per produk per bulan per toko, dihitung
+// dari isi struk (POS Kasir, tanpa yang dibatalkan). Hanya kolom tanggal..toko dan status..items yang dibaca.
+function posProd() {
+  const sh = sheetFor('POS Kasir'), cols = colsFor('POS Kasir'), last = sh.getLastRow();
+  if (last < 2) return [];
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const ti = cols.indexOf('tanggal'), ko = cols.indexOf('toko'), si = cols.indexOf('status'), ii = cols.indexOf('items');
+  const a = sh.getRange(2, ti + 1, last - 1, ko - ti + 1).getValues(), b = sh.getRange(2, si + 1, last - 1, ii - si + 1).getValues();
+  const agg = {};
+  a.forEach(function (r, i) {
+    let t = r[0];
+    t = t instanceof Date ? Utilities.formatDate(t, tz, 'yyyy-MM-dd') : String(t || '');
+    if (!/^\d{4}-\d{2}/.test(t) || String(b[i][0]) === 'VOID') return;
+    let items;
+    try { items = JSON.parse(String(b[i][ii - si] || '[]')); } catch (e) { return; }
+    const m = t.slice(0, 7), toko = String(r[ko - ti] || '');
+    (items || []).forEach(function (it) {
+      const pid = String((it && it.pid) || ''); if (!pid) return;
+      const k = m + '|' + toko + '|' + pid, q = Number(it.qty) || 0;
+      const g = agg[k] || (agg[k] = { id: k, bulan: m, toko: toko, pid: pid, qty: 0, total: 0 });
+      g.qty += q; g.total += q * (Number(it.price) || 0);
+    });
+  });
+  return Object.keys(agg).map(function (k) { return agg[k]; });
+}
 function readSheet(name, since) {
   const sh = sheetFor(name), cols = colsFor(name);
   const last = sh.getLastRow();
@@ -236,7 +261,8 @@ function doGet(e) {
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
     Object.keys(HEADERS).forEach(function (n) { data[n] = readSheet(n); });
     ['POS Produk', 'POS Karyawan', 'POS Stok', 'POS Shift', 'POS Absen'].forEach(function (n) { data[n] = readSheet(n); });
-    try { data['POS Harian'] = posDaily(); } catch (e) { data['POS Harian'] = []; } // tidak boleh menggagalkan muat dashboard // v12: penjualan per hari per shift (struk, 40 hari terakhir) untuk Overview
+    try { data['POS Harian'] = posDaily(); } catch (e) { data['POS Harian'] = []; }
+    try { data['POS Produk Bulan'] = posProd(); } catch (e) { data['POS Produk Bulan'] = []; } // v19: rupiah per produk per bulan per toko // tidak boleh menggagalkan muat dashboard // v12: penjualan per hari per shift (struk, 40 hari terakhir) untuk Overview
     return out({ ok: true, v: CODE_VERSION, ver: dashVer(), data: data });
   } catch (err) {
     return out({ ok: false, error: String(err) });

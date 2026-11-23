@@ -507,7 +507,7 @@ Tablet kasir menarik data setiap menit. Dulu setiap tarikan membaca **seluruh** 
 
 Penjualan dari shift yang **belum ditutup** sekarang langsung ikut terhitung di semua halaman dashboard (Overview, Finance › Report, Income, dan Financial), tidak perlu menunggu shift ditutup. Dashboard yang sedang terbuka mengambil data baru setiap **2 menit**, dan setiap kali dibuka kembali. Kalau ingin langsung, tekan tombol **Sync** di kanan atas. Butuh Code.gs versi 12 ke atas (sudah terpasang kalau Bapak sudah memasang versi 16).
 
-## 32. Ranking produk dan kategori untuk bulan berjalan (Code.gs versi 18)
+## 32. Ranking produk dan kategori untuk bulan berjalan (Code.gs versi 19)
 
-Untuk penjualan dari kasir, dashboard sekarang tahu rupiah per produk, jadi **Product ranked** dan **Category** di Finance › Report tidak lagi menampilkan "?" / Uncategorized untuk bulan berjalan. Setiap kategori juga punya warna sendiri di lingkaran Category. Pasang **Code.gs versi 18** (Copy raw file → tempel di Apps Script → Ctrl+S → Deploy → Manage deployments → Edit → New version → Deploy), lalu buka ulang aplikasi POS di tablet kasir sekali: penjualan bulan ini yang sudah tercatat akan dilengkapi rupiah per produknya secara otomatis.
+Untuk penjualan dari kasir, dashboard sekarang tahu rupiah per produk, jadi **Product ranked** dan **Category** di Finance › Report tidak lagi menampilkan "?" / Uncategorized untuk bulan berjalan. Setiap kategori juga punya warna sendiri di lingkaran Category. Pasang **Code.gs versi 19** (Copy raw file → tempel di Apps Script → Ctrl+S → Deploy → Manage deployments → Edit → New version → Deploy). Rupiah per produk dihitung langsung dari struk yang sudah ada di Google Sheet, termasuk penjualan sejak awal memakai kasir.
 

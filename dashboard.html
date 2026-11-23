@@ -270,7 +270,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring',ann:'Annual'};
-const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian'};
+const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian',prodm:'POS Produk Bulan'};
 let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],ann:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
@@ -306,7 +306,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=18;
+const NEED_CODE=19;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -578,7 +578,7 @@ function editTx(id){const t=S.tx.find(x=>x.id===id);form(t.jenis==='Expense'?'Ed
 const HMON=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'short'});
 function salesRows(){
   const out=S.hist.map(h=>({m:String(h.bulan),st:String(h.toko||'?'),sku:String(h.sku||''),pid:'',q:+h.qty||0,v:+h.total||0,src:'imp'}));
-  const have=new Set(out.map(r=>r.m+'|'+r.st)),tot={},pv={},add=(o,k,v)=>o[k]=(o[k]||0)+v;
+  const have=new Set(out.map(r=>r.m+'|'+r.st)),tot={},pv={},add=(o,k,v)=>o[k]=(o[k]||0)+v,PM=Array.isArray(S.pos.prodm)&&!S.cfg.codeOld?S.pos.prodm:null;
   const shopOf={};P('harian').forEach(r=>{if(r.toko)shopOf[String(r.shiftId)]=String(r.toko)});P('shift').forEach(x=>{if(x.toko)shopOf[String(x.id)]=String(x.toko)});
   P('shift').forEach(x=>{const m=nd(x.tanggal).slice(0,7),st=String(x.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;add(tot,m+'|'+st,+x.totalPenjualan||0)});
   // owner 2026-11-18 ("penjualan di POS sudah bertambah, di dashboard belum"): receipts of shifts not closed yet count as revenue
@@ -589,7 +589,9 @@ function salesRows(){
   // store of its shift (ref), not the stock location (an online store sells from another store's stock). Revenue no product row
   // explains (rows from before 'nilai' existed) stays as one row without a product.
   P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=shopOf[String(x.ref||'')]||String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;
-    const sg=x.ke==='Sale'?1:-1,q=sg*(+x.qty||0),v=x.nilai!==''&&x.nilai!=null?sg*(+x.nilai||0):0;add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(x.pid||''),q,v,src:'pos'})});
+    const sg=x.ke==='Sale'?1:-1,q=sg*(+x.qty||0),v=PM||!(x.nilai!==''&&x.nilai!=null)?0:sg*(+x.nilai||0);add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(x.pid||''),q,v,src:'pos'})});
+  // Code.gs v19: rupiah per product straight from the receipts on the Sheet (all POS history, every tablet), preferred over 'nilai'
+  if(PM)PM.forEach(r=>{const m=String(r.bulan),st=String(r.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;const v=+r.total||0;add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(r.pid||''),q:0,v,src:'pos'})});
   Object.keys(tot).forEach(k=>{const r=tot[k]-(pv[k]||0),[m,st]=[k.slice(0,7),k.slice(8)];if(r>=1)out.push({m,st,sku:'',pid:'',q:0,v:r,src:'pos'})});
   return out;
 }
