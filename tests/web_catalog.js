@@ -71,8 +71,35 @@ async function api(route){
  // 3. edit: remove b.jpg (only this product), remove c.jpg (shared with Kulot), add a big photo, move it first, change fields
  await D.click('[data-wr="2"]');
  const labels=await D.$$eval('#sheet .f label',l=>l.map(x=>x.textContent));
- ok(labels.includes('Product name')&&labels.includes('Photos (first = main photo)')&&labels.includes('Mark as Sale'),'edit form has the catalog fields: '+labels.join(' | '));
+ ok(labels.includes('Product name')&&labels.some(l=>l.startsWith('Photos (first = main photo)')&&/drag/.test(l))&&labels.includes('Mark as Sale'),'edit form has the catalog fields: '+labels.join(' | '));
  ok((await D.$$('#wpg .wph')).length===3,'3 photos shown');
+ // 3b. reorder by dragging (owner 2026-11-23): mouse drags at once; touch needs a short hold so scrolling still works
+ {const order=()=>D.evaluate(()=>WP.map(p=>p.n||p.t).join('>'));const ctr=async i=>D.$$eval('#wpg .wph',(e,i)=>{const r=e[i].getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]},i);
+  const o0=await order();const [a,b,c]=o0.split('>');
+  let [x0,y0]=await ctr(0),[x2,y2]=await ctr(2);
+  await D.mouse.move(x0,y0);await D.mouse.down();await D.mouse.move(x0+10,y0+6,{steps:3});await D.mouse.move(x2,y2,{steps:8});
+  ok(await D.$$eval('.wghost',e=>e.length)===1&&await D.$$eval('#wpg .wph.wover',e=>e.length)===1,'mouse drag shows a lifted copy and marks the target');
+  await D.mouse.up();
+  ok(await order()===[b,c,a].join('>')&&await D.$$eval('.wghost',e=>e.length)===0,'dropping photo 1 on photo 3 moves it there ('+(await order())+')');
+  ok(await D.$eval('#wpg .wph.cov',e=>e===document.querySelector('#wpg .wph'))&&await D.$$eval('#wpg .wph',e=>e.length)===3,'first tile is the main photo after the move');
+  [x0,y0]=await ctr(0);[x2,y2]=await ctr(2);
+  await D.mouse.move(x2,y2);await D.mouse.down();await D.mouse.move(x2-8,y2-8,{steps:3});await D.mouse.move(x0,y0,{steps:8});await D.mouse.up();
+  ok(await order()===[a,b,c].join('>'),'dragging back restores the order');
+  await D.mouse.click(x0,y0);ok(await order()===[a,b,c].join('>'),'a plain click moves nothing');
+  const cdp=await ctx.newCDPSession(D);await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
+  const tp=(t,x,y)=>cdp.send('Input.dispatchTouchEvent',{type:t,touchPoints:t==='touchEnd'?[]:[{x,y,id:1}]});
+  [x0,y0]=await ctr(0);[x2,y2]=await ctr(2);
+  await tp('touchStart',x0,y0);await D.waitForTimeout(80);await tp('touchMove',x0+25,y0+25);await tp('touchMove',x2,y2);await tp('touchEnd');await D.waitForTimeout(100);
+  ok(await order()===o0&&await D.$$eval('.wghost',e=>e.length)===0,'quick finger move (scrolling) does NOT drag a photo');
+  await tp('touchStart',x0,y0);await D.waitForTimeout(450);
+  ok(await D.$$eval('.wghost',e=>e.length)===1,'holding a finger for ~0.4 s lifts the photo');
+  for(let k=1;k<=6;k++){await tp('touchMove',x0+(x2-x0)*k/6,y0+(y2-y0)*k/6);await D.waitForTimeout(20)}
+  await tp('touchEnd');await D.waitForTimeout(150);
+  ok(await order()===[b,c,a].join('>'),'touch: hold then drag moves the photo ('+(await order())+')');
+  await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:false});await cdp.detach();
+  // put back the original order for the steps below
+  [x0,y0]=await ctr(0);[x2,y2]=await ctr(2);await D.mouse.move(x2,y2);await D.mouse.down();await D.mouse.move(x2-8,y2-8,{steps:3});await D.mouse.move(x0,y0,{steps:8});await D.mouse.up();
+  ok(await order()===o0,'order back to the original');}
  await D.click('[data-wx="1"]');await D.click('[data-wx="1"]');
  await D.evaluate(()=>{const c=document.createElement('canvas');c.width=2400;c.height=3200;const x=c.getContext('2d');x.fillStyle='#c33';x.fillRect(0,0,2400,3200);window.__j=c.toDataURL('image/jpeg',.9)});
  const buf=Buffer.from((await D.evaluate(()=>window.__j)).split(',')[1],'base64');

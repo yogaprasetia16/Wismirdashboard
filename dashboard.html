@@ -158,7 +158,7 @@ nav.ready .ind{transition:transform .38s cubic-bezier(.3,1.25,.5,1),width .38s,h
 .dvt{margin-top:10px}.dvt button svg{width:22px;height:22px;display:block;margin:2px auto}.dvt button{position:relative;white-space:nowrap}
 .dvt.ico{display:inline-flex;width:auto}.dvt.ico button{flex:none;width:33px;height:33px;padding:0!important}.dvt.ico button svg{width:16px;height:16px;margin:0}/* phone: same size and spacing as the Finance icon tabs (owner 2026-11-16) */.seg.ico.dvt{gap:2px;padding:3px;margin:0 0 10px!important}.dvt.ico .bd2{top:0;right:0;min-width:13px;height:13px;padding:0 3px;font-size:8.5px;line-height:1;box-shadow:0 0 0 1.5px var(--seg)}
 .bd2{position:absolute;top:-8px;right:-1px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:var(--amber);color:var(--onacc);font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.wpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}.wph{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--thbg);border:2px solid transparent}.wph.cov{border-color:var(--acc)}.wph img{width:100%;height:100%;object-fit:cover;display:block}.wph .wx{position:absolute;top:4px;right:4px;width:26px;height:26px;border:0;border-radius:50%;background:var(--red);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.6))}.wph .wct button{width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#222;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct button:disabled{opacity:.35}.wnew{position:absolute;top:4px;left:4px;background:var(--acc);color:var(--onacc);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}.wadd{aspect-ratio:3/4;display:grid;place-items:center;text-align:center;border:2px dashed var(--chkb);border-radius:12px;color:var(--acct);font-weight:600;font-size:13px;cursor:pointer;padding:6px}.f textarea{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font:inherit;color:var(--ink);resize:vertical}.f textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
+.wpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}.wph{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--thbg);border:2px solid transparent}.wph{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.wph img{pointer-events:none;-webkit-user-drag:none}.wph.cov{border-color:var(--acc)}.wph.wdrag{opacity:.3}.wph.wover{border-color:var(--acc);border-style:dashed;transform:scale(.94)}.wghost{position:fixed;z-index:99999;pointer-events:none;margin:0;opacity:.96;transform:scale(1.07);box-shadow:0 14px 30px rgba(0,0,0,.35);border-radius:12px}body.wdragging{-webkit-user-select:none;user-select:none;cursor:grabbing}.wph img{width:100%;height:100%;object-fit:cover;display:block}.wph .wx{position:absolute;top:4px;right:4px;width:26px;height:26px;border:0;border-radius:50%;background:var(--red);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.6))}.wph .wct button{width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#222;font-size:16px;line-height:1;cursor:pointer;padding:0}.wph .wct button:disabled{opacity:.35}.wnew{position:absolute;top:4px;left:4px;background:var(--acc);color:var(--onacc);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}.wadd{aspect-ratio:3/4;display:grid;place-items:center;text-align:center;border:2px dashed var(--chkb);border-radius:12px;color:var(--acct);font-weight:600;font-size:13px;cursor:pointer;padding:6px}.f textarea{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;font:inherit;color:var(--ink);resize:vertical}.f textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
 .wact{flex:none;gap:8px}@media (max-width:430px){.wact{flex-direction:column;gap:6px}.wact .impb{width:30px;height:30px}.wact .impb svg{width:15px;height:15px}}
 .f{min-width:0}
 .f input,.f select{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
@@ -1226,7 +1226,7 @@ function webEdit(row){
   $('#sheet').oninput=null;
   $('#sheet').innerHTML=`<h3>${it?'Edit product':'New product'}</h3>`+H.map(h=>{
     const v=it?(it[h]||''):'',L=WLABEL[h]||h.charAt(0).toUpperCase()+h.slice(1);
-    if(h==='foto')return `<div class="f"><label>Photos (first = main photo)</label><div class="wpg" id="wpg"></div></div>`;
+    if(h==='foto')return `<div class="f"><label>Photos (first = main photo) · hold a photo and drag to reorder</label><div class="wpg" id="wpg"></div></div>`;
     if(WYN.includes(h))return `<div class="f"><label>${L}</label><select data-w="${h}"><option${wYes(v)?'':' selected'}>No</option><option${wYes(v)?' selected':''}>Yes</option></select></div>`;
     if(h==='kategori')return `<div class="f"><label>${L}</label>${cmbHtml({k:'kategori',val:v,opts:cats}).replace('data-k="kategori"','data-w="kategori"')}</div>`;
     if(WAREA.includes(h))return `<div class="f"><label>${L}</label><textarea data-w="${h}" rows="${h==='detail'?6:3}">${esc(v)}</textarea></div>`;
@@ -1243,6 +1243,34 @@ document.addEventListener('click',e=>{
   const x=e.target.closest('[data-wx]'),m=e.target.closest('[data-wm]');if(!x&&!m)return;
   if(x){WP.splice(+x.dataset.wx,1);webPhotos()}
   if(m){const [i,d]=m.dataset.wm.split(':').map(Number),j=i+d;if(WP[j]){[WP[i],WP[j]]=[WP[j],WP[i]];webPhotos()}}});
+
+// Reorder photos by dragging: hold ~0.3 s on touch (so scrolling still works), drag at once with a mouse. The ‹ › buttons stay as a fallback.
+(function(){
+  let D=null;const HOLD=300,MOVE=8;
+  const tiles=()=>[...document.querySelectorAll('#wpg .wph')];
+  const scroller=()=>{let n=document.getElementById('wpg');while(n&&n!==document.body){const o=getComputedStyle(n).overflowY;if((o==='auto'||o==='scroll')&&n.scrollHeight>n.clientHeight+2)return n;n=n.parentElement}return document.scrollingElement};
+  function overIndex(x,y){const t=tiles();let best=-1,bd=1e9;t.forEach((el,i)=>{const r=el.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom){best=i;bd=-1}else if(bd>=0){const d=Math.hypot(x-(r.left+r.width/2),y-(r.top+r.height/2));if(d<bd){bd=d;best=i}}});return best}
+  function mark(){const t=tiles();D.to=overIndex(D.x,D.y);t.forEach((el,i)=>el.classList.toggle('wover',i===D.to&&i!==D.from))}
+  function ghostPos(){D.g.style.left=(D.x-D.ox)+'px';D.g.style.top=(D.y-D.oy)+'px'}
+  function loop(){if(!D||!D.active)return;const sc=scroller();if(sc){const r=sc===document.scrollingElement?{top:0,bottom:innerHeight}:sc.getBoundingClientRect();const e=70;let dy=0;if(D.y<r.top+e)dy=-Math.ceil((r.top+e-D.y)/5);else if(D.y>r.bottom-e)dy=Math.ceil((D.y-(r.bottom-e))/5);if(dy){sc.scrollBy(0,Math.max(-18,Math.min(18,dy)));mark()}}D.raf=requestAnimationFrame(loop)}
+  function start(){const r=D.el.getBoundingClientRect();D.active=true;D.from=tiles().indexOf(D.el);D.ox=D.sx-r.left;D.oy=D.sy-r.top;
+    const g=D.el.cloneNode(true);g.classList.remove('wdrag','wover');g.classList.add('wghost');g.style.width=r.width+'px';g.style.height=r.height+'px';document.body.appendChild(g);D.g=g;
+    D.el.classList.add('wdrag');document.body.classList.add('wdragging');try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}ghostPos();mark();D.raf=requestAnimationFrame(loop)}
+  function end(drop){if(!D)return;clearTimeout(D.timer);cancelAnimationFrame(D.raf);
+    if(D.active){const from=D.from,to=D.to;if(D.g)D.g.remove();document.body.classList.remove('wdragging');tiles().forEach(el=>el.classList.remove('wdrag','wover'));
+      if(drop&&to>=0&&to!==from&&WP[from]){const it=WP.splice(from,1)[0];WP.splice(to,0,it)}D=null;webPhotos();return}
+    D=null}
+  document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('#wpg .wph');if(!el||e.target.closest('button')||e.button>0)return;end(false);
+    D={el,id:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,touch:e.pointerType!=='mouse',active:false};
+    if(D.touch)D.timer=setTimeout(()=>{if(D&&!D.active)start()},HOLD)});
+  document.addEventListener('pointermove',e=>{if(!D||e.pointerId!==D.id)return;D.x=e.clientX;D.y=e.clientY;
+    if(!D.active){const d=Math.hypot(D.x-D.sx,D.y-D.sy);if(D.touch){if(d>MOVE){clearTimeout(D.timer);D=null}}else if(d>4)start();return}
+    if(e.cancelable)e.preventDefault();ghostPos();mark()});
+  document.addEventListener('pointerup',e=>{if(D&&e.pointerId===D.id)end(true)});
+  document.addEventListener('pointercancel',e=>{if(D&&e.pointerId===D.id)end(false)});
+  document.addEventListener('touchmove',e=>{if(D&&D.active&&e.cancelable)e.preventDefault()},{passive:false});
+  document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#wpg .wph'))e.preventDefault()});
+})();
 async function webShrink(file,max=WEB_MAXSIDE,qual=WEB_Q){
   let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}
   catch(e){bmp=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('This photo cannot be read: '+file.name));i.src=URL.createObjectURL(file)})}
