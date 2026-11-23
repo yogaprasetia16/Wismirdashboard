@@ -1194,7 +1194,7 @@ async function webLoad(){
   if(WEB.busy)return;WEB.busy=true;WEB.err='';
   if(!WEB.loaded){try{const c=JSON.parse(localStorage.getItem(WEB_KEY)||'null');if(c&&c.items&&c.items.length){WEB.items=c.items;WEB.headers=c.headers||[];WEB.loaded=true;WEB.stale=true}}catch(e){}}
   if(tab==='mkt'&&mk==='web'&&wv==='cat')render();
-  try{const j=await webCall('list');WEB.items=j.items;WEB.headers=j.headers;WEB.loaded=true;WEB.stale=false;WEB.at=Date.now();try{localStorage.setItem(WEB_KEY,JSON.stringify({items:j.items,headers:j.headers}))}catch(e){}}
+  try{const j=await webCall('list');WEB.items=j.items;WEB_HIDING.forEach((h,row)=>{const i=WEB.items.find(x=>x._row===row);if(i)i.sembunyi=h?'ya':''});WEB.headers=j.headers;WEB.loaded=true;WEB.stale=false;WEB.at=Date.now();try{localStorage.setItem(WEB_KEY,JSON.stringify({items:j.items,headers:j.headers}))}catch(e){}}
   catch(e){WEB.err=e.message}
   WEB.busy=false;if(tab==='mkt'&&mk==='web'&&wv==='cat')render()}
 function webSeg(){
@@ -1213,7 +1213,19 @@ function vWeb(){
   if(!WEB.loaded)return note+`<div class="card">${empty(WEB.busy?'Loading the catalog… the first time can take up to 20 seconds.':'The catalog is not loaded yet. Press the reload button above.')}</div>`;
   const t=WEB.q.trim().toLowerCase(),L=WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t));
   return note+`<div class="f"><input id="webq" type="search" placeholder="Search product" aria-label="Search product" value="${esc(WEB.q)}" oninput="WEB.q=this.value;webList()"></div><div id="weblist">${webListHtml(L)}</div>
-  <div class="lbl" style="padding:0 6px">${WEB.items.length} products on wismir.id. Changes show on the website in about 1–5 minutes.</div>`}
+  <div class="lbl" style="padding:0 6px" id="webcount">${webCountText()}</div>`}
+function webCountText(){const h=WEB.items.filter(i=>wYes(i.sembunyi)).length;return `${WEB.items.length-h} products on wismir.id${h?' · '+h+' hidden':''}. Changes show on the website in about 1–5 minutes.`}
+// Eye button (owner 2026-11-23): hide a product from wismir.id without deleting it. Column `sembunyi` ('ya') in the catalog Sheet, written by the catalog script's `hide` action.
+const WEB_HIDING=new Map(); // rows whose hide/show request is still running: a catalog reload that arrives meanwhile must not undo the change on screen
+async function webHide(row){
+  const it=WEB.items.find(x=>x._row===row);if(!it||WEB_HIDING.has(row))return;
+  const hidden=!wYes(it.sembunyi),was=it.sembunyi;WEB_HIDING.set(row,hidden);it.sembunyi=hidden?'ya':'';
+  if(!WEB.headers.includes('sembunyi'))WEB.headers=[...WEB.headers,'sembunyi'];
+  WEB.err='';webList();const c=$('#webcount');if(c)c.textContent=webCountText();
+  try{await webCall('hide',{row,origNama:it.nama,hidden});WEB.msg=hidden?'Hidden. It disappears from wismir.id in about 1–5 minutes.':'Shown again. It appears on wismir.id in about 1–5 minutes.';
+    try{localStorage.setItem(WEB_KEY,JSON.stringify({items:WEB.items,headers:WEB.headers}))}catch(e){}}
+  catch(e){const cur=WEB.items.find(x=>x._row===row);if(cur)cur.sembunyi=was;WEB.err=/Aksi tidak dikenal/i.test(e.message)?'Update the catalog Apps Script first (Copy raw file from GitHub, paste, Deploy › Manage deployments › Edit › New version) to hide products.':e.message}
+  WEB_HIDING.delete(row);if(tab==='mkt'&&mk==='web'&&wv==='cat')render()}
 function webList(){const t=WEB.q.trim().toLowerCase();$('#weblist').innerHTML=webListHtml(WEB.items.filter(i=>!t||((i.nama||'')+' '+(i.kategori||'')+' '+(i.bahan||'')).toLowerCase().includes(t)))}
 // Product page link (owner 2026-11-19): https://wismir.id/p/<slug>/ . Slug rule = slugOf()/slugs() in the website's index.html and
 // scripts/update_share.py (repo Wismirmuslim); slugs are numbered over ALL products in Sheet order (duplicates get -2, -3), not over the filtered list.
@@ -1221,14 +1233,14 @@ const webSlugOf=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 function webSlugs(L){const seen={};return L.map(p=>{const s=webSlugOf(p.nama),n=seen[s]=(seen[s]||0)+1;return n>1?s+'-'+n:s})}
 const webLink=slug=>WEBSITE+'p/'+slug+'/';
 function webRowLinks(){const m={},sl=webSlugs(WEB.items);WEB.items.forEach((i,k)=>m[i._row]=webLink(sl[k]));return m}
-const WIC={copy:'<rect x="8.5" y="8.5" width="11" height="11" rx="2.2"/><path d="M5.5 15.5V6.7A2.2 2.2 0 0 1 7.7 4.5h8.8"/>',ok:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',open:'<path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v3.8a1.7 1.7 0 0 1-1.7 1.7H6.2a1.7 1.7 0 0 1-1.7-1.7V8.7A1.7 1.7 0 0 1 6.2 7H10"/>'};
+const WIC={eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',copy:'<rect x="8.5" y="8.5" width="11" height="11" rx="2.2"/><path d="M5.5 15.5V6.7A2.2 2.2 0 0 1 7.7 4.5h8.8"/>',ok:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',open:'<path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v3.8a1.7 1.7 0 0 1-1.7 1.7H6.2a1.7 1.7 0 0 1-1.7-1.7V8.7A1.7 1.7 0 0 1 6.2 7H10"/>'};
 async function webCopy(btn,url){
   let ok=true;try{await navigator.clipboard.writeText(url)}catch(e){ok=false;try{const a=document.createElement('textarea');a.value=url;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();ok=document.execCommand('copy');a.remove()}catch(x){ok=false}}
   btn.querySelector('svg').innerHTML=WIC[ok?'ok':'copy'];btn.title=ok?'Copied':'Could not copy: '+url;btn.setAttribute('aria-label',btn.title);
   setTimeout(()=>{if(btn.isConnected){btn.querySelector('svg').innerHTML=WIC.copy;btn.title='Copy product link';btn.setAttribute('aria-label','Copy product link')}},1600)}
 function webListHtml(L){
   const links=webRowLinks();
-  return `<div class="card">${L.length?L.map(i=>{const p=wTok(i.foto)[0],u=links[i._row]||'';return `<div class="row" data-wr="${i._row}" onclick="webEdit(${i._row})"><span class="th" style="overflow:hidden">${p?`<img src="${esc(wThumb(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:''}</span><div class="grow"><div class="t">${esc(i.nama)}</div><div class="lbl">${esc(i.kategori||'')}${i.ukuran?' · '+esc(i.ukuran):''} · ${wTok(i.foto).length} photos</div>${wYes(i.terbaru)||wYes(i.sale)?`<div style="margin-top:4px">${wYes(i.terbaru)?'<span class="tag2">NEW</span> ':''}${wYes(i.sale)?'<span class="tag2 neg">SALE</span>':''}</div>`:''}</div><div class="bha wact"><button type="button" class="impb" data-wcopy="${i._row}" title="Copy product link" aria-label="Copy product link" onclick="event.stopPropagation();webCopy(this,'${esc(u)}')"><svg viewBox="0 0 24 24">${WIC.copy}</svg></button><a class="impb" data-wopen="${i._row}" href="${esc(u)}" target="_blank" rel="noopener" title="Open product page" aria-label="Open product page" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24">${WIC.open}</svg></a></div></div>`}).join(''):empty('No products found.')}</div>`}
+  return `<div class="card">${L.length?L.map(i=>{const p=wTok(i.foto)[0],u=links[i._row]||'',hid=wYes(i.sembunyi);return `<div class="row" data-wr="${i._row}"${hid?' style="opacity:.55"':''} onclick="webEdit(${i._row})"><span class="th" style="overflow:hidden">${p?`<img src="${esc(wThumb(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:''}</span><div class="grow"><div class="t">${esc(i.nama)}</div><div class="lbl">${esc(i.kategori||'')}${i.ukuran?' · '+esc(i.ukuran):''} · ${wTok(i.foto).length} photos</div>${hid||wYes(i.terbaru)||wYes(i.sale)?`<div style="margin-top:4px">${hid?'<span class="tag2">HIDDEN</span> ':''}${wYes(i.terbaru)?'<span class="tag2">NEW</span> ':''}${wYes(i.sale)?'<span class="tag2 neg">SALE</span>':''}</div>`:''}</div><div class="bha wact"><button type="button" class="impb" data-weye="${i._row}" title="${hid?'Hidden from wismir.id. Tap to show':'Shown on wismir.id. Tap to hide'}" aria-label="${hid?'Show on website':'Hide from website'}" aria-pressed="${hid}" onclick="event.stopPropagation();webHide(${i._row})"><svg viewBox="0 0 24 24">${hid?WIC.eyeoff:WIC.eye}</svg></button><button type="button" class="impb" data-wcopy="${i._row}" title="Copy product link" aria-label="Copy product link" onclick="event.stopPropagation();webCopy(this,'${esc(u)}')"><svg viewBox="0 0 24 24">${WIC.copy}</svg></button><a class="impb" data-wopen="${i._row}" href="${esc(u)}" target="_blank" rel="noopener" title="Open product page" aria-label="Open product page" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24">${WIC.open}</svg></a></div></div>`}).join(''):empty('No products found.')}</div>`}
 const WAREA=['deskripsi','detail'],WYN=['terbaru','sale'];
 const WLABEL={nama:'Product name',kategori:'Category',bahan:'Material',ukuran:'Sizes',terbaru:'Show in New collection',sale:'Mark as Sale',deskripsi:'Short description',detail:'Details (one point per line, start with -)',harga:'Price (e.g. Rp 199.000)',harga_normal:'Normal price before discount',warna:'Colour'};
 function webEdit(row){
@@ -1237,7 +1249,7 @@ function webEdit(row){
   const cats=[...new Set(['Gamis','Atasan','Bawahan','Oneset',...WEB.items.map(i=>i.kategori).filter(Boolean)])];
   const H=WEB.headers.length?WEB.headers:['nama','kategori','bahan','ukuran','terbaru','foto','deskripsi','detail','sale'];
   $('#sheet').oninput=null;
-  $('#sheet').innerHTML=`<h3>${it?'Edit product':'New product'}</h3>`+H.map(h=>{
+  $('#sheet').innerHTML=`<h3>${it?'Edit product':'New product'}</h3>`+H.filter(h=>h!=='sembunyi').map(h=>{
     const v=it?(it[h]||''):'',L=WLABEL[h]||h.charAt(0).toUpperCase()+h.slice(1);
     if(h==='foto')return `<div class="f"><label>Photos (first = main photo) · hold a photo and drag to reorder</label><div class="wpg" id="wpg"></div></div>`;
     if(WYN.includes(h))return `<div class="f"><label>${L}</label><select data-w="${h}"><option${wYes(v)?'':' selected'}>No</option><option${wYes(v)?' selected':''}>Yes</option></select></div>`;
