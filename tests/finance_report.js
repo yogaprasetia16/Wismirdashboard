@@ -55,7 +55,7 @@ const PASTE=['date\tStore\tSKU\tSold\tTotal pendapatan',
  await D.click('#yrCard .lnkt');await D.waitForSelector('#sheet .viz');
  const yr=await D.$$eval('#sheet .viz tbody tr',r=>r.map(x=>[...x.children].map(c=>c.textContent.replace(/\s/g,' ')).join('|')));
  // 2026: rev 5.000.000, cost 42×60000 + 14×20000 = 2.800.000; growth vs Jan–Feb 2025 (3.250.000) = +53,8%
- ok(yr[0]==='2026 (YTD)|Rp 5,0 jt|Rp 2,8 jt|Rp 2,2 jt|58|▲ 53,8%','2026 row: revenue, cost, gross profit, items, growth: '+yr[0]);
+ ok(yr[0]==='2026 (YTD)|Rp 5,0 jt|Rp 2,8 jt|Rp 0,8 jt|Rp 1,5 jt|58|▲ 53,8%','2026 row: revenue, COGS, expense, net profit (5,0 − 2,8 − 0,75 = 1,5; owner 2026-11-24), items, growth: '+yr[0]);
  await D.click('#sheet #no');await D.waitForTimeout(1200); // numbers count up when Financial opens
  const kn=await D.$$eval('#revCard .kn',e=>e.map(x=>x.textContent.replace(/\s/g,' ')));
  ok(kn[0]==='Rp 8,3 jt'&&kn[1]==='93 pcs','all-time revenue Rp 8,3 jt and 93 pcs: '+kn.slice(0,2).join(' | '));
