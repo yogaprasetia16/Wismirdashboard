@@ -42,6 +42,8 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
  const leg=await D.$$eval('#rCat .rleg>div',e=>e.map(x=>[x.querySelector('b').textContent,getComputedStyle(x.querySelector('i')).backgroundColor]));
  ok(leg.length===3&&leg[0][0]==='Gamis'&&new Set(leg.map(x=>x[1])).size===3,'Category: each category its own colour: '+JSON.stringify(leg));
  ok((await D.$$('#rCat svg circle[stroke-dasharray]')).length===3,'donut has one segment per category');
+ const foot=await D.evaluate(()=>[document.querySelector('#rRev .fsub').textContent,document.querySelector('#rPcs .bleg').textContent,document.querySelector('#rCost .fsub').textContent].map(x=>x.replace(/\s+/g,' ')));
+ ok(/Net profit/.test(foot[0])&&/No brand 100%/.test(foot[1])&&/COGS/.test(foot[2])&&!/Revenue − expense/.test(foot[2]),'card footers (owner 2026-11-24): Net profit, brand share, COGS: '+JSON.stringify(foot));
  await D.screenshot({path:'product-value.png',clip:{x:0,y:250,width:1366,height:560}});
  // an old shift row without 'nilai' gets its value from the tablet's own receipts once (only when the quantities match)
  await A.evaluate(()=>{const S=window.__wismir.S;const m=S.moves.find(x=>x.pid==='pb'&&String(x.id).startsWith('S-'));m.val=undefined;const n=S.moves.find(x=>x.pid==='pc'&&String(x.id).startsWith('S-'));n.val=undefined;n.qty=5});
