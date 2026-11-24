@@ -520,5 +520,5 @@ Untuk penjualan yang tidak lewat tablet kasir (toko online, kasir sedang mati, a
 4. Lebih dari satu produk? Tekan **+ Add product**. Baris yang salah bisa dihapus dengan tombol ×.
 5. Tekan **Save sale**.
 
-Penjualan ini dihitung seperti penjualan dari kasir: omzet, pcs terjual, ranking produk, dan stok toko ikut berubah (toko online mengambil stok dari "Stock from"-nya). Dashboard harus tersambung ke Google Sheets. Belum bisa diubah/dihapus dari dashboard; kalau salah input, kabari saja.
+Penjualan ini dihitung seperti penjualan dari kasir: omzet, pcs terjual, ranking produk, dan stok toko ikut berubah (toko online mengambil stok dari "Stock from"-nya). Dashboard harus tersambung ke Google Sheets. **Mengubah atau menghapus:** tekan ikon struk bulat di samping **New transaction** → daftar **Manual sales** → ketuk penjualannya → ubah lalu **Save changes**, atau tekan **Delete sale** dua kali. Omzet dan stok ikut menyesuaikan.
 

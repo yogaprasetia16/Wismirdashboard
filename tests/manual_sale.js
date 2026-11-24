@@ -35,6 +35,27 @@ const rows=(o,tab)=>{const t=o[tab];if(!t||!t.v.length)return[];const h=t.v[0];r
    ok(r.g['Gamis Alpha']&&r.g['Gamis Alpha'].q===2&&r.g['Gamis Alpha'].v===400000&&r.g['Kulot Beta'].v===150000&&!r.g['?'],'Report: products with pieces and rupiah: '+JSON.stringify(r.g));
    ok(r.day===550000,"Overview: today's sales includes it ("+r.day+')');
    ok(r.stock===-2,'stock of Gamis Alpha went down by 2 at Toko A ('+r.stock+')');
+   // edit (owner 2026-11-24): list beside New transaction, tap the sale, change Gamis to 1 pc Rp 200.000, remove Kulot
+   ok(await D.isVisible('#mlist'),'Manual sales button beside New transaction');
+   await D.click('#mlist');await D.waitForSelector('#sheet [data-ms]');
+   ok((await D.textContent('#sheet [data-ms]')).includes('Toko A')&&(await D.textContent('#sheet [data-ms]')).includes('550.000'),'the list shows the sale (date, store, total)');
+   await D.click('#sheet [data-ms]');await D.waitForSelector('#sheet #slines');
+   ok(await D.$eval('#slines .sline:nth-child(1) [data-s=p]',e=>e.value)==='pa'&&await D.$eval('#slines .sline:nth-child(1) [data-s=q]',e=>e.value)==='2','edit form opens with the saved lines');
+   await D.fill('#slines .sline:nth-child(1) [data-s=q]','1');await D.fill('#slines .sline:nth-child(1) [data-s=a]','200000');await D.click('#slines .sline:nth-child(2) .sx');
+   await D.click('#ok');await D.waitForFunction(()=>!document.querySelector('#bg').classList.contains('open'),null,{timeout:15000});
+   let o2=await dump(),k2=rows(o2,'POS Kasir'),s2=rows(o2,'POS Stok');
+   ok(k2.length===1&&+k2[0].total===200000&&k2[0].status==='DIUBAH','the same receipt is replaced (Rp 200.000, marked changed)');
+   ok(s2.find(x=>x.pid==='pa').qty==1&&s2.find(x=>x.pid==='pb').status==='void','Gamis row now 1 pc, the removed Kulot row is void');
+   let r2=await D.evaluate(()=>({day:daySales(today()),a:posTotal(posStock(),'pa'),b:posTotal(posStock(),'pb')}));
+   ok(r2.day===200000&&r2.a===-1&&r2.b===0,'revenue and stock follow the change: '+JSON.stringify(r2));
+   // delete: two taps
+   await D.click('#mlist');await D.click('#sheet [data-ms]');await D.waitForSelector('#sheet #rm');await D.click('#rm');
+   ok((await D.textContent('#rm')).includes('Tap again'),'delete asks for a second tap');await D.click('#rm');
+   await D.waitForFunction(()=>!document.querySelector('#bg').classList.contains('open'),null,{timeout:15000});
+   o2=await dump();k2=rows(o2,'POS Kasir');s2=rows(o2,'POS Stok');
+   ok(k2[0].status==='VOID'&&s2.every(x=>x.status==='void'),'deleted: receipt VOID, every stock row void');
+   r2=await D.evaluate(()=>({day:daySales(today()),a:posTotal(posStock(),'pa'),n:manualSales().length,rev:finRows().filter(x=>x.m===today().slice(0,7)).reduce((s,x)=>s+x.v,0)}));
+   ok(r2.day===0&&r2.a===0&&r2.n===0&&r2.rev===0,'revenue, stock and the list are back to nothing: '+JSON.stringify(r2));
   }else{
    // phone: an online store sells from its stock source (Gudang); missing amount is refused
    await D.selectOption('#sst','Shopee');await D.selectOption('#slines .sline [data-s=p]','pb');await D.fill('#slines .sline [data-s=q]','3');
