@@ -269,9 +269,9 @@ const today=()=>ymd(new Date());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring',ann:'Annual'};
+const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring',ann:'Annual',cogsh:'COGS'};
 const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian',prodm:'POS Produk Bulan'};
-let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],ann:[],pos:{},cfg:{url:'',pin:''}};
+let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],ann:[],cogsh:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
 // Dates from Google Sheets can arrive as "2026-11-03T17:00:00.000Z"; turn them back into a local yyyy-mm-dd
@@ -306,7 +306,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=19;
+const NEED_CODE=20;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -645,7 +645,7 @@ function salesRows(){
   // store of its shift (ref), not the stock location (an online store sells from another store's stock). Revenue no product row
   // explains (rows from before 'nilai' existed) stays as one row without a product.
   P('stok').forEach(x=>{if(x.status==='void'||String(x.ke)!=='Sale'&&x.jenis!=='sale')return;const m=nd(x.tanggal).slice(0,7),st=shopOf[String(x.ref||'')]||String(x.dari||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;
-    const sg=x.ke==='Sale'?1:-1,q=sg*(+x.qty||0),v=PM||!(x.nilai!==''&&x.nilai!=null)?0:sg*(+x.nilai||0);add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(x.pid||''),q,v,src:'pos'})});
+    const sg=x.ke==='Sale'?1:-1,q=sg*(+x.qty||0),v=PM||!(x.nilai!==''&&x.nilai!=null)?0:sg*(+x.nilai||0);add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(x.pid||''),q,v,src:'pos',d:nd(x.tanggal)})});
   // Code.gs v19: rupiah per product straight from the receipts on the Sheet (all POS history, every tablet), preferred over 'nilai'
   if(PM)PM.forEach(r=>{const m=String(r.bulan),st=String(r.toko||'');if(!/^\d{4}-\d{2}$/.test(m)||have.has(m+'|'+st))return;const v=+r.total||0;add(pv,m+'|'+st,v);out.push({m,st,sku:'',pid:String(r.pid||''),q:0,v,src:'pos'})});
   Object.keys(tot).forEach(k=>{const r=tot[k]-(pv[k]||0),[m,st]=[k.slice(0,7),k.slice(8)];if(r>=1)out.push({m,st,sku:'',pid:'',q:0,v:r,src:'pos'})});
@@ -732,10 +732,19 @@ const fchg=(a,b)=>{if(!b)return '<span class="mu">–</span>';const d=(a-b)/b*10
 const MONL=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 const prevMon=m=>{const d=new Date(m+'-01T00:00');d.setMonth(d.getMonth()-1);return ymd(d).slice(0,7)};
 // one row per sale line with product info and cost
+// COGS history (owner 2026-11-24, option 2): when a product's COGS is changed, the new value counts from that day on; sales
+// before it keep the old value, so the profit of past months does not change. Tab COGS (Code.gs v20): id c-<pid>-<date>, pid,
+// dari (yyyy-mm-dd, '' = from the start), cogs. A product without history uses its current COGS everywhere.
+function cogsLookup(){const h={};(S.cogsh||[]).forEach(x=>{const k=String(x.pid);(h[k]=h[k]||[]).push({d:String(x.dari||''),c:+x.cogs||0})});for(const k in h)h[k].sort((a,b)=>a.d.localeCompare(b.d));
+  return (p,date)=>{if(!p)return 0;const l=h[String(p.id)],cur=p.cogs!==''&&p.cogs!=null?+p.cogs||0:0;if(!l)return cur;let v=null;for(const x of l){if(!x.d||x.d<=date)v=x.c;else break}return v==null?l[0].c:v}}
+function noteCogs(p,old){const nv=p.cogs!==''&&p.cogs!=null?+p.cogs||0:0,ov=old!==''&&old!=null?+old||0:0;if(nv===ov)return;S.cogsh=S.cogsh||[];const d=today();
+  if(!S.cogsh.some(x=>String(x.pid)===String(p.id))&&ov)S.cogsh.push({id:'c-'+p.id+'-start',pid:p.id,dari:'',cogs:ov}); // the value it had until now
+  S.cogsh=S.cogsh.filter(x=>x.id!=='c-'+p.id+'-'+d);S.cogsh.push({id:'c-'+p.id+'-'+d,pid:p.id,dari:d,cogs:nv})} // changed twice the same day: the last one counts
 function finRows(){
  const bySku={};S.products.forEach(p=>{const k=String(p.sku||'').trim().toLowerCase();if(k)bySku[k]=p});
+ const CA=cogsLookup();
  return salesRows().map(r=>{const p=r.pid?S.products.find(x=>x.id===r.pid):bySku[String(r.sku).trim().toLowerCase()];
-  const cogs=p&&p.cogs!==''&&p.cogs!=null?+p.cogs||0:0;
+  const cogs=CA(p,r.d||r.m+'-31');
   return {...r,key:p?p.id:'sku:'+String(r.sku).toLowerCase(),name:p?p.nama:(r.sku||'?'),cat:(p&&String(p.kategori||'').trim())||'Uncategorized',brand:(p&&String(p.brand||'').trim())||'No brand',cogs,cost:r.q*cogs,noc:!cogs&&r.q>0}});
 }
 const fSum=(l,k)=>l.reduce((a,r)=>a+r[k],0);
@@ -1133,15 +1142,15 @@ const MON=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'long',ye
 const nextMon=m=>{const d=new Date(m+'-01T00:00');d.setMonth(d.getMonth()+1);return ymd(d).slice(0,7)};
 function suppMonths(){
   const pm={};S.products.forEach(p=>pm[p.id]=p);
-  const by={};
+  const by={},CA=cogsLookup(); // COGS of the day the goods came in / went back (owner 2026-11-24: past months stay as they were)
   P('stok').forEach(m=>{
     if(m.status==='void')return;const inn=m.dari==='Supplier',out=m.ke==='Supplier';if(!inn&&!out)return;
     const mo=nd(m.tanggal).slice(0,7);if(!/^\d{4}-\d{2}$/.test(mo))return;
     const key=String(m.pid||m.produk),p=pm[m.pid]||S.products.find(x=>x.nama===m.produk)||{};
-    const M=by[mo]||(by[mo]={m:mo,items:{}}),it=M.items[key]||(M.items[key]={name:p.nama||m.produk||'?',sku:p.sku||'',cogs:+p.cogs||0,inn:0,out:0});
-    it[inn?'inn':'out']+=+m.qty||0;
+    const M=by[mo]||(by[mo]={m:mo,items:{}}),it=M.items[key]||(M.items[key]={name:p.nama||m.produk||'?',sku:p.sku||'',cogs:p.id?CA(p,mo+'-31'):+p.cogs||0,inn:0,out:0,v:0});
+    it[inn?'inn':'out']+=+m.qty||0;it.v+=(inn?1:-1)*(+m.qty||0)*(p.id?CA(p,nd(m.tanggal)):+p.cogs||0);
   });
-  return Object.values(by).map(M=>{const items=Object.values(M.items).map(i=>({...i,net:i.inn-i.out,val:(i.inn-i.out)*i.cogs})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return Object.values(by).map(M=>{const items=Object.values(M.items).map(i=>({...i,net:i.inn-i.out,val:i.v})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
     return {m:M.m,items,total:items.reduce((a,i)=>a+i.val,0),inn:items.reduce((a,i)=>a+i.inn,0),out:items.reduce((a,i)=>a+i.out,0),noCogs:items.filter(i=>!i.cogs&&i.net).length,paid:S.supp.find(x=>x.bulan===M.m)}})
    .concat(S.supp.filter(x=>/^\d{4}-\d{2}$/.test(String(x.bulan))&&!by[x.bulan]).map(x=>({m:String(x.bulan),items:[],total:+x.total||0,inn:0,out:0,noCogs:0,paid:x,imported:true})))
    .sort((a,b)=>b.m.localeCompare(a.m));
@@ -1774,7 +1783,7 @@ function addProduct(){form('New product',pFields(),v=>{if(skuTaken(v))return err
 // The bottom button: Delete for a product without store history; otherwise hide it from the POS cashier (history keeps its name), or show it again
 function editProduct(id){const p=S.products.find(x=>x.id===id),hist=P('stok').some(x=>String(x.pid)===id)||P('produk').some(x=>String(x.id)===id);
   const del=isOff(p)?()=>{p.aktif='Active';save()}:hist?()=>{p.aktif='Inactive';save()}:()=>{S.products=S.products.filter(x=>x.id!==id);save()};
-  form('Edit product',pFields(p),v=>{if(skuTaken(v,id))return err('This SKU is already used by another product.'),false;Object.assign(p,cleanP(v));save()},del,isOff(p)?'Show in cashier again':hist?'Hide from cashier':'')}
+  form('Edit product',pFields(p),v=>{if(skuTaken(v,id))return err('This SKU is already used by another product.'),false;const old=p.cogs;Object.assign(p,cleanP(v));noteCogs(p,old);save()},del,isOff(p)?'Show in cashier again':hist?'Hide from cashier':'')}
 const DIVS=['Finance','Production','Marketing','Operational'],DICON={Finance:'tx',Production:'prod',Marketing:'mkt',Operational:'ops'};
 const REPS=['None','Daily','Weekly','Monthly','Custom'];
 const repLbl=t=>t.repeat==='Custom'?'Every '+(t.every||1)+' '+(t.unit||'days'):t.repeat;

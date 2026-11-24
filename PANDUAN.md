@@ -522,3 +522,7 @@ Untuk penjualan yang tidak lewat tablet kasir (toko online, kasir sedang mati, a
 
 Penjualan ini dihitung seperti penjualan dari kasir: omzet, pcs terjual, ranking produk, dan stok toko ikut berubah (toko online mengambil stok dari "Stock from"-nya). Dashboard harus tersambung ke Google Sheets. **Mengubah atau menghapus:** tekan ikon struk bulat di samping **New transaction** → daftar **Manual sales** → ketuk penjualannya → ubah lalu **Save changes**, atau tekan **Delete sale** dua kali. Omzet dan stok ikut menyesuaikan.
 
+## 34. Riwayat COGS (Code.gs versi 20)
+
+Kalau COGS (harga modal) produk diubah di **Operational › Stock**, COGS baru berlaku **mulai hari itu**. Penjualan sebelum hari itu tetap dihitung dengan COGS lama, jadi COGS dan net profit bulan-bulan yang sudah lewat tidak ikut berubah (begitu juga rekap Supplier). COGS boleh diubah berkali-kali; kalau diubah dua kali di hari yang sama, yang terakhir yang dipakai. Riwayatnya tersimpan di tab **COGS** di Google Sheet. Perlu **Code.gs versi 20**.
+

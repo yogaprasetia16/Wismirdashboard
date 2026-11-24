@@ -31,6 +31,9 @@ const HEADERS = {
   Recurring: ['id', 'kategori', 'jumlah', 'catatan', 'repeat', 'next'],
   // Annual = pengeluaran yang dibayar sekaligus di awal (dashboard > Operational > Expense > Annually), dibagi rata per bulan dari bulan 'dari' sampai 'sampai' (yyyy-mm)
   Annual: ['id', 'kategori', 'jumlah', 'catatan', 'dari', 'sampai'],
+  // COGS = riwayat COGS produk (v20, owner 2026-11-24): COGS baru berlaku mulai tanggal 'dari' (yyyy-mm-dd, kosong = sejak awal),
+  // supaya laba bulan yang sudah lewat tidak berubah ketika COGS produk diganti
+  COGS: ['id', 'pid', 'dari', 'cogs'],
 };
 
 // ---- Tab milik POS (baris ditambah / diperbarui per id, tidak pernah dihapus massal) ----
@@ -50,7 +53,7 @@ const UPD = '_upd'; // waktu server saat baris terakhir diubah (untuk sync berta
 const NUM = {
   Keuangan: ['jumlah'], Stok: ['stokToko', 'stokOnline', 'min', 'harga', 'cogs'], Tugas: ['every'],
   Purchasing: ['qty', 'total'], Production: ['qty', 'matQty', 'unitCost', 'total'],
-  Marketing: ['budget', 'spent', 'revenue'], Supplier: ['total'], Penjualan: ['qty', 'total'], Recurring: ['jumlah'], Annual: ['jumlah'],
+  Marketing: ['budget', 'spent', 'revenue'], Supplier: ['total'], Penjualan: ['qty', 'total'], Recurring: ['jumlah'], Annual: ['jumlah'], COGS: ['cogs'],
   'POS Stok': ['qty', 'nilai'], 'POS Kasir': ['total', 'dibayar', 'kembalian'],
   'POS Shift': ['kasAwal', 'penjualanTunai', 'kasMasuk', 'kasKeluar', 'kasSeharusnya', 'tunai', 'transfer', 'edc', 'totalPenjualan', 'transaksi'],
 };
@@ -105,7 +108,7 @@ function setup() {
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
 // v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
-const CODE_VERSION = 19;
+const CODE_VERSION = 20;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
