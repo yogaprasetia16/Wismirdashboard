@@ -511,3 +511,14 @@ Penjualan dari shift yang **belum ditutup** sekarang langsung ikut terhitung di 
 
 Untuk penjualan dari kasir, dashboard sekarang tahu rupiah per produk, jadi **Product ranked** dan **Category** di Finance › Report tidak lagi menampilkan "?" / Uncategorized untuk bulan berjalan. Setiap kategori juga punya warna sendiri di lingkaran Category. Pasang **Code.gs versi 19** (Copy raw file → tempel di Apps Script → Ctrl+S → Deploy → Manage deployments → Edit → New version → Deploy). Rupiah per produk dihitung langsung dari struk yang sudah ada di Google Sheet, termasuk penjualan sejak awal memakai kasir.
 
+## 33. Input penjualan tanpa tablet kasir (Overview › New transaction)
+
+Untuk penjualan yang tidak lewat tablet kasir (toko online, kasir sedang mati, atau di luar jam kerja):
+1. Buka **Overview**, tekan **New transaction**.
+2. Isi **Date** (tanggal penjualan) dan **Store** (toko).
+3. Di setiap baris isi **Product**, **Qty**, dan **Total amount** (total rupiah untuk produk itu).
+4. Lebih dari satu produk? Tekan **+ Add product**. Baris yang salah bisa dihapus dengan tombol ×.
+5. Tekan **Save sale**.
+
+Penjualan ini dihitung seperti penjualan dari kasir: omzet, pcs terjual, ranking produk, dan stok toko ikut berubah (toko online mengambil stok dari "Stock from"-nya). Dashboard harus tersambung ke Google Sheets. Belum bisa diubah/dihapus dari dashboard; kalau salah input, kabari saja.
+
