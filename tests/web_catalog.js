@@ -23,7 +23,7 @@ async function api(route){
  else if(req.action==='save'){const d=req.data;if(req.row){const r=rows.find(x=>x._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else Object.assign(r,d)}else rows.push({_row:rows.length+2,...d});out.uploaded=(req.newPhotos||[]).map(p=>p.name)}
  else if(req.action==='delete'){const i=rows.findIndex(x=>x._row===req.row);if(i<0)out={ok:false,error:'x'};else rows.splice(i,1);rows.forEach((r,k)=>r._row=k+2)}
  else if(req.action==='hide'){if(mode==='oldhide')out={ok:false,error:'Aksi tidak dikenal.'};else{const r=rows.find(q=>q._row===req.row);if(!r||r.nama!==req.origNama)out={ok:false,error:'Data berubah di Sheet.'};else r.sembunyi=req.hidden?'ya':''}}
- else if(req.action==='statsGet'){if(mode==='oldstats')out={ok:false,error:'Aksi tidak dikenal.'};else out={ok:true,from:'2026-11-01',today:'2026-11-19',rows:statRows.map(r=>r.slice())}}
+ else if(req.action==='statsGet'){if(mode==='oldstats')out={ok:false,error:'Aksi tidak dikenal.'};else out={ok:true,from:'2026-11-01',today:'2026-11-19',rows:(mode==='alias'?[['2026-11-19','visit','ig',2],['2026-11-19','visit','instagram',3],['2026-11-18','visit','tt',1],['2026-11-18','visit','tiktok',1],['2026-11-18','visit','wa',1],['2026-11-17','visit','qr',2],['2026-11-17','visit','direct',1],['2026-11-17','visit','ig-bio',1]]:statRows).map(r=>r.slice())}}
  else if(req.action==='testiList')out={ok:true,items:testi.map(t=>({...t}))};
  else if(req.action==='testiSave'){const d=req.data;if(!d.komentar&&!d.foto.length)out={ok:false,error:'Isi minimal satu foto atau komentar.'};else if(req.id){const t=testi.find(x=>x.id===req.id);if(!t)out={ok:false,error:'Testimoni tidak ditemukan. Muat ulang daftar.'};else Object.assign(t,d)}else{out.id='n'+(testi.length+1);testi.unshift({id:out.id,...d})}}
  else if(req.action==='testiDelete'){testi=testi.filter(x=>x.id!==req.id)}
@@ -204,6 +204,9 @@ async function api(route){
  ok(await D.isVisible('#webOpen')&&await D.isVisible('#statReload')&&!(await D.isVisible('#webAdd')),'Visitors has the site link and Reload, but no +');
  await D.selectOption('#statDays','7');await until(()=>calls.some(c=>c.action==='statsGet'&&c.days===7),8000,'7 days');ok(true,'changing the period asks for that many days');
  ok((await D.$$('#app div[title*="visits"]')).length===7,'chart shows 7 bars for 7 days');
+ mode='alias';await D.click('#statReload');await until(()=>D.evaluate(()=>/QR code in store/.test(document.querySelector('#app').textContent)),8000,'alias rows');
+ const al=await D.evaluate(()=>[...document.querySelectorAll('#app div[style*="flex:0 0 118px"]')].map(x=>x.textContent+'='+x.parentElement.lastElementChild.textContent.split(' ')[0]));
+ ok(al.join('|')==='Instagram=5|TikTok=2|QR code in store=2|WhatsApp=1|Direct=1|ig-bio=1','short tags are merged into the app: ig+instagram = Instagram 5, tt+tiktok = TikTok 2, wa = WhatsApp, qr = QR code in store, other tags stay as typed: '+al.join('|'));
  mode='oldstats';await D.click('#statReload');await until(()=>D.evaluate(()=>/Update the catalog Apps Script first/.test(document.querySelector('#app').textContent)),8000,'old script');ok(true,'with an older catalog script the page says to update it (instead of "Aksi tidak dikenal")');mode='ok';
  await D.click('#app .seg.ico button[title=Catalog]');await until(()=>D.$$eval('#weblist .row',r=>r.length===2),8000,'back to catalog');ok(true,'switching back to Catalog still works');
  // 7. wrong password / locked messages

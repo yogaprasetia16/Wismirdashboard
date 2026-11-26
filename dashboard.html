@@ -1411,15 +1411,17 @@ async function statsLoad(){
   catch(e){ST.err=/tidak dikenal/i.test(e.message)?'Update the catalog Apps Script first: Visitors needs its latest version (see the guide, section 30).':e.message}
   ST.busy=false;if(tab==='mkt'&&mk==='web'&&wv==='stat')render()}
 const statN=n=>Math.round(n).toLocaleString('id-ID');
+// Short link tags are read as the app (owner 2026-11-26): ?ref=ig counts as Instagram, tt = TikTok, wa = WhatsApp, fb = Facebook.
+const SRC_ALIAS={ig:'instagram',insta:'instagram',tt:'tiktok',wa:'whatsapp',fb:'facebook'};
 function statAgg(){
   const A={visits:0,products:0,wa:0,share:0,day:{},src:{},prod:{},waBy:{}};
   ST.rows.forEach(r=>{const [d,ev,k,n]=r;
-    if(ev==='visit'){A.visits+=n;A.day[d]=(A.day[d]||0)+n;A.src[k]=(A.src[k]||0)+n}
+    if(ev==='visit'){const sk=SRC_ALIAS[k]||k;A.visits+=n;A.day[d]=(A.day[d]||0)+n;A.src[sk]=(A.src[sk]||0)+n}
     else if(ev==='product'){A.products+=n;A.prod[k]=(A.prod[k]||0)+n}
     else if(ev==='wa'){A.wa+=n;A.waBy[k]=(A.waBy[k]||0)+n}
     else if(ev==='share')A.share+=n});
   return A}
-const SRC_LABEL={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',whatsapp:'WhatsApp',google:'Google',x:'X (Twitter)',marketplace:'Marketplace',direct:'Direct',lain:'Other websites'};
+const SRC_LABEL={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',whatsapp:'WhatsApp',google:'Google',x:'X (Twitter)',marketplace:'Marketplace',direct:'Direct',qr:'QR code in store',lain:'Other websites'};
 function vStats(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to see the visitors of wismir.id here.')}</div>`;
   const sel=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px"><div class="f" style="margin:0;min-width:150px"><select id="statDays" aria-label="Period" onchange="ST.days=+this.value;ST.loaded=false;statsLoad()">${[7,30,90].map(d=>`<option value="${d}" ${d===ST.days?'selected':''}>Last ${d} days</option>`).join('')}</select></div></div>`;
