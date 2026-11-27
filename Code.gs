@@ -111,7 +111,7 @@ function setup() {
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
 // v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
-const CODE_VERSION = 21;
+const CODE_VERSION = 22;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.
@@ -266,7 +266,7 @@ function doGet(e) {
     }
     // Dashboard: semua tab dashboard + ringkasan POS (tanpa detail struk supaya ringan)
     Object.keys(HEADERS).forEach(function (n) { data[n] = readSheet(n); });
-    ['POS Produk', 'POS Karyawan', 'POS Stok', 'POS Shift', 'POS Absen'].forEach(function (n) { data[n] = readSheet(n); });
+    ['POS Produk', 'POS Karyawan', 'POS Stok', 'POS Shift', 'POS Absen', 'POS Audit'].forEach(function (n) { data[n] = readSheet(n); }); // v22: + POS Audit (Operational › Audit)
     try { data['POS Harian'] = posDaily(); } catch (e) { data['POS Harian'] = []; }
     try { data['POS Produk Bulan'] = posProd(); } catch (e) { data['POS Produk Bulan'] = []; } // v19: rupiah per produk per bulan per toko // tidak boleh menggagalkan muat dashboard // v12: penjualan per hari per shift (struk, 40 hari terakhir) untuk Overview
     return out({ ok: true, v: CODE_VERSION, ver: dashVer(), data: data });
