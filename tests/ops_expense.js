@@ -16,7 +16,7 @@ const txt=s=>s.replace(/\s/g,' ');
  const D=await open();
  await D.evaluate(()=>{tab='ops';ops='exp';render()});
  const seg=await D.$eval('#app .seg',s=>[...s.querySelectorAll('button')].map(x=>x.getAttribute('aria-label')||x.textContent));
- ok(seg.join()==='Stock,Staff,Attendance,Store,Expense','Operational has an Expense tab: '+seg.join(', '));
+ ok(seg.join()==='Stock,Staff,Attendance,Store,Expense,Audit','Operational has an Expense tab: '+seg.join(', '));
  ok(await D.isVisible('#opsAdd')&&(await D.getAttribute('#opsAdd','aria-label'))==='New expense'&&!(await D.isVisible('#cta')),'round "+" (New expense) in the tab row, no header button');
  const T=await D.evaluate(()=>today());
  // add an expense
