@@ -526,3 +526,22 @@ Penjualan ini dihitung seperti penjualan dari kasir: omzet, pcs terjual, ranking
 
 Kalau COGS (harga modal) produk diubah di **Operational › Stock**, COGS baru berlaku **mulai hari itu**. Penjualan sebelum hari itu tetap dihitung dengan COGS lama, jadi COGS dan net profit bulan-bulan yang sudah lewat tidak ikut berubah (begitu juga rekap Supplier). COGS boleh diubah berkali-kali; kalau diubah dua kali di hari yang sama, yang terakhir yang dipakai. Riwayatnya tersimpan di tab **COGS** di Google Sheet. Perlu **Code.gs versi 20**.
 
+
+## 35. Audit variasi di tablet kasir (Code.gs versi 21)
+
+Menu **Audit** di tablet kasir hanya muncul saat **mode owner aktif**. Isinya katalog wismir.id: setiap **foto** produk dihitung sebagai satu variasi. Audit **tidak terhubung ke stok**; pembukuan stok tetap per nama produk.
+
+Cara pakai:
+1. Di tablet, aktifkan mode owner (ikon gembok, isi PIN owner).
+2. Buka menu di logo kiri atas, lalu pilih **Audit**.
+3. Pilih kategori (Gamis, Atasan, dan seterusnya). Satu kartu = satu produk. Ceklis hijau berarti semua variasinya cukup, sedangkan label merah "Restock N" berarti ada N variasi yang perlu diisi.
+4. Ketuk kartu. Di pop up, geser foto ke kiri atau kanan (atau ketuk ‹ ›, atau ketuk foto kecil di bawah) untuk pindah variasi.
+5. Pilih status **Cukup / Kurang / Habis**. Kalau kolom ukuran di katalog berisi koma (misalnya "S, M, L, XL"), statusnya diisi per size. Kalau "All size", cukup satu status. Status langsung tersimpan.
+6. Tab **Perlu restock** menampilkan semua variasi toko ini yang Kurang atau Habis, dikelompokkan per produk. Di sampingnya ada toko lain yang stoknya paling baik untuk size itu (kolom "Dari").
+
+Catatan:
+- Variasi yang belum pernah diaudit dianggap **Cukup**.
+- Toko yang diaudit mengikuti toko tablet. Di bagian atas ada pilihan toko kalau ingin mengaudit toko lain.
+- Status disimpan di tab **POS Audit** di Google Sheet dan terlihat dari semua tablet dalam ±1 menit.
+- Perlu **Code.gs versi 21**. Sebelum Code.gs diperbarui, status audit tetap tersimpan di tablet dan otomatis terkirim setelah Code.gs diperbarui.
+- Katalog dan foto diambil dari wismir.id, jadi produk yang disembunyikan di Marketing › Website tidak ikut muncul. Tablet perlu internet untuk memuat foto.
