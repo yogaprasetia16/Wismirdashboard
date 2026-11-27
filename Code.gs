@@ -45,6 +45,9 @@ const POS = {
   'POS Kasir': ['id', 'tanggal', 'jam', 'toko', 'shiftId', 'metode', 'total', 'dibayar', 'kembalian', 'rincian', 'status', 'items', 'pays', 't'],
   'POS Shift': ['id', 'tanggal', 'toko', 'buka', 'tutup', 'karyawan', 'kasAwal', 'penjualanTunai', 'kasMasuk', 'kasKeluar', 'kasSeharusnya', 'tunai', 'transfer', 'edc', 'totalPenjualan', 'transaksi', 'mutasiKas', 'tBuka', 'tTutup'],
   'POS Absen': ['id', 'tanggal', 'jam', 'toko', 'nama', 'shiftId', 'staffId', 't'],
+  // v21 (owner 2026-11-27): POS > Audit (mode owner). Status stok per foto produk di katalog wismir.id, per toko, per size.
+  // Tidak terhubung ke stok. id = toko|nama file foto; status = JSON {size: ok/low/out} (size 'all' = tanpa pilihan size).
+  'POS Audit': ['id', 'toko', 'produk', 'foto', 'status', 'oleh', 'waktu', 't'],
 };
 const UPD = '_upd'; // waktu server saat baris terakhir diubah (untuk sync bertahap POS)
 
@@ -108,7 +111,7 @@ function setup() {
 // Dipakai supaya perangkat dengan data lama tidak menimpa perubahan dari perangkat lain.
 // Versi kode ini. Naikkan setiap kali Code.gs berubah; dashboard memberi tahu owner kalau Apps Script masih versi lama.
 // v17: kode katalog website (v14-v15) dipindah kembali ke Apps Script katalog yang terpisah; Code.gs ini hanya untuk dashboard + kasir.
-const CODE_VERSION = 20;
+const CODE_VERSION = 21;
 
 function dashVer() { return PropertiesService.getScriptProperties().getProperty('dashVer') || '0'; }
 // Penanda "Mulai baru" POS: berubah saat riwayat POS dikosongkan, supaya semua tablet ikut membersihkan datanya.

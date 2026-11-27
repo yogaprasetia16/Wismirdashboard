@@ -17,6 +17,7 @@ start; run "dashboard import products from a spreadsheet" node dash_import.js
 start; run "dashboard Production › Supplier recap + paid" node supplier.js
 start; run "store types, online stock source, products per store" node stores.js
 start; run "POS: sales sent right away in the background" node pos_live.js
+start; run "POS › Audit (owner mode): catalog photos, status per store and size" node pos_audit.js
 start; run "Code.gs v16: tablets pull only changed rows" node pull_since.js
 start; run "POS: a request that never answers does not stop sending" node pos_hang.js
 start; run "Report: POS months ranked by rupiah per product, a colour per category" node product_value.js

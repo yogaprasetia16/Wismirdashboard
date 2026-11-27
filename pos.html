@@ -176,6 +176,58 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 @keyframes prspin{to{transform:rotate(360deg)}}
 .sync.prc .pri{display:grid;place-items:center}.sync.prc .pri svg{width:18px;height:18px}
 @media (prefers-reduced-motion:reduce){.sync.prc.wait i{animation:none}}
+/* ---------- Audit (owner mode, 2026-11-27): photo variations from the wismir.id catalog, status per store per size ---------- */
+.au-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.au-tools .seg{margin:0}
+.au-seg button{display:inline-flex;align-items:center;gap:7px}.au-seg .cnt{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px}
+.au-seg button.on .cnt{background:var(--red)}
+.au-fd{display:inline-flex;gap:3px}.au-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}.au-dot.ok{background:var(--green)}.au-dot.low{background:var(--amber)}.au-dot.out{background:var(--red)}
+.au-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.au-card{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}.au-card.out{border:2px solid var(--red)}
+.au-pic{position:relative;aspect-ratio:3/4;width:100%;border:0;padding:0;display:block;overflow:hidden;background:linear-gradient(160deg,#f4f1ec,#e7e3dc);cursor:pointer}
+.au-pic img,.au-big img,.au-th img{width:100%;height:100%;object-fit:cover;display:block}
+.au-pic .mono,.au-big .mono{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:800;color:#b9b2a6}
+.au-bdg{position:absolute;top:8px;right:8px;font-size:11px;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--red);color:#fff}
+.au-bdg.chk{width:22px;height:22px;padding:0;display:grid;place-items:center;background:#5a9a78}.au-bdg.chk svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.au-nfo{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:700;background:rgba(255,255,255,.9);border-radius:99px;padding:3px 9px;color:var(--ink)}
+.au-nm{padding:10px 12px 12px;line-height:1.25}.au-nm b{display:block;font-size:14px}.au-nm span{font-size:12px;color:var(--mute)}
+.au-szc{display:inline-flex;flex-wrap:wrap;gap:5px;font-size:12px;font-weight:800}.au-szc span{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 6px;border-radius:99px}
+.au-szc .ok{background:var(--green);color:#fff}.au-szc .low{background:var(--amber);color:#16181b}.au-szc .out{background:var(--red);color:#fff}.au-szc .one{padding:0 12px}
+.au-sub{font-size:13px;color:var(--mute);margin:-4px 0 12px}
+.au-grp{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
+.au-gh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}.au-gh b{font-size:17px}.au-gh span{font-size:12px;font-weight:700;color:var(--mute);background:var(--sec);border-radius:99px;padding:2px 10px}
+.au-rgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.au-rgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:820px){.au-rgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.au-rc{display:grid;grid-template-columns:minmax(0,1fr) 128px;border:2px solid var(--red);border-radius:16px;overflow:hidden;background:var(--card)}
+.au-rc .au-pic{height:100%}
+.au-rb{padding:10px 10px 10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}.au-rb>b{font-size:13.5px;padding-bottom:4px}
+.au-rh,.au-rr{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center}.au-rh{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.au-bst{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.au-bst.none{color:var(--mute);font-weight:500;white-space:normal;font-size:12px;line-height:1.2}
+.au-empty{color:var(--mute);font-size:14px;padding:24px 4px;text-align:center}
+/* pop up: 90% of the screen, swipe the photo for the next variation */
+.au-pop{position:fixed;inset:0;z-index:60;background:rgba(20,23,26,.45);display:grid;place-items:center}.au-pop[hidden]{display:none}
+.au-dlg{background:var(--card);border-radius:24px;width:90vw;height:90vh;height:90dvh;overflow:hidden;display:grid;grid-template-columns:minmax(0,45%) minmax(0,1fr);box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.au-big{position:relative;min-height:0;overflow:hidden;background:linear-gradient(160deg,#f4f1ec,#e7e3dc);touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.au-big img{object-fit:contain;pointer-events:none}
+.au-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:28px;line-height:1;color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer}.au-nav.l{left:12px}.au-nav.r{right:12px}
+.au-cnt{position:absolute;top:12px;left:12px;font-size:12px;font-weight:700;background:rgba(20,23,26,.6);color:#fff;border-radius:99px;padding:3px 10px}
+.au-ths{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 12px}
+.au-th{width:44px;aspect-ratio:3/4;border-radius:9px;border:2px solid rgba(255,255,255,.9);padding:0;overflow:hidden;background:#eee;box-shadow:0 2px 6px rgba(0,0,0,.15);opacity:.8;cursor:pointer}
+.au-th.low,.au-th.out{border-color:var(--red)}.au-th.on{opacity:1;outline:3px solid var(--ink);outline-offset:1px}
+.au-bd{overflow:auto;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.au-tt{display:flex;align-items:flex-start;gap:10px}.au-tt b{font-size:19px;flex:1}.au-tt small{display:block;font-size:13px;color:var(--mute);font-weight:500}
+.au-x{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:none;cursor:pointer}.au-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.au-lab{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.au-st{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.au-st button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 4px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.au-st button.on.ok{background:var(--green);border-color:var(--green);color:#fff}.au-st button.on.low{background:var(--amber);border-color:var(--amber);color:#16181b}.au-st button.on.out{background:var(--red);border-color:var(--red);color:#fff}.au-st button.on .au-dot{background:currentColor}
+.au-szl{display:flex;flex-direction:column;gap:8px}.au-szr{display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:8px}.au-szr>b{font-size:15px;text-align:center;background:var(--sec);border-radius:10px;padding:10px 0}
+.au-szr .au-st button{padding:10px 2px;font-size:14px}
+.au-ol div{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}.au-ol div:last-child{border-bottom:0}.au-ol b{white-space:nowrap}.au-ol em{font-style:normal;color:var(--mute);font-size:12px;margin-left:auto}
+.au-done{border:0;background:var(--green);color:#fff;border-radius:14px;padding:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+@media (max-width:520px){.au-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.au-rgrid{grid-template-columns:minmax(0,1fr)}
+ .au-pop{place-items:end center}.au-dlg{grid-template-columns:minmax(0,1fr);grid-template-rows:34% minmax(0,1fr);border-radius:24px 24px 0 0;width:100%;padding-bottom:env(safe-area-inset-bottom,0px)}
+ .au-bd{padding:16px}.au-th{width:30px;border-radius:7px}.au-ths{bottom:8px;gap:5px}.au-st button .au-dot{display:none}.au-szr{grid-template-columns:40px minmax(0,1fr)}.au-ol em{width:100%;margin-left:0}}
 </style>
 </head>
 <body>
@@ -247,6 +299,7 @@ const IC={
  eyeoff:'<path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.3 7.6A17 17 0 0 0 2 12s3.6 6 10 6c1.7 0 3.2-.4 4.5-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
  wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18"/><circle cx="16.5" cy="15" r="1"/>',
  expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+ audit:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
  shrink:'<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'
 };
 const svg=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';
@@ -269,7 +322,7 @@ function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r
 let S=load()||blank();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Gagal menyimpan di tablet. Penyimpanan penuh?')}}
 // Tidak ada data contoh lagi: produk, karyawan dan toko datang dari dashboard lewat Google Sheets.
-S.cfg=S.cfg||{store:'Toko A',pin:'1234'};S.holds=S.holds||[];S.outbox=S.outbox||[];S.since=S.since||0;S.epoch=S.epoch||'0';
+S.cfg=S.cfg||{store:'Toko A',pin:'1234'};S.audit=S.audit||[];S.holds=S.holds||[];S.outbox=S.outbox||[];S.since=S.since||0;S.epoch=S.epoch||'0';
 
 /* ---------- ui state ---------- */
 let showKpi=false,tab='home',ownerOK=false,osub='report',rPer='today',rStore='all';
@@ -318,7 +371,7 @@ const cartQty=()=>sum(S.cart,c=>c.qty);
    Kasir (struk), shift & absen: dikirim sekali saat tutup shift, supaya kasir tidak pernah menunggu jaringan.
    Semua pengiriman berjalan di belakang layar; data tetap aman di tablet sampai terkirim. */
 // Data yang ditarik dari tablet lain. Produk & karyawan TIDAK di sini: keduanya diatur di dashboard (tab Stok & Staff).
-const COL={'POS Stok':'moves','POS Kasir':'txs','POS Shift':'shifts','POS Absen':'attendance'};
+const COL={'POS Stok':'moves','POS Kasir':'txs','POS Shift':'shifts','POS Absen':'attendance','POS Audit':'audit'};
 const J=(v,d)=>{try{return v===''||v==null?d:JSON.parse(v)}catch(e){return d}};
 const s0=v=>v==null?'':String(v);
 const SER={
@@ -327,7 +380,8 @@ const SER={
  'POS Stok':m=>({id:m.id,tanggal:ymd(m.t),jam:hm(m.t),produk:pname(m.pid),dari:m.from,ke:m.to,qty:m.qty,oleh:m.by||'',catatan:m.note||'',status:m.status||'ok',jenis:m.kind||'',ref:m.ref||'',pid:m.pid,t:String(m.t),nilai:m.val==null?'':m.val}),
  'POS Kasir':t=>({id:t.id,tanggal:ymd(t.t),jam:hm(t.t),toko:t.store,shiftId:t.shiftId,metode:t.method,total:t.total,dibayar:t.paid,kembalian:t.change||0,rincian:t.items.map(i=>i.name+' x'+i.qty+' @'+dot(i.price)).join('; '),status:t.void?'VOID':t.edited?'DIUBAH':'OK',items:JSON.stringify(t.items),pays:JSON.stringify(t.pays||[]),t:String(t.t)}),
  'POS Shift':h=>({id:h.id,tanggal:ymd(h.openedAt),toko:h.store,buka:hm(h.openedAt),tutup:hm(h.closedAt),karyawan:(h.staff||[]).join(', '),kasAwal:h.cashStart||0,penjualanTunai:h.cashSales||0,kasMasuk:h.cashIn||0,kasKeluar:h.cashOut||0,kasSeharusnya:h.expected||0,tunai:(h.by||{}).Tunai||0,transfer:(h.by||{}).Transfer||0,edc:(h.by||{}).EDC||0,totalPenjualan:h.total||0,transaksi:h.n||0,mutasiKas:JSON.stringify(h.cashMoves||[]),tBuka:String(h.openedAt),tTutup:String(h.closedAt)}),
- 'POS Absen':a=>({id:a.id,tanggal:a.date||ymd(a.t),jam:hm(a.t),toko:a.store,nama:a.name,shiftId:a.shiftId,staffId:a.staffId,t:String(a.t)})
+ 'POS Absen':a=>({id:a.id,tanggal:a.date||ymd(a.t),jam:hm(a.t),toko:a.store,nama:a.name,shiftId:a.shiftId,staffId:a.staffId,t:String(a.t)}),
+ 'POS Audit':a=>({id:a.id,toko:a.store,produk:a.prod,foto:a.foto,status:JSON.stringify(a.z||{}),oleh:a.by||'',waktu:ymd(a.t)+' '+hm(a.t),t:String(a.t)})
 };
 const DES={
  'POS Produk':r=>({id:s0(r.id),name:s0(r.nama),category:s0(r.kategori),active:s0(r.aktif)!=='0'}),
@@ -335,7 +389,8 @@ const DES={
  'POS Stok':r=>{const o={id:s0(r.id),t:+r.t||0,pid:s0(r.pid),from:s0(r.dari),to:s0(r.ke),qty:+r.qty||0,by:s0(r.oleh),note:s0(r.catatan),status:s0(r.status)||'ok',kind:s0(r.jenis)||'manual'};if(r.ref)o.ref=s0(r.ref);if(r.nilai!==''&&r.nilai!=null)o.val=+r.nilai||0;return o},
  'POS Kasir':r=>{const o={id:s0(r.id),shiftId:s0(r.shiftId),store:s0(r.toko),t:+r.t||0,method:s0(r.metode),pays:J(r.pays,[]),total:+r.total||0,paid:+r.dibayar||0,change:+r.kembalian||0,items:J(r.items,[])};if(r.status==='VOID')o.void=true;if(r.status==='DIUBAH')o.edited=true;return o},
  'POS Shift':r=>{const by={};[['Tunai',r.tunai],['Transfer',r.transfer],['EDC',r.edc]].forEach(x=>{if(+x[1])by[x[0]]=+x[1]});const st=s0(r.karyawan);return{id:s0(r.id),store:s0(r.toko),openedAt:+r.tBuka||0,closedAt:+r.tTutup||0,staff:st?st.split(', '):[],cashStart:+r.kasAwal||0,cashSales:+r.penjualanTunai||0,expected:+r.kasSeharusnya||0,cashIn:+r.kasMasuk||0,cashOut:+r.kasKeluar||0,cashMoves:J(r.mutasiKas,[]),cashEnd:null,diff:null,total:+r.totalPenjualan||0,by:by,n:+r.transaksi||0}},
- 'POS Absen':r=>({id:s0(r.id),shiftId:s0(r.shiftId),t:+r.t||0,date:s0(r.tanggal),store:s0(r.toko),staffId:s0(r.staffId),name:s0(r.nama)})
+ 'POS Absen':r=>({id:s0(r.id),shiftId:s0(r.shiftId),t:+r.t||0,date:s0(r.tanggal),store:s0(r.toko),staffId:s0(r.staffId),name:s0(r.nama)}),
+ 'POS Audit':r=>({id:s0(r.id),store:s0(r.toko),prod:s0(r.produk),foto:s0(r.foto),z:J(r.status,{}),by:s0(r.oleh),t:+r.t||0})
 };
 const syncOn=()=>!!(S.cfg.url&&S.cfg.spin);
 let fillDone=false,syncErr='',flushing=false,pulling=false,ft=null,tries=0,needRender=false,resetting=false,gen=0; // gen changes on 'Mulai baru': answers to older requests are thrown away
@@ -345,14 +400,16 @@ let NET_MS=90000;
 function jfetch(u,o){const ac=new AbortController(),t=setTimeout(()=>ac.abort(),window.__netMs||NET_MS);return fetch(u,Object.assign({},o||{},{signal:ac.signal})).then(r=>r.json()).catch(e=>{throw new Error(ac.signal.aborted?'Google Sheets tidak menjawab, dicoba lagi':(e&&e.message)||'Tidak ada koneksi')}).finally(()=>clearTimeout(t))}
 function enqueue(sheet,rec){if(!rec||!rec.id)return;S.outbox=S.outbox.filter(x=>!(x.s===sheet&&x.id===rec.id));S.outbox.push({s:sheet,id:rec.id,r:SER[sheet](rec)})}
 function kick(ms){if(!syncOn())return;clearTimeout(ft);ft=setTimeout(flush,ms==null?400:ms)}
+// Audit rows wait on the tablet until the Sheet's Code.gs knows the tab 'POS Audit' (v21): an older script would drop them.
+const sendable=()=>S.outbox.filter(x=>x.s!=='POS Audit'||(S.codeV||0)>=21);
 async function flush(){
  if(!syncOn()||flushing||resetting)return;
- if(!S.outbox.length)return pull();
- flushing=true;const batch=S.outbox.slice(0,200),rows={};batch.forEach(x=>(rows[x.s]=rows[x.s]||[]).push(x.r));
+ if(!sendable().length)return pull();
+ flushing=true;const batch=sendable().slice(0,200),rows={};batch.forEach(x=>(rows[x.s]=rows[x.s]||[]).push(x.r));
  try{
   const j=await jfetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({pin:S.cfg.spin,action:'upsert',rows:rows})});if(!j.ok)throw new Error(j.error||'Ditolak server');
   S.outbox=S.outbox.filter(x=>batch.indexOf(x)<0);tries=0;syncErr='';S.lastSync=Date.now();save();
-  flushing=false;if(S.outbox.length)kick(0);else pull();
+  flushing=false;if(sendable().length)kick(0);else pull();
  }catch(e){flushing=false;tries++;syncErr=(e&&e.message)||'Tidak ada koneksi';kick(Math.min(60000,2000*Math.pow(2,tries-1)));syncUi()}
 }
 async function pull(){
@@ -378,7 +435,9 @@ async function pull(){
   if(reSync&&S.shift){syncShiftMoves(S.shift.id);kick()}
   if(applyMaster(j.data||{}))ch=true;
   if(ch){S.shifts.sort((a,b)=>a.closedAt-b.closedAt);S.txs.sort((a,b)=>a.t-b.t)}
+  const cv=+j.v||0,up=cv>=21&&(S.codeV||0)<21;S.codeV=cv;
   S.since=Math.max(0,(+j.now||0)-5000);S.lastSync=Date.now();syncErr='';save();
+  if(up&&S.outbox.some(x=>x.s==='POS Audit'))kick(0);
   if(ch)softRender();
   if(!fillDone&&(+j.v||0)>=18){fillDone=true;fillShiftValues()} // once per app start, only when the Sheet keeps 'nilai' (Code.gs v18)
  }catch(e){syncErr=(e&&e.message)||'Tidak ada koneksi'}
@@ -419,7 +478,7 @@ function applyMaster(d){
 // keepOpen: a shift that is still open on this tablet keeps its own sales and attendance
 function wipeHistory(keepOpen){
  const sh=keepOpen&&S.shift?S.shift.id:null;
- S.moves=[];S.shifts=[];S.prices={};S.holds=[];
+ S.moves=[];S.shifts=[];S.prices={};S.holds=[];S.audit=[];
  S.txs=sh?S.txs.filter(t=>t.shiftId===sh):[];
  S.attendance=sh?S.attendance.filter(a=>a.shiftId===sh):[];
  if(!sh){S.shift=null;S.cart=[]}
@@ -589,9 +648,10 @@ function download(name,text,type){try{const b=new Blob([text],{type:type||'text/
 function csv(rows){return '﻿'+rows.map(r=>r.map(c=>{c=c==null?'':String(c);return /[",\n;]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')).join('\n')}
 
 /* ---------- chrome / nav ---------- */
-const TABS=[['home','Shift','home'],['pos','Kasir','cart'],['rc','Struk','rcpt'],['stock','Stok','box'],['owner','Owner','lock']];
+// Audit appears in the menu only while owner mode is on (owner 2026-11-27)
+const TABS=[['home','Shift','home'],['pos','Kasir','cart'],['rc','Struk','rcpt'],['stock','Stok','box'],['audit','Audit','audit'],['owner','Owner','lock']];
 let navOwner=false,menuOpen=false;
-function menuHtml(){const q=cartQty();return TABS.map(t=>{const ic=t[0]==='owner'?(ownerOK?'unlock':'lock'):t[2];return '<button class="mi'+(t[0]===tab?' on':'')+'" data-a="tab" data-t="'+t[0]+'" role="menuitem">'+svg(ic)+'<span>'+t[1]+(t[0]==='owner'&&ownerOK?' · aktif':'')+'</span>'+(t[0]==='pos'&&q?'<b class="mb">'+q+'</b>':'')+'</button>'}).join('')}
+function menuHtml(){const q=cartQty();return TABS.filter(t=>t[0]!=='audit'||ownerOK).map(t=>{const ic=t[0]==='owner'?(ownerOK?'unlock':'lock'):t[2];return '<button class="mi'+(t[0]===tab?' on':'')+'" data-a="tab" data-t="'+t[0]+'" role="menuitem">'+svg(ic)+'<span>'+t[1]+(t[0]==='owner'&&ownerOK?' · aktif':'')+'</span>'+(t[0]==='pos'&&q?'<b class="mb">'+q+'</b>':'')+'</button>'}).join('')}
 function buildNav(){$('#lm').innerHTML=svg('store');$('#chev').innerHTML=svg('down');if(menuOpen)$('#menu').innerHTML=menuHtml()}
 function openMenu(){const m=$('#menu'),r=$('#menuBtn').getBoundingClientRect();m.innerHTML=menuHtml();m.style.left=Math.max(14,r.left)+'px';m.style.top=(r.bottom+10)+'px';m.classList.add('open');$('#menuBtn').setAttribute('aria-expanded','true');menuOpen=true}
 function closeMenu(){if(!menuOpen)return;$('#menu').classList.remove('open');$('#menuBtn').setAttribute('aria-expanded','false');menuOpen=false}
@@ -608,11 +668,12 @@ function renderChrome(){
 }
 
 /* ---------- views ---------- */
-const VIEWS={home:viewHome,pos:viewPos,rc:viewRc,stock:viewStock,owner:viewOwner};
+const VIEWS={home:viewHome,pos:viewPos,rc:viewRc,stock:viewStock,audit:viewAudit,owner:viewOwner};
 function render(sw){
  if(navOwner!==ownerOK){navOwner=ownerOK;buildNav()}renderChrome();const app=$('#app');app.innerHTML=VIEWS[tab]();
  if(sw){app.classList.remove('sw');void app.offsetWidth;app.classList.add('sw')}
  if(tab==='pos'&&S.shift){renderCats();renderGrid();renderCart()}
+ if(auK)auShow();
 }
 function go(t){tab=t;render(true);window.scrollTo(0,0);if(t==='stock')kick(0)}
 
@@ -912,7 +973,7 @@ function gate(next){if(ownerOK){next();return}toast('Khusus mode owner. Aktifkan
 function ownerPin(){GATE=()=>{ownerOK=true;touch();closeSheet();toast('Mode owner aktif');go('owner')};openSheet('<h3>Aktifkan mode owner</h3><div class="note">Masukkan PIN owner. Mode owner membuka semua fitur khusus owner tanpa PIN lagi.</div><div class="f"><input id="gpin" type="password" inputmode="none" data-np data-max="12" placeholder="••••" data-focus></div>'+npHtml(false)+'<div class="err" id="err"></div><button class="btn go" data-a="gateOk" data-enter>Aktifkan</button>',false);const f=$('#gpin');if(f)f.focus()}
 let lastAct=Date.now();const touch=()=>{lastAct=Date.now()};
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,touch,true));
-setInterval(()=>{if(ownerOK&&Date.now()-lastAct>5*60000){ownerOK=false;toast('Mode owner nonaktif (tidak ada aktivitas)');if(tab==='owner')go('home');else render()}},15000);
+setInterval(()=>{if(ownerOK&&Date.now()-lastAct>5*60000){ownerOK=false;toast('Mode owner nonaktif (tidak ada aktivitas)');if(tab==='owner'||tab==='audit')go('home');else render()}},15000);
 A.gateOk=()=>{if($('#gpin').value!==S.cfg.pin)return err('PIN salah.');const n=GATE;GATE=null;if(n)n()};
 // Receipts (owner's decision 2026-11-07): anyone can change the payment method or cancel a receipt; no owner mode, no item edits.
 A.rcPay=el=>{const t=S.txs.find(x=>x.id===el.dataset.id);if(!t||t.void)return;SC={eid:t.id};const cur=t.pays&&t.pays.length>1?'':t.method;
@@ -1073,7 +1134,7 @@ A.mvEditSave=()=>{
 A.void=el=>twoTap(el,'Ketuk lagi untuk batalkan',()=>{const x=S.moves.find(m=>m.id===el.dataset.id);if(x){x.status='void';enqueue('POS Stok',x);save();render();toast('Dibatalkan (void)');kick(0)}});
 /* Owner */
 A.unlock=()=>{const v=$('#pin').value;if(v===S.cfg.pin){ownerOK=true;render()}else err('PIN salah.')};
-A.lock=()=>{ownerOK=false;render()};
+A.lock=()=>{ownerOK=false;if(tab==='audit')go('home');else render()};
 A.osub=el=>{osub=el.dataset.s;render()};
 A.per=el=>{rPer=el.dataset.p;render()};
 A.rst=el=>{rStore=el.dataset.s;render()};
@@ -1092,7 +1153,7 @@ function dropDemo(){
 A.gsSave=()=>{const u=$('#gsu').value.trim(),p=$('#gsp').value;if(u&&!/^https?:\/\//.test(u)){toast('URL tidak valid');return}
  const first=!S.cfg.url;if(u!==S.cfg.url||p!==S.cfg.spin)S.since=0;S.cfg.url=u;S.cfg.spin=p;tries=0;syncErr='';
  const dropped=u&&first&&dropDemo();save();render();toast(!u?'Sinkron dimatikan':dropped?'Data contoh dihapus · mengambil data dari Google Sheets…':'Menyinkronkan…');kick(0)};
-A.gsAll=el=>twoTap(el,'Ketuk lagi untuk kirim semua data',()=>{if(!syncOn())return toast('Isi URL dan PIN Google Sheets dulu');const cur=S.shift&&S.shift.id;S.products.forEach(p=>enqueue('POS Produk',p));S.staff.forEach(k=>enqueue('POS Karyawan',k));S.moves.forEach(m=>enqueue('POS Stok',m));S.shifts.forEach(h=>enqueue('POS Shift',h));S.txs.filter(t=>t.shiftId!==cur).forEach(t=>enqueue('POS Kasir',t));S.attendance.filter(a=>a.shiftId!==cur).forEach(a=>enqueue('POS Absen',a));save();syncUi();toast(S.outbox.length+' data diantrekan');kick(0)});
+A.gsAll=el=>twoTap(el,'Ketuk lagi untuk kirim semua data',()=>{if(!syncOn())return toast('Isi URL dan PIN Google Sheets dulu');const cur=S.shift&&S.shift.id;S.products.forEach(p=>enqueue('POS Produk',p));S.staff.forEach(k=>enqueue('POS Karyawan',k));S.moves.forEach(m=>enqueue('POS Stok',m));S.shifts.forEach(h=>enqueue('POS Shift',h));S.txs.filter(t=>t.shiftId!==cur).forEach(t=>enqueue('POS Kasir',t));S.attendance.filter(a=>a.shiftId!==cur).forEach(a=>enqueue('POS Absen',a));S.audit.forEach(a=>enqueue('POS Audit',a));save();syncUi();toast(S.outbox.length+' data diantrekan');kick(0)});
 // Which browser is this page really running in? (Bluetooth from the web needs Google Chrome itself)
 function browserName(){const u=navigator.userAgent||'',v=r=>(u.match(r)||[])[1];
  if(/SamsungBrowser/.test(u))return 'Samsung Internet '+v(/SamsungBrowser\/(\d+)/)+' (bukan Chrome)';
@@ -1159,6 +1220,109 @@ A.reset=el=>twoTap(el,'Ketuk lagi: HAPUS SEMUA riwayat',async()=>{
  gen++;resetting=false;
  wipeHistory(false);S.since=0;ownerOK=false;sel.clear();save();snd('ok');toast('Mulai baru: riwayat uji coba sudah dihapus');go('home');kick(0);
 });
+
+/* ---------- Audit (owner 2026-11-27, only in owner mode) ----------
+   Not connected to stock. Every PHOTO of a product in the wismir.id catalog is one variation; each variation gets a status per
+   store: Cukup (ok) / Kurang (low) / Habis (out). When the website's "ukuran" has a comma ("S, M, L, XL") the status is per size,
+   otherwise one status ("all"). Never audited = Cukup. Saved per store + photo file in the Sheet tab 'POS Audit' (Code.gs v21). */
+const AU_CAT='https://wismir.id/katalog.json',AU_CK='wismir_pos_cat';
+const AU_LBL={ok:'Cukup',low:'Kurang',out:'Habis'},AU_RANK={ok:0,low:1,out:2};
+const AU_YES=/^(ya|y|yes|true|1|v|x)$/i,AU_IMG=/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i;
+let CAT=null,catAt=0,catBusy=false,catErr='',auF='all',auCat='',auSt='',auK=null,auOpener=null,auX=null;
+const auUrl=()=>window.__catUrl||AU_CAT;
+// photo value in the catalog -> full URL / small card picture (foto/x.jpeg -> foto/t/x.jpg, as on the website)
+function auPhoto(v){const base=new URL('.',new URL(auUrl(),location.href)).href;if(/^https?:/i.test(v))return {u:v,t:v};const p=v.indexOf('/')>=0?v:'foto/'+v;return {u:base+p,t:/^foto\/[^/?]+$/.test(p)?base+'foto/t/'+p.slice(5).replace(/\.[^./]+$/,'')+'.jpg':base+p}}
+function catParse(j){
+ const items=(j&&Array.isArray(j.items)?j.items:[]).filter(o=>o&&o.nama&&!AU_YES.test(String(o.sembunyi||'')));
+ return items.map(o=>{const raw=Object.keys(o).filter(k=>/^foto/.test(k)).map(k=>String(o[k])).join('|').split(/[\s|,]+/).filter(u=>/^https?:/i.test(u)||AU_IMG.test(u));
+  const foto=Array.from(new Set(raw));
+  return {nama:String(o.nama).trim(),kat:String(o.kategori||'').trim()||'Lainnya',uk:String(o.ukuran||'').trim(),foto:foto.length?foto:['#'+String(o.nama).trim()]}});
+}
+try{const c=localStorage.getItem(AU_CK);if(c)CAT=catParse(JSON.parse(c))}catch(e){}
+function catLoad(force){
+ if(catBusy||(!force&&CAT&&Date.now()-catAt<5*60000))return;catBusy=true;
+ fetch(auUrl(),{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{CAT=catParse(j);catAt=Date.now();catErr='';try{localStorage.setItem(AU_CK,JSON.stringify(j))}catch(e){}})
+  .catch(()=>{catErr='Katalog wismir.id tidak bisa dimuat. Periksa internet, lalu ketuk Muat ulang.'})
+  .finally(()=>{catBusy=false;if(tab==='audit')softRender()});
+}
+const auSz=p=>p.uk.indexOf(',')>=0?p.uk.split(',').map(x=>x.trim()).filter(Boolean):['all'];
+const auSizeTxt=p=>auSz(p)[0]==='all'?(p.uk||'All size'):'Size '+auSz(p).join(' ');
+const auStores=()=>S.locs&&S.locs.stores.length?S.locs.stores:['Toko A','Toko B'];
+function auStore(){const L=auStores();if(L.indexOf(auSt)>=0)return auSt;const c=S.cfg.store,s=SRC(c);return L.indexOf(c)>=0?c:L.indexOf(s)>=0?s:L[0]}
+const auId=(st,f)=>st+'|'+f;
+function auRec(st,f){const id=auId(st,f);return S.audit.find(a=>a.id===id)}
+const auOf=(st,f,z)=>{const r=auRec(st,f);return (r&&r.z&&r.z[z])||'ok'};
+function auW(st,p,f){let w='ok';auSz(p).forEach(z=>{const s=auOf(st,f,z);if(AU_RANK[s]>AU_RANK[w])w=s});return w}
+function auNeed(st,list){let n=0;(list||CAT||[]).forEach(p=>p.foto.forEach(f=>{if(auW(st,p,f)!=='ok')n++}));return n}
+// best other store for one size: Cukup first, then Kurang; null when it is Habis everywhere else
+function auBest(st,f,z){let b=null;auStores().filter(x=>x!==st).forEach(x=>{const s=auOf(x,f,z);if(s!=='out'&&(!b||AU_RANK[s]<AU_RANK[b.s]))b={x:x,s:s}});return b}
+function auImg(f,full){if(f.charAt(0)==='#')return '<span class="mono">'+esc(f.slice(1,3).toUpperCase())+'</span>';const u=auPhoto(f);
+ return '<img src="'+esc(full?u.u:u.t)+'" data-full="'+esc(u.u)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.style.visibility=\'hidden\'}">'}
+const auCats=()=>{const s=[];(CAT||[]).forEach(p=>{if(s.indexOf(p.kat)<0)s.push(p.kat)});return s};
+const CHK='<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+function viewAudit(){
+ if(!ownerOK)return '<section class="panel" style="max-width:420px;margin:0 auto"><div class="ph"><h2>Audit</h2></div><div class="note">Audit hanya bisa dibuka di mode owner.</div><button class="btn" data-a="tab" data-t="owner">Aktifkan mode owner</button></section>';
+ catLoad(false);
+ const st=auStore(),L=auStores(),cats=auCats();if(cats.indexOf(auCat)<0)auCat=cats[0]||'';
+ const n=CAT?auNeed(st):0;
+ const stSeg=L.length>1?'<div class="seg sc au-seg">'+L.map(x=>'<button class="'+(x===st?'on':'')+'" data-a="auSt" data-s="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>':'';
+ const fSeg='<div class="seg au-seg"><button class="'+(auF==='all'?'on':'')+'" data-a="auF" data-f="all"><span class="au-fd"><i class="au-dot ok"></i><i class="au-dot low"></i><i class="au-dot out"></i></span>Semua status</button><button class="'+(auF==='rs'?'on':'')+'" data-a="auF" data-f="rs"><span class="au-fd"><i class="au-dot low"></i><i class="au-dot out"></i></span>Perlu restock'+(n?'<span class="cnt">'+n+'</span>':'')+'</button></div>';
+ const cSeg=auF==='all'&&cats.length?'<div class="seg sc au-seg">'+cats.map(c=>'<button class="'+(c===auCat?'on':'')+'" data-a="auCat" data-c="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div>':'';
+ const notes=(catErr?'<div class="note">'+esc(catErr)+'</div>':'')+(syncOn()&&S.codeV&&S.codeV<21?'<div class="note">Status audit tersimpan di tablet ini, tapi belum bisa dikirim: Apps Script (Code.gs) di Google Sheet perlu diperbarui ke versi terbaru.</div>':'');
+ let body;
+ if(!CAT)body='<div class="au-empty">'+(catBusy||!catErr?'Memuat katalog wismir.id…':'Katalog belum ada di tablet ini.')+'</div>';
+ else if(auF==='rs')body=auRestock(st);
+ else{const P=CAT.map((p,i)=>({p:p,i:i})).filter(x=>x.p.kat===auCat);body=P.length?'<div class="au-grid">'+P.map(x=>auCard(st,x.p,x.i)).join('')+'</div>':'<div class="au-empty">Tidak ada produk di kategori ini.</div>'}
+ return '<section class="panel"><div class="ph"><h2>Audit · '+esc(st)+'</h2><button class="lnk" data-a="auReload">'+(catBusy?'Memuat…':'Muat ulang')+'</button></div>'+
+  (stSeg?'<div class="au-tools">'+stSeg+'</div>':'')+'<div class="au-tools">'+fSeg+cSeg+'</div>'+notes+body+'</section>';
+}
+function auCard(st,p,i){const n=p.foto.filter(f=>auW(st,p,f)!=='ok').length;
+ return '<div class="au-card'+(n?' out':'')+'"><button class="au-pic" data-a="auOpen" data-k="'+i+'-0" aria-label="'+esc(p.nama)+': '+(n?n+' variasi perlu restock':'semua cukup')+'">'+auImg(p.foto[0])+
+  (n?'<span class="au-bdg">Restock '+n+'</span>':'<span class="au-bdg chk" aria-hidden="true">'+CHK+'</span>')+'<span class="au-nfo">'+p.foto.length+' variasi</span></button>'+
+  '<div class="au-nm"><b>'+esc(p.nama)+'</b><span>'+esc(p.kat)+' · '+esc(auSizeTxt(p))+'</span></div></div>'}
+function auRestock(st){
+ const G=CAT.map((p,i)=>({p:p,i:i,ix:p.foto.map((f,j)=>j).filter(j=>auW(st,p,p.foto[j])!=='ok')})).filter(g=>g.ix.length);
+ return '<div class="au-sub">Variasi berstatus Kurang atau Habis di '+esc(st)+'. Ketuk foto untuk ubah status.</div>'+(G.length?G.map(g=>'<section class="au-grp"><div class="au-gh"><b>'+esc(g.p.nama)+'</b><span>'+esc(g.p.kat)+'</span><span>'+g.ix.length+' dari '+g.p.foto.length+' variasi</span></div><div class="au-rgrid">'+g.ix.map(j=>auRc(st,g.p,g.i,j)).join('')+'</div></section>').join(''):'<div class="au-empty">Semua variasi di '+esc(st)+' cukup.</div>');
+}
+function auRc(st,p,i,j){const f=p.foto[j];
+ return '<div class="au-rc"><button class="au-pic" data-a="auOpen" data-k="'+i+'-'+j+'" aria-label="Ubah status '+esc(p.nama)+' variasi '+(j+1)+'">'+auImg(f)+'<span class="au-bdg">Restock</span></button><div class="au-rb"><b>Foto '+(j+1)+'</b><div class="au-rh"><span>Size</span><span>Dari</span></div>'+
+  auSz(p).map(z=>{const s=auOf(st,f,z),b=s==='ok'?null:auBest(st,f,z);return '<div class="au-rr"><span class="au-szc"><span class="'+s+'">'+(z==='all'?'All':esc(z))+'</span></span>'+(s==='ok'?'<span class="au-bst none">–</span>':b?'<span class="au-bst"><i class="au-dot '+b.s+'"></i>'+esc(b.x)+'</span>':'<span class="au-bst none">Habis di semua toko</span>')+'</div>'}).join('')+'</div></div>'}
+// pop up
+function auPopHtml(){
+ const a=auK.split('-'),i=+a[0],j=+a[1],p=(CAT||[])[i];if(!p)return '';const f=p.foto[j],n=p.foto.length,st=auStore(),sz=auSz(p),one=sz[0]==='all';
+ const btns=z=>{const cur=auOf(st,f,z);return ['ok','low','out'].map(s=>'<button class="'+s+(cur===s?' on':'')+'" data-a="auSet" data-z="'+esc(z)+'" data-s="'+s+'" aria-pressed="'+(cur===s)+'"><i class="au-dot '+s+'"></i>'+AU_LBL[s]+'</button>').join('')};
+ const nav=n>1?'<button class="au-nav l" data-a="auGo" data-d="-1" aria-label="Variasi sebelumnya">‹</button><button class="au-nav r" data-a="auGo" data-d="1" aria-label="Variasi berikutnya">›</button>':'';
+ const ths=n>1?'<div class="au-ths">'+p.foto.map((g,k)=>'<button class="au-th '+auW(st,p,g)+(k===j?' on':'')+'" data-a="auGo" data-j="'+k+'" aria-label="Variasi '+(k+1)+'" aria-current="'+(k===j)+'">'+auImg(g)+'</button>').join('')+'</div>':'';
+ const oth=auStores().filter(x=>x!==st).map(x=>{const r=auRec(x,f),w=auW(x,p,f);return '<div><b>'+esc(x)+'</b><span class="au-szc">'+(one?'<span class="one '+w+'">'+AU_LBL[w]+'</span>':sz.map(z=>{const s=auOf(x,f,z);return '<span class="'+s+'" title="Size '+esc(z)+': '+AU_LBL[s]+'">'+esc(z)+'</span>'}).join(''))+'</span><em>'+(r?esc(r.by||'')+' · '+dm(r.t)+' '+hm(r.t):'Belum diaudit')+'</em></div>'}).join('');
+ return '<div class="au-big" id="aubig">'+auImg(f,true)+nav+'<span class="au-cnt">'+(j+1)+' / '+n+'</span>'+ths+'</div><div class="au-bd"><div class="au-tt"><b id="auT">'+esc(p.nama)+'<small>'+esc(p.kat)+' · variasi '+(j+1)+' dari '+n+' · '+esc(one?(p.uk||'All size'):'Size '+sz.join(', '))+'</small></b><button class="au-x" data-a="auClose" aria-label="Tutup">'+svg('x')+'</button></div>'+
+  '<div class="au-lab">Status di '+esc(st)+(one?'':' · per size')+'</div>'+(one?'<div class="au-st">'+btns('all')+'</div>':'<div class="au-szl">'+sz.map(z=>'<div class="au-szr"><b>'+esc(z)+'</b><div class="au-st">'+btns(z)+'</div></div>').join('')+'</div>')+
+  (oth?'<div class="au-lab">Toko lain</div><div class="au-ol">'+oth+'</div>':'')+'<button class="au-done" data-a="auClose">Selesai</button></div>';
+}
+function auPop(){let o=$('#aupop');if(!o){o=document.createElement('div');o.id='aupop';o.className='au-pop';o.hidden=true;o.setAttribute('data-a','auBg');o.innerHTML='<div class="au-dlg" role="dialog" aria-modal="true" aria-labelledby="auT" id="audlg"></div>';document.body.appendChild(o)}return o}
+function auShow(){const o=auPop();if(!auK||!CAT||tab!=='audit'||!ownerOK){o.hidden=true;auK=null;return}const h=auPopHtml();if(!h){auClose();return}o.hidden=false;$('#audlg').innerHTML=h}
+function auClose(){auK=null;auPop().hidden=true;if(auOpener&&document.body.contains(auOpener))auOpener.focus();auOpener=null}
+function auGoTo(j){const a=auK.split('-'),p=CAT[+a[0]],n=p.foto.length;auK=a[0]+'-'+(((j%n)+n)%n);auShow();const b=$('#audlg .au-th.on')||$('#audlg .au-st button');if(b)b.focus()}
+A.auOpen=el=>{auK=el.dataset.k;auOpener=el;auShow();const b=$('#audlg .au-st .on')||$('#audlg .au-st button');if(b)b.focus()};
+A.auClose=()=>auClose();
+A.auBg=(el,e)=>{if(e.target===el)auClose()};
+A.auGo=el=>{if(!auK)return;const j=+auK.split('-')[1];auGoTo(el.dataset.j!=null?+el.dataset.j:j+(+el.dataset.d))};
+A.auSet=el=>{
+ if(!auK)return;const a=auK.split('-'),p=CAT[+a[0]],f=p.foto[+a[1]],st=auStore(),id=auId(st,f);
+ let r=S.audit.find(x=>x.id===id);if(!r){r={id:id,store:st,prod:p.nama,foto:f,z:{}};S.audit.push(r)}
+ r.z=Object.assign({},r.z);r.z[el.dataset.z]=el.dataset.s;r.prod=p.nama;r.t=Date.now();r.by='Owner';
+ enqueue('POS Audit',r);save();kick(1500);render();auShow();
+ const b=$('#audlg [data-z="'+el.dataset.z+'"][data-s="'+el.dataset.s+'"]');if(b)b.focus();
+ toast(p.nama+' variasi '+(+a[1]+1)+(el.dataset.z==='all'?'':' size '+el.dataset.z)+': '+AU_LBL[el.dataset.s]);
+};
+A.auF=el=>{auF=el.dataset.f;render()};
+A.auCat=el=>{auCat=el.dataset.c;render()};
+A.auSt=el=>{auSt=el.dataset.s;render()};
+A.auReload=()=>{catErr='';catLoad(true);render()};
+// swipe left / right on the big photo = next / previous variation; arrow keys too
+let auSx=null;
+document.addEventListener('pointerdown',e=>{auSx=auK&&e.target.closest&&e.target.closest('#aubig')&&!e.target.closest('button')?e.clientX:null});
+document.addEventListener('pointerup',e=>{if(auSx==null||!auK)return;const dx=e.clientX-auSx;auSx=null;if(Math.abs(dx)<40)return;auGoTo(+auK.split('-')[1]+(dx<0?1:-1))});
+document.addEventListener('keydown',e=>{if(!auK||auPop().hidden)return;if(e.key==='Escape'){auClose();e.stopPropagation()}else if(e.key==='ArrowRight'||e.key==='ArrowLeft')auGoTo(+auK.split('-')[1]+(e.key==='ArrowRight'?1:-1))},true);
 
 /* ---------- events ---------- */
 // Menu (logo) reacts the moment the finger touches, not on release. The click that follows that touch is
