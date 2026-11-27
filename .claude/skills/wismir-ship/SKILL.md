@@ -48,8 +48,9 @@ Only when `Code.gs` changed:
 - **If `Code.gs` changed** (owner's SOP 2026-11-27: the link is **mandatory** in that message, written out in full, never just "open Code.gs on GitHub"; and the owner has TWO Apps Scripts, so always name which one, owner: "yg jelas dong"). Use this exact heading, then the link on its own line, then the steps:
   **Update Code.gs DASHBOARD (bukan Apps Script katalog website)**: Apps Script di Google Sheet dashboard/kasir (yang punya menu WISMIR → Atur PIN; kodenya diawali `// WISMIR: penghubung Dashboard + POS`).
   https://github.com/yogaprasetia16/Wismirdashboard/blob/main/Code.gs
-  1. Open the link above and click **Copy raw file**.
-  2. Open that Sheet → Extensions → Apps Script: delete everything, paste, then **Ctrl+S**.
+  plus the **link of the Google Sheet "Dashboard-wismir"** (owner's standing SOP 2026-11-27: every Code.gs change = Code.gs link + Google Sheet link). The Sheet link is NOT written in this public repo: find it with the Google Drive connector (`search_files`: spreadsheet titled `Dashboard-wismir`, it contains the tabs `POS Kasir` / `POS Stok`) and paste its `docs.google.com/spreadsheets/d/…/edit` link in the message. If the connector is not available, say so and ask the owner to open the Sheet from Google Drive.
+  1. Open the Code.gs link above and click **Copy raw file**.
+  2. Open the Google Sheet link → Extensions → Apps Script: delete everything, paste, then **Ctrl+S**.
   3. **Deploy → Manage deployments → Edit (pencil) → Version: New version → Deploy**. Never "New deployment": that changes the URL on every device.
 
   Also say: until then the dashboard shows "Update Code.gs", and nothing they type is lost.
