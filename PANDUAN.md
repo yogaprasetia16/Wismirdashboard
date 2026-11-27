@@ -545,3 +545,12 @@ Catatan:
 - Status disimpan di tab **POS Audit** di Google Sheet dan terlihat dari semua tablet dalam ±1 menit.
 - Perlu **Code.gs versi 21**. Sebelum Code.gs diperbarui, status audit tetap tersimpan di tablet dan otomatis terkirim setelah Code.gs diperbarui.
 - Katalog dan foto diambil dari wismir.id, jadi produk yang disembunyikan di Marketing › Website tidak ikut muncul. Tablet perlu internet untuk memuat foto.
+
+## 36. Rekap Audit di dashboard (Operational › Audit, Code.gs versi 22)
+
+Di dashboard, buka **Operational**, lalu ketuk ikon paling kanan (kotak dengan centang). Halaman ini **hanya untuk dilihat**. Status audit tetap diubah dari tablet (POS › Audit, mode owner).
+
+- **Dropdown toko** di kanan atas: All stores atau satu toko.
+- **Empat kotak:** jumlah variasi yang perlu restock, Habis (Out), Kurang (Low), dan **Last updated** (kapan terakhir tiap toko mengubah audit).
+- **Daftar per produk:** hanya variasi yang Kurang atau Habis. Tabelnya menunjukkan status tiap size di tiap toko (hijau Cukup, kuning Kurang, merah Habis). Ketuk kartu untuk melihat foto besar.
+- Perlu **Code.gs DASHBOARD versi 22**. Sebelum diperbarui, halaman ini masih kosong.

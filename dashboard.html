@@ -56,7 +56,7 @@ em.g{background:var(--green)}em.r{background:var(--red)}
 @media (max-width:699px){.hero{grid-template-columns:minmax(0,1fr)}}.hero>*{min-width:0}.hbig{overflow-wrap:anywhere}
 @media (max-width:380px){.bars{gap:4px}.bars .bv{font-size:9.5px}.hero{padding:18px 14px}.hbig{font-size:30px!important}.hs{font-size:12.5px}}
 .panel{background:var(--panel);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--pborder);border-radius:30px;padding:20px;box-shadow:0 6px 28px rgba(30,60,60,.05)}
-.panel h1{font-size:24px;margin:0 0 14px}
+.panel h1{font-size:24px;margin:0 0 14px}.h1s{font-size:15px;font-weight:600;letter-spacing:0;color:var(--hmute);margin-left:10px;vertical-align:3px}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mute)}.live i{width:7px;height:7px;border-radius:50%;background:var(--acc)}
@@ -247,6 +247,22 @@ html[data-theme=dark] .gp.up{background:#1f3a2b}html[data-theme=dark] .gp.dn{bac
    after the PIN screen). Touch screens get 16px fields, so the page never zooms by itself; pinch zoom still works. */
 @media (hover:none) and (pointer:coarse){input,select,textarea{font-size:16px!important}}
 @supports (-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}
+/* Operational › Audit (owner 2026-11-27): status colours of the tablets' audit (enough / low / out) */
+:root{--aok:#3e7a52;--alow:#e0a63a;--aout:#c0392b;--alowt:#1a1512}
+html[data-theme=dark]{--aok:#6db587;--alow:#e8b85a;--aout:#e2705a;--alowt:#1a1512}
+.aud{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}.aud.low{background:var(--alow)}.aud.out{background:var(--aout)}
+.aus{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 6px;border-radius:99px;font-size:11.5px;font-weight:800;color:#fff}.aus.ok{background:var(--aok)}.aus.low{background:var(--alow);color:var(--alowt)}.aus.out{background:var(--aout)}
+.audk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.audk b.audlt{font-size:17px;margin-top:4px}.audlr{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:2px 0}.audlr span:first-child{font-weight:700;white-space:nowrap}.audlr span:last-child{color:var(--mute);white-space:nowrap}.audk .card{margin:0;padding:12px 16px}.audk b{display:block;font-size:24px;line-height:1.2}
+.audg{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin-bottom:12px}
+.audh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}.audh b{font-size:16px}.audh .lbl{margin-left:auto}
+.audl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.audc{display:grid;grid-template-columns:96px minmax(0,1fr);border:1.5px solid var(--aout);border-radius:16px;overflow:hidden;cursor:pointer;background:var(--card)}
+.audp{background:var(--sec);min-height:128px}.audp img{width:100%;height:100%;object-fit:cover;display:block}
+.audb{padding:10px 12px;min-width:0;display:flex;flex-direction:column;gap:6px}.audb .t{font-weight:700;font-size:13.5px}
+.audt{border-collapse:collapse;width:100%;table-layout:fixed}.audt th{font-size:10.5px;font-weight:700;color:var(--mute);text-align:center;padding:0 2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.audt th:first-child,.audt td:first-child{width:38px;text-align:left;font-size:12px;font-weight:700;color:var(--mute)}.audt td{text-align:center;padding:2px}
+.audbig{aspect-ratio:3/4;max-height:52vh;margin:0 auto 12px;border-radius:16px;overflow:hidden;background:var(--sec)}.audbig img{width:100%;height:100%;object-fit:contain;display:block}
+.audz{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+@media (max-width:600px){.audl{grid-template-columns:minmax(0,1fr)}.audk{grid-template-columns:repeat(3,minmax(0,1fr))}.audk b{font-size:20px}.audk .audlu{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -270,7 +286,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtD=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const SHEET={tx:'Keuangan',products:'Stok',tasks:'Tugas',prod:'Production',mkt:'Marketing',purch:'Purchasing',staff:'Staff',stores:'Store',supp:'Supplier',hist:'Penjualan',rec:'Recurring',ann:'Annual',cogsh:'COGS'};
-const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian',prodm:'POS Produk Bulan'};
+const POSK={produk:'POS Produk',karyawan:'POS Karyawan',stok:'POS Stok',shift:'POS Shift',absen:'POS Absen',harian:'POS Harian',prodm:'POS Produk Bulan',audit:'POS Audit'};
 let S={tx:[],products:[],tasks:[],prod:[],mkt:[],purch:[],staff:[],stores:[],supp:[],hist:[],rec:[],ann:[],cogsh:[],pos:{},cfg:{url:'',pin:''}};
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.pos=S.pos||{};
@@ -306,7 +322,7 @@ const hhmm=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-d
 // S.base = copy of the Sheet as this device last saw it; local edits = differences from it
 const snap=()=>JSON.parse(JSON.stringify(dashData()));
 // Code.gs version this dashboard expects (must match CODE_VERSION in Code.gs)
-const NEED_CODE=21;
+const NEED_CODE=22;
 // An older Code.gs leaves out columns it does not know yet: keep this device's values for those keys
 // instead of wiping them, so a new field survives until Code.gs is updated (then they reach the Sheet).
 let kmN=0; // values kept this way: they still have to reach the Sheet
@@ -764,7 +780,7 @@ function fPeriod(all){const ms=[...new Set(all.map(r=>r.m))].sort(),last=ms[ms.l
   label:isY?'Year to date · January – '+MONL(last):MONL(FM),pl:isY?'the same months of '+py:MONL(prevMon(FM))}}
 function vReport(){
  // owner 2026-11-16: store filter beside the month filter, default All stores
- const all0=finRows();if(!all0.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Monthly report</div>`+fEmpty();
+ const all0=finRows();if(!all0.length)return fEmpty();
  const stl=[...new Set(all0.map(r=>r.st))].sort((a,b)=>a.localeCompare(b));if(RST!=='all'&&!stl.includes(RST))RST='all';
  const all=RST==='all'?all0:all0.filter(r=>r.st===RST);
  const P=fPeriod(all),sel=P.sel,rev=fSum(sel,'v'),units=fSum(sel,'q'),cost=fSum(sel,'cost'),pr=P.prev;
@@ -792,7 +808,7 @@ function vReport(){
  REP={sel,rev,cat,CC,prods,stores,label:P.label,noc:noCogsNote(sel)};
  // owner 2026-11-15: Report fits one screen; icons, animation; details open as sheets
  const kc=(id,ic,l,v,fmt,cu,sp,ch,extra)=>`<div class="card fcard rk" id="${id}"><div class="fhead tabh"><span class="ctab">${ic.replace(/<\/?span[^>]*>/g,'')}${l}</span></div><div class="kpr"><div class="kn fbig" data-fmt="${fmt}" data-cu="${A?cu:''}">${v}</div>${sp}</div><div class="lbl">${ch} vs ${P.pl}</div>${extra||''}</div>`;
- return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="t" style="font-weight:700;font-size:17px">Monthly report</div><div class="lbl">${P.label}${RST==='all'?'':' · '+esc(RST)}</div></div>
+ return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="lbl">${P.label}${RST==='all'?'':' · '+esc(RST)}</div></div>
  <div class="rfil"><div class="f" style="margin:0"><select id="rStoreF" onchange="RST=this.value;render()" aria-label="Filter by store"><option value="all">All stores</option>${stl.map(x=>`<option value="${esc(x)}" ${x===RST?'selected':''}>${esc(x)}</option>`).join('')}</select></div><div class="f" style="margin:0"><select onchange="FM=this.value;render()" aria-label="Filter by month">${opts.map(o=>`<option value="${o[0]}" ${o[0]===FM?'selected':''}>${o[1]}</option>`).join('')}</select></div></div></div>
  <div class="fintop rtop">${kc('rRev','<span class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.4c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2s1.2 1.7 2.8 2 2.8.8 2.8 2-1.2 2-2.8 2c-1.3 0-2.4-.6-2.9-1.5M12 6.5V8m0 8v1.5"/></svg></span>','Total revenue',jt(rev),'jt',rev,dBars(P,A,'rev'),fchg(rev,fSum(pr,'v')),`<div class="fsub"><span class="lbl">Net profit${rev?' · '+pc((rev-cost-ex)/rev*100):''}</span><b class="${rev-cost-ex<0?'neg':''}">${jt(rev-cost-ex)}</b></div>`)}
   ${kc('rPcs','<span class="fic"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>','Products sold',units.toLocaleString('id-ID')+' pcs','pcs',units,dBars(P,A,'q'),fchg(units,fSum(pr,'q')),brandMix(sel,units))}
@@ -851,7 +867,7 @@ function cashCalc(rev){const pur=S.purch.reduce((a,p)=>a+qn(p.total),0),man=S.pr
   return{rev,pur,man,sup,exp,cash:rev-pur-man-sup-exp}}
 const mq=v=>(+v||0).toLocaleString('id-ID',{maximumFractionDigits:1});
 function vFinancial(){
- const all=finRows();if(!all.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Financial</div>`+fEmpty();
+ const all=finRows();if(!all.length)return fEmpty();
  const ms=[...new Set(all.map(r=>r.m))].sort(),first=ms[0],last=ms[ms.length-1],aRev=fSum(all,'v'),aItems=fSum(all,'q');
  // years; the last year is "year to date" when it does not reach December, compared with the same months of the year before
  const ys=[...new Set(ms.map(m=>m.slice(0,4)))],ytd=last.slice(5)!=='12';
@@ -870,7 +886,7 @@ function vFinancial(){
  const st=posStock(),sku=S.products.map(p=>({p,q:Math.max(0,posTotal(st,p.id)),c:+p.cogs||0})).filter(x=>x.q>0).sort((a,b)=>b.q*b.c-a.q*a.c||b.q-a.q);
  const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q)),mat=matRows(),cc=cashCalc(aRev);
  FIN={all,aRev,cc,mat,sku,skuV,skuQ,years,gp,noc:noCogsNote(all)};
- return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
+ return `<div style="margin-bottom:12px"><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
  <div class="fintop"><div class="card" id="valKpi"><div class="vmain"><div class="fhead tabh"><span class="ctab"><svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><circle cx="16" cy="13.5" r="1.2"/></svg>Valuation</span></div><div class="kn vbig${cc.cash+mat.val+skuV<0?' neg':''}" data-fmt="m" data-cu="${finAnim?cc.cash+mat.val+skuV:''}">${fM(cc.cash+mat.val+skuV)}</div>${(()=>{const Y=today().slice(0,4),sumC=c=>S.purch.filter(p=>p.category===c&&String(nd(p.date)).startsWith(Y)).reduce((a,p)=>a+qn(p.total),0),z=sumC('Zakat'),d=sumC('Dividen');
    return `<div class="zd" id="zakDiv"><div><span class="fic"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></span><span class="lbl">Zakat ${Y}</span>${z?`<b>${rp(z)}</b>`:'<span class="pill warn">Not paid yet</span>'}</div><div><span class="fic"><svg viewBox="0 0 24 24"><path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg></span><span class="lbl">Dividend ${Y}</span>${d?`<b>${rp(d)}</b>`:'<span class="pill warn">Not taken yet</span>'}</div></div>`})()}</div>
   <div class="vchart${finAnim?' anim':''}">${(()=>{const L=[['Cash',cc.cash],['Material',mat.val],['Product',skuV]],mx=Math.max(1,...L.map(x=>Math.abs(x[1])));return L.map((x,i)=>`<div class="vcol c${i}" onclick="finSheet('${['cash','mat','sku'][i]}')" title="Tap for details"><div class="kn${x[1]<0?' neg':''}">${fM(x[1])}</div><i class="${x[1]<0?'nb':''}" style="height:${Math.max(4,Math.round(Math.abs(x[1])/mx*84))}px;--d:${i*90}ms"></i><div class="lbl">${x[0]}</div></div>`).join('')})()}</div></div>
@@ -993,11 +1009,12 @@ function vTx(){
   if(txf!=='Income'&&txf!=='Expense')txf='Income';
   const FIC={tx:'<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',report:'<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',fin:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'};
   const fseg=`<div class="seg ico" style="margin-bottom:10px">${[['report','Report'],['fin','Financial'],['tx','Transactions']].map(x=>`<button class="${fv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="fv='${x[0]}';render()"><svg viewBox="0 0 24 24">${FIC[x[0]]}</svg></button>`).join('')}</div>`;
-  if(fv==='report')return `<h1>Finance</h1>`+fseg+vReport();
-  if(fv==='fin')return `<h1>Finance</h1>`+fseg+vFinancial();
+  // owner 2026-11-27: the view's title sits beside "Finance", smaller and lighter (it was a bold line above the filters)
+  if(fv==='report')return `<h1>Finance<span class="h1s">Monthly report</span></h1>`+fseg+vReport();
+  if(fv==='fin')return `<h1>Finance<span class="h1s">Financial</span></h1>`+fseg+vFinancial();
   // owner 2026-11-14: Income | Expense as round icons too, same size, beside the Finance tabs with a little space
   const TIC={Income:'<path d="M12 4v11M7 10l5 5 5-5M4 20h16"/>',Expense:'<path d="M12 20V9M7 14l5-5 5 5M4 4h16"/>'};
-  return `<h1>Finance</h1><div class="segrow">`+fseg+`<div class="seg ico">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" title="${s}" aria-label="${s}" onclick="txf='${s}';render()"><svg viewBox="0 0 24 24">${TIC[s]}</svg></button>`).join('')}</div></div>`+(txf==='Expense'?vExpense():vSales());
+  return `<h1>Finance<span class="h1s">Transactions · ${txf==='Expense'?'Expense':'Income'}</span></h1><div class="segrow">`+fseg+`<div class="seg ico">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" title="${s}" aria-label="${s}" onclick="txf='${s}';render()"><svg viewBox="0 0 24 24">${TIC[s]}</svg></button>`).join('')}</div></div>`+(txf==='Expense'?vExpense():vSales());
 }
 
 function prodFields(p={}){return[
@@ -1277,7 +1294,7 @@ function webSeg(){
   const loadFor=k=>k==='stat'?"if(!ST.loaded||Date.now()-(ST.at||0)>60000)statsLoad()":k==='testi'?"if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()":"if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()";
   const sub=mk==='web'?`<div class="seg ico">${[['cat','Catalog'],['testi','Testimonials'],['stat','Visitors']].map(x=>`<button class="${wv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="wv='${x[0]}';render();${loadFor(x[0])}"><svg viewBox="0 0 24 24">${SUB[x[0]]}</svg></button>`).join('')}</div>`:'';
   return `<div class="segrow"><div class="seg ico">${[['camp','Campaigns'],['web','Website']].map(x=>`<button class="${mk===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="mk='${x[0]}';render();${x[0]==='web'?"if(wv==='stat'){if(!ST.loaded||Date.now()-(ST.at||0)>60000)statsLoad()}else if(wv==='testi'){if(!TW.loaded||Date.now()-(TW.at||0)>60000)testiLoad()}else if(!WEB.loaded||Date.now()-(WEB.at||0)>60000)webLoad()":''}"><svg viewBox="0 0 24 24">${IC[x[0]]}</svg></button>`).join('')}</div>${sub}${more}${moreT}${moreS}</div>`}
-function vMkt(){return `<h1>Marketing</h1>`+webSeg()+(mk==='web'?(wv==='stat'?vStats():wv==='testi'?vTesti():vWeb()):vCamp())}
+function vMkt(){return `<h1>Marketing<span class="h1s">${mk==='web'?'Website · '+({cat:'Catalog',testi:'Testimonials',stat:'Visitors'}[wv]||'Catalog'):'Campaigns'}</span></h1>`+webSeg()+(mk==='web'?(wv==='stat'?vStats():wv==='testi'?vTesti():vWeb()):vCamp())}
 function vWeb(){
   if(!S.cfg.catUrl)return `<div class="card">${empty('Add the Website catalog URL in Settings to manage the wismir.id catalog here.')}</div>`;
   const note=WEB.err?`<div class="lbl neg" style="margin:0 6px 10px">${esc(WEB.err)}</div>`:WEB.busy&&WEB.stale?`<div class="lbl" style="margin:0 6px 10px">Updating the catalog…</div>`:WEB.msg?`<div class="lbl" style="margin:0 6px 10px">${esc(WEB.msg)}</div>`:'';
@@ -1569,7 +1586,7 @@ function addAnn(){form('New annual expense',annFields(),v=>{const a={id:uid(),..
 function editAnn(id){const a=(S.ann||[]).find(x=>x.id===id);if(!a)return;form('Edit annual expense',annFields(a),v=>{const n=cleanA(v);if(!annOk(n))return false;Object.assign(a,n);annSync(a);save();setTimeout(annSheet,0)},()=>{S.ann=S.ann.filter(x=>x.id!==id);S.tx=S.tx.filter(t=>!String(t.id).startsWith('a-'+id+'-'));save();setTimeout(annSheet,0)})}
 function vOps(){
   // owner 2026-11-14: round icon tabs like Finance (name in the tooltip / for screen readers)
-  const OIC={stock:'<path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/>',staff:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',att:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',store:'<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6zM9.5 20v-6h5v6"/>',exp:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'};
+  const OIC={stock:'<path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/>',staff:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',att:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',store:'<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6zM9.5 20v-6h5v6"/>',exp:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',audit:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'};
   // Stock: Products | History as icons beside the Operational tabs (owner 2026-11-14)
   const SIC={list:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',hist:'<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4h4M12 8v4.5l3 2"/>'};
   const simp=ops==='stock'&&stv!=='hist'?`<div class="bha"><button class="impb lg" onclick="importSheet()" title="Import from spreadsheet" aria-label="Import from spreadsheet"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M10 9.5V20"/></svg></button><button class="impb lg" onclick="importCount()" title="Import stock count" aria-label="Import stock count"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V2.8h6V4M9 13l2 2 4-4"/></svg></button></div>`:'';
@@ -1579,9 +1596,58 @@ function vOps(){
   const nRec=(S.rec||[]).length,nAnn=(S.ann||[]).filter(a=>!annDone(a)).length,bdg=n=>n?`<span class="bd2">${n}</span>`:'';
   const eico=ops==='exp'?`<button class="impb lg" id="recBtn" onclick="recSheet()" title="Recurring" aria-label="Recurring"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>${bdg(nRec)}</button><button class="impb lg" id="annBtn" onclick="annSheet()" title="Annually" aria-label="Annually"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${bdg(nAnn)}</button>`:'';
   const sseg=ops==='stock'?`<div class="seg ico">${[['list','Products'],['hist','History']].map(x=>`<button class="${stv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="stv='${x[0]}';render()"><svg viewBox="0 0 24 24">${SIC[x[0]]}</svg></button>`).join('')}</div>`:'';
-  return `<h1>Operational</h1><div class="segrow"><div class="seg ico">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense']].map(s=>`<button class="${ops===s[0]?'on':''}" title="${s[1]}" aria-label="${s[1]}" onclick="ops='${s[0]}';render()"><svg viewBox="0 0 24 24">${OIC[s[0]]}</svg></button>`).join('')}</div>${sseg}<div class="bha" style="margin-left:auto">${simp}${eico}${oadd}</div></div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp}[ops]||vStock)();
+  const oT={stock:'Stock · '+(stv==='hist'?'History':'Products'),staff:'Staff',att:'Attendance',store:'Store',exp:'Expense',audit:'Audit'}[ops]||'Stock';
+  return `<h1>Operational<span class="h1s">${oT}</span></h1><div class="segrow"><div class="seg ico">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense'],['audit','Audit']].map(s=>`<button class="${ops===s[0]?'on':''}" title="${s[1]}" aria-label="${s[1]}" onclick="ops='${s[0]}';render()"><svg viewBox="0 0 24 24">${OIC[s[0]]}</svg></button>`).join('')}</div>${sseg}<div class="bha" style="margin-left:auto">${ops==='audit'?audPick():''}${simp}${eico}${oadd}</div></div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp,audit:vAudit}[ops]||vStock)();
 }
 const posEmpty=what=>`<div class="card">${empty(S.cfg.url?'No '+what+' yet. It appears here once the store tablet (POS) is connected to the same Google Sheet.':'Connect Google Sheets in Settings to see '+what+' from the store tablet (POS).')}</div>`;
+// ---- Operational › Audit (owner 2026-11-27): read-only recap of the cashier tablets' Audit (POS › Audit, owner mode) ----
+// Variations (= photos in the wismir.id catalog) that are Low / Out in at least one store, per product, with the status of
+// every size in every store. Not editable here (owner's choice): statuses are set on the tablets. Sheet tab 'POS Audit' (Code.gs v22 sends it).
+let ASt='all',AUD=null,audAt=0,audBusy=false,audErr='';
+const AUD_URL='https://wismir.id/katalog.json',AUD_K='wismir_dash_cat',AUL={ok:'Enough',low:'Low',out:'Out'},AUR={ok:0,low:1,out:2};
+const audUrl=()=>window.__catUrl||AUD_URL;
+function audImg(v,thumb){if(window.__auImg)return window.__auImg(v);const base=new URL('.',new URL(audUrl(),location.href)).href;if(/^https?:/i.test(v))return v;const p=v.indexOf('/')>=0?v:'foto/'+v;return thumb&&/^foto\/[^/?]+$/.test(p)?base+'foto/t/'+p.slice(5).replace(/\.[^./]+$/,'')+'.jpg':base+p}
+function audParse(j){return (j&&Array.isArray(j.items)?j.items:[]).filter(o=>o&&o.nama&&!/^(ya|y|yes|true|1|v|x)$/i.test(String(o.sembunyi||''))).map(o=>{
+ const f=Array.from(new Set(Object.keys(o).filter(k=>/^foto/.test(k)).map(k=>String(o[k])).join('|').split(/[\s|,]+/).filter(u=>/^https?:/i.test(u)||/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(u))));
+ const uk=String(o.ukuran||'').trim();return {nama:String(o.nama).trim(),kat:String(o.kategori||'').trim()||'Other',sz:uk.indexOf(',')>=0?uk.split(',').map(x=>x.trim()).filter(Boolean):['all'],uk:uk,foto:f.length?f:['#'+String(o.nama).trim()]}})}
+try{const c=localStorage.getItem(AUD_K);if(c)AUD=audParse(JSON.parse(c))}catch(e){}
+function audLoad(){if(window.__auCatData){if(!AUD)AUD=audParse(window.__auCatData);return}if(audBusy||(AUD&&Date.now()-audAt<5*60000))return;audBusy=true;
+ fetch(audUrl(),{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{AUD=audParse(j);audAt=Date.now();audErr='';try{localStorage.setItem(AUD_K,JSON.stringify(j))}catch(e){}})
+ .catch(()=>{audErr='The wismir.id catalog could not be loaded. Check the internet connection.'}).finally(()=>{audBusy=false;if(tab==='ops'&&ops==='audit')render()})}
+const audStores=()=>S.stores.filter(s=>s.type==='Physical store').map(s=>s.name);
+// short column names: words every store name starts with are left out ("WISMIR Toko A" / "WISMIR Toko B" -> "Toko A" / "Toko B")
+function audShort(L){const W=L.map(x=>String(x).split(/\s+/));let k=0;while(L.length>1&&W.every(w=>w.length>k+1&&w[k]===W[0][k]))k++;if(k&&W.some(w=>w.slice(k).join(' ').length<=2))k--;return L.map((x,i)=>W[i].slice(k).join(' ')||x)}
+function audMap(){const m={};P('audit').forEach(r=>{let z={};try{z=JSON.parse(r.status||'{}')||{}}catch(e){}m[String(r.id)]={z:z,by:String(r.oleh||''),t:+r.t||0,w:String(r.waktu||'')}});return m}
+const audOf=(M,st,f,z)=>{const r=M[st+'|'+f];return (r&&r.z&&r.z[z])||'ok'};
+function audWorst(M,sts,p,f){let w='ok';sts.forEach(st=>p.sz.forEach(z=>{const s=audOf(M,st,f,z);if(AUR[s]>AUR[w])w=s}));return w}
+const audWhen=r=>r&&r.t?fmtD(ymdOf(new Date(r.t)))+' '+String(new Date(r.t).getHours()).padStart(2,'0')+':'+String(new Date(r.t).getMinutes()).padStart(2,'0'):'';
+function ymdOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function audCell(s,z){return `<span class="aus ${s}" title="${esc(z==='all'?'All size':z)}: ${AUL[s]}">${esc(z==='all'?'All':z)}</span>`}
+// store filter: a dropdown at the right of the Operational tab row (owner 2026-11-27)
+function audPick(){const all=audStores();if(all.length<2)return '';return `<div class="f" style="margin:0"><select id="audSt" onchange="ASt=this.value;render()" aria-label="Filter by store"><option value="all">All stores</option>${all.map(x=>`<option value="${esc(x)}" ${x===ASt?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`}
+// owner 2026-11-27: "Last updated" = newest audit change per store (no extra data: every audit row keeps its own time)
+function audLast(M,sts){const last={};Object.keys(M).forEach(id=>{const st=id.slice(0,id.indexOf('|'));if(sts.indexOf(st)>=0&&M[id].t>(last[st]||0))last[st]=M[id].t});
+ const nm=audShort(sts),when=t=>t?audWhen({t:t}):'Not audited yet';
+ return `<div class="card audlu"><div class="lbl">Last updated</div>${sts.length===1?`<b class="audlt">${when(last[sts[0]])}</b>`:sts.map((st,i)=>`<div class="audlr"><span>${esc(nm[i])}</span><span>${when(last[st])}</span></div>`).join('')}</div>`}
+function vAudit(){
+ audLoad();const all=audStores(),sts=ASt==='all'||all.indexOf(ASt)<0?all:[ASt],M=audMap();if(ASt!=='all'&&all.indexOf(ASt)<0)ASt='all';
+ const head=`<div class="lbl" style="margin:0 4px 12px">Restock list from the store tablets (POS › Audit, owner mode) · view only</div>`+(audErr?`<div class="card">${empty(esc(audErr))}</div>`:'')+(S.cfg.codeOld?`<div class="card">${empty('Update Code.gs DASHBOARD to see the audit from the tablets.')}</div>`:'');
+ if(!AUD)return head+`<div class="card">${empty(audBusy||!audErr?'Loading the wismir.id catalog…':'No catalog on this device yet.')}</div>`;
+ let nl=0,no=0;const G=AUD.map(p=>{const ix=p.foto.map((f,j)=>j).filter(j=>{const w=audWorst(M,sts,p,p.foto[j]);if(w==='out')no++;else if(w==='low')nl++;return w!=='ok'});return {p:p,ix:ix}}).filter(g=>g.ix.length);
+ const kp=`<div class="audk"><div class="card"><div class="lbl">Need restock</div><b>${nl+no}</b><span class="lbl">variations</span></div><div class="card"><div class="lbl"><i class="aud out"></i>Out</div><b>${no}</b></div><div class="card"><div class="lbl"><i class="aud low"></i>Low</div><b>${nl}</b></div>${audLast(M,sts)}</div>`;
+ if(!G.length)return head+kp+`<div class="card">${empty(P('audit').length?'Every variation is enough'+(ASt==='all'?' in every store.':' in '+esc(ASt)+'.'):'No audit yet. Statuses appear here once a tablet fills in POS › Audit (owner mode).')}</div>`;
+ return head+kp+G.map(g=>`<div class="audg"><div class="audh"><b>${esc(g.p.nama)}</b><span class="pill">${esc(g.p.kat)}</span><span class="lbl">${g.ix.length} of ${g.p.foto.length} variations</span></div><div class="audl">${g.ix.map(j=>audCard(M,sts,AUD.indexOf(g.p),j)).join('')}</div></div>`).join('');
+}
+function audCard(M,sts,pi,j){const p=AUD[pi],f=p.foto[j];
+ const last=sts.map(st=>M[st+'|'+f]).filter(Boolean).sort((a,b)=>b.t-a.t)[0];
+ return `<div class="audc" onclick="audSheet(${pi},${j})"><div class="audp">${f.charAt(0)==='#'?'':`<img src="${esc(audImg(f,1))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${esc(audImg(f))}'}else this.style.visibility='hidden'">`}</div>
+  <div class="audb"><div class="t">Photo ${j+1}</div><table class="audt"><tr><th></th>${audShort(sts).map((n,i)=>`<th title="${esc(sts[i])}">${esc(n)}</th>`).join('')}</tr>${p.sz.map(z=>`<tr><td>${esc(z==='all'?'All':z)}</td>${sts.map(st=>`<td>${audCell(audOf(M,st,f,z),z)}</td>`).join('')}</tr>`).join('')}</table>${last?`<div class="lbl">Updated ${audWhen(last)}</div>`:''}</div></div>`}
+function audSheet(pi,j){
+ const p=AUD[pi];if(!p)return;const f=p.foto[j],M=audMap(),sts=audStores();closePop();$('#sheet').oninput=null;
+ $('#sheet').innerHTML=`<h3>${esc(p.nama)} · photo ${j+1}</h3><div class="lbl" style="margin:-8px 6px 12px">${esc(p.kat)} · ${esc(p.sz[0]==='all'?(p.uk||'All size'):'Size '+p.sz.join(', '))} · view only, change it on a tablet (POS › Audit)</div>
+ <div class="audbig">${f.charAt(0)==='#'?'':`<img src="${esc(audImg(f))}" alt="" referrerpolicy="no-referrer">`}</div>
+ <div class="card">${sts.map(st=>{const r=M[st+'|'+f];return `<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(st)}</div><div class="lbl">${r?esc(r.by||'')+' · '+audWhen(r):'Not audited yet (counts as enough)'}</div></div><span class="audz">${p.sz.map(z=>audCell(audOf(M,st,f,z),z)).join('')}</span></div>`}).join('')}</div>
+ <button class="btn sec" id="no">Close</button>`;$('#no').onclick=close;$('#bg').classList.add('open')}
 function vAtt(){
   const m=today().slice(0,7),by={};
   P('absen').forEach(a=>{const d=nd(a.tanggal);if(!d.startsWith(m))return;const k=String(a.nama||'?'),o=by[k]||(by[k]={n:0,last:''});o.n++;if(d>o.last)o.last=d});
