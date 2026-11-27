@@ -252,7 +252,7 @@ html[data-theme=dark] .gp.up{background:#1f3a2b}html[data-theme=dark] .gp.dn{bac
 html[data-theme=dark]{--aok:#6db587;--alow:#e8b85a;--aout:#e2705a;--alowt:#1a1512}
 .aud{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}.aud.low{background:var(--alow)}.aud.out{background:var(--aout)}
 .aus{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 6px;border-radius:99px;font-size:11.5px;font-weight:800;color:#fff}.aus.ok{background:var(--aok)}.aus.low{background:var(--alow);color:var(--alowt)}.aus.out{background:var(--aout)}
-.audk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.audk .card{margin:0;padding:12px 16px}.audk b{display:block;font-size:24px;line-height:1.2}
+.audk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.audk b.audlt{font-size:17px;margin-top:4px}.audlr{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:2px 0}.audlr span:first-child{font-weight:700;white-space:nowrap}.audlr span:last-child{color:var(--mute);white-space:nowrap}.audk .card{margin:0;padding:12px 16px}.audk b{display:block;font-size:24px;line-height:1.2}
 .audg{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin-bottom:12px}
 .audh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}.audh b{font-size:16px}.audh .lbl{margin-left:auto}
 .audl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
@@ -262,7 +262,7 @@ html[data-theme=dark]{--aok:#6db587;--alow:#e8b85a;--aout:#e2705a;--alowt:#1a151
 .audt{border-collapse:collapse;width:100%;table-layout:fixed}.audt th{font-size:10.5px;font-weight:700;color:var(--mute);text-align:center;padding:0 2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.audt th:first-child,.audt td:first-child{width:38px;text-align:left;font-size:12px;font-weight:700;color:var(--mute)}.audt td{text-align:center;padding:2px}
 .audbig{aspect-ratio:3/4;max-height:52vh;margin:0 auto 12px;border-radius:16px;overflow:hidden;background:var(--sec)}.audbig img{width:100%;height:100%;object-fit:contain;display:block}
 .audz{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
-@media (max-width:600px){.audl{grid-template-columns:minmax(0,1fr)}.audk b{font-size:20px}}
+@media (max-width:600px){.audl{grid-template-columns:minmax(0,1fr)}.audk{grid-template-columns:repeat(3,minmax(0,1fr))}.audk b{font-size:20px}.audk .audlu{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -1625,12 +1625,16 @@ function ymdOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'
 function audCell(s,z){return `<span class="aus ${s}" title="${esc(z==='all'?'All size':z)}: ${AUL[s]}">${esc(z==='all'?'All':z)}</span>`}
 // store filter: a dropdown at the right of the Operational tab row (owner 2026-11-27)
 function audPick(){const all=audStores();if(all.length<2)return '';return `<div class="f" style="margin:0"><select id="audSt" onchange="ASt=this.value;render()" aria-label="Filter by store"><option value="all">All stores</option>${all.map(x=>`<option value="${esc(x)}" ${x===ASt?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`}
+// owner 2026-11-27: "Last updated" = newest audit change per store (no extra data: every audit row keeps its own time)
+function audLast(M,sts){const last={};Object.keys(M).forEach(id=>{const st=id.slice(0,id.indexOf('|'));if(sts.indexOf(st)>=0&&M[id].t>(last[st]||0))last[st]=M[id].t});
+ const nm=audShort(sts),when=t=>t?audWhen({t:t}):'Not audited yet';
+ return `<div class="card audlu"><div class="lbl">Last updated</div>${sts.length===1?`<b class="audlt">${when(last[sts[0]])}</b>`:sts.map((st,i)=>`<div class="audlr"><span>${esc(nm[i])}</span><span>${when(last[st])}</span></div>`).join('')}</div>`}
 function vAudit(){
  audLoad();const all=audStores(),sts=ASt==='all'||all.indexOf(ASt)<0?all:[ASt],M=audMap();if(ASt!=='all'&&all.indexOf(ASt)<0)ASt='all';
  const head=`<div class="lbl" style="margin:0 4px 12px">Restock list from the store tablets (POS › Audit, owner mode) · view only</div>`+(audErr?`<div class="card">${empty(esc(audErr))}</div>`:'')+(S.cfg.codeOld?`<div class="card">${empty('Update Code.gs DASHBOARD to see the audit from the tablets.')}</div>`:'');
  if(!AUD)return head+`<div class="card">${empty(audBusy||!audErr?'Loading the wismir.id catalog…':'No catalog on this device yet.')}</div>`;
  let nl=0,no=0;const G=AUD.map(p=>{const ix=p.foto.map((f,j)=>j).filter(j=>{const w=audWorst(M,sts,p,p.foto[j]);if(w==='out')no++;else if(w==='low')nl++;return w!=='ok'});return {p:p,ix:ix}}).filter(g=>g.ix.length);
- const kp=`<div class="audk"><div class="card"><div class="lbl">Need restock</div><b>${nl+no}</b><span class="lbl">variations</span></div><div class="card"><div class="lbl"><i class="aud out"></i>Out</div><b>${no}</b></div><div class="card"><div class="lbl"><i class="aud low"></i>Low</div><b>${nl}</b></div></div>`;
+ const kp=`<div class="audk"><div class="card"><div class="lbl">Need restock</div><b>${nl+no}</b><span class="lbl">variations</span></div><div class="card"><div class="lbl"><i class="aud out"></i>Out</div><b>${no}</b></div><div class="card"><div class="lbl"><i class="aud low"></i>Low</div><b>${nl}</b></div>${audLast(M,sts)}</div>`;
  if(!G.length)return head+kp+`<div class="card">${empty(P('audit').length?'Every variation is enough'+(ASt==='all'?' in every store.':' in '+esc(ASt)+'.'):'No audit yet. Statuses appear here once a tablet fills in POS › Audit (owner mode).')}</div>`;
  return head+kp+G.map(g=>`<div class="audg"><div class="audh"><b>${esc(g.p.nama)}</b><span class="pill">${esc(g.p.kat)}</span><span class="lbl">${g.ix.length} of ${g.p.foto.length} variations</span></div><div class="audl">${g.ix.map(j=>audCard(M,sts,AUD.indexOf(g.p),j)).join('')}</div></div>`).join('');
 }
