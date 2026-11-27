@@ -56,7 +56,7 @@ em.g{background:var(--green)}em.r{background:var(--red)}
 @media (max-width:699px){.hero{grid-template-columns:minmax(0,1fr)}}.hero>*{min-width:0}.hbig{overflow-wrap:anywhere}
 @media (max-width:380px){.bars{gap:4px}.bars .bv{font-size:9.5px}.hero{padding:18px 14px}.hbig{font-size:30px!important}.hs{font-size:12.5px}}
 .panel{background:var(--panel);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--pborder);border-radius:30px;padding:20px;box-shadow:0 6px 28px rgba(30,60,60,.05)}
-.panel h1{font-size:24px;margin:0 0 14px}
+.panel h1{font-size:24px;margin:0 0 14px}.h1s{font-size:15px;font-weight:600;letter-spacing:0;color:var(--hmute);margin-left:10px;vertical-align:3px}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mute)}.live i{width:7px;height:7px;border-radius:50%;background:var(--acc)}
@@ -780,7 +780,7 @@ function fPeriod(all){const ms=[...new Set(all.map(r=>r.m))].sort(),last=ms[ms.l
   label:isY?'Year to date · January – '+MONL(last):MONL(FM),pl:isY?'the same months of '+py:MONL(prevMon(FM))}}
 function vReport(){
  // owner 2026-11-16: store filter beside the month filter, default All stores
- const all0=finRows();if(!all0.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Monthly report</div>`+fEmpty();
+ const all0=finRows();if(!all0.length)return fEmpty();
  const stl=[...new Set(all0.map(r=>r.st))].sort((a,b)=>a.localeCompare(b));if(RST!=='all'&&!stl.includes(RST))RST='all';
  const all=RST==='all'?all0:all0.filter(r=>r.st===RST);
  const P=fPeriod(all),sel=P.sel,rev=fSum(sel,'v'),units=fSum(sel,'q'),cost=fSum(sel,'cost'),pr=P.prev;
@@ -808,7 +808,7 @@ function vReport(){
  REP={sel,rev,cat,CC,prods,stores,label:P.label,noc:noCogsNote(sel)};
  // owner 2026-11-15: Report fits one screen; icons, animation; details open as sheets
  const kc=(id,ic,l,v,fmt,cu,sp,ch,extra)=>`<div class="card fcard rk" id="${id}"><div class="fhead tabh"><span class="ctab">${ic.replace(/<\/?span[^>]*>/g,'')}${l}</span></div><div class="kpr"><div class="kn fbig" data-fmt="${fmt}" data-cu="${A?cu:''}">${v}</div>${sp}</div><div class="lbl">${ch} vs ${P.pl}</div>${extra||''}</div>`;
- return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="t" style="font-weight:700;font-size:17px">Monthly report</div><div class="lbl">${P.label}${RST==='all'?'':' · '+esc(RST)}</div></div>
+ return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div class="lbl">${P.label}${RST==='all'?'':' · '+esc(RST)}</div></div>
  <div class="rfil"><div class="f" style="margin:0"><select id="rStoreF" onchange="RST=this.value;render()" aria-label="Filter by store"><option value="all">All stores</option>${stl.map(x=>`<option value="${esc(x)}" ${x===RST?'selected':''}>${esc(x)}</option>`).join('')}</select></div><div class="f" style="margin:0"><select onchange="FM=this.value;render()" aria-label="Filter by month">${opts.map(o=>`<option value="${o[0]}" ${o[0]===FM?'selected':''}>${o[1]}</option>`).join('')}</select></div></div></div>
  <div class="fintop rtop">${kc('rRev','<span class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.4c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2s1.2 1.7 2.8 2 2.8.8 2.8 2-1.2 2-2.8 2c-1.3 0-2.4-.6-2.9-1.5M12 6.5V8m0 8v1.5"/></svg></span>','Total revenue',jt(rev),'jt',rev,dBars(P,A,'rev'),fchg(rev,fSum(pr,'v')),`<div class="fsub"><span class="lbl">Net profit${rev?' · '+pc((rev-cost-ex)/rev*100):''}</span><b class="${rev-cost-ex<0?'neg':''}">${jt(rev-cost-ex)}</b></div>`)}
   ${kc('rPcs','<span class="fic"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>','Products sold',units.toLocaleString('id-ID')+' pcs','pcs',units,dBars(P,A,'q'),fchg(units,fSum(pr,'q')),brandMix(sel,units))}
@@ -867,7 +867,7 @@ function cashCalc(rev){const pur=S.purch.reduce((a,p)=>a+qn(p.total),0),man=S.pr
   return{rev,pur,man,sup,exp,cash:rev-pur-man-sup-exp}}
 const mq=v=>(+v||0).toLocaleString('id-ID',{maximumFractionDigits:1});
 function vFinancial(){
- const all=finRows();if(!all.length)return `<div class="t" style="font-weight:700;font-size:17px;margin-bottom:12px">Financial</div>`+fEmpty();
+ const all=finRows();if(!all.length)return fEmpty();
  const ms=[...new Set(all.map(r=>r.m))].sort(),first=ms[0],last=ms[ms.length-1],aRev=fSum(all,'v'),aItems=fSum(all,'q');
  // years; the last year is "year to date" when it does not reach December, compared with the same months of the year before
  const ys=[...new Set(ms.map(m=>m.slice(0,4)))],ytd=last.slice(5)!=='12';
@@ -886,7 +886,7 @@ function vFinancial(){
  const st=posStock(),sku=S.products.map(p=>({p,q:Math.max(0,posTotal(st,p.id)),c:+p.cogs||0})).filter(x=>x.q>0).sort((a,b)=>b.q*b.c-a.q*a.c||b.q-a.q);
  const skuV=sku.reduce((a,x)=>a+x.q*x.c,0),skuQ=sku.reduce((a,x)=>a+x.q,0),maxQ=Math.max(1,...sku.map(x=>x.q)),mat=matRows(),cc=cashCalc(aRev);
  FIN={all,aRev,cc,mat,sku,skuV,skuQ,years,gp,noc:noCogsNote(all)};
- return `<div style="margin-bottom:12px"><div class="t" style="font-weight:700;font-size:17px">Financial</div><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
+ return `<div style="margin-bottom:12px"><div class="lbl">All time · ${MONL(first)} – ${MONL(last)}</div></div>
  <div class="fintop"><div class="card" id="valKpi"><div class="vmain"><div class="fhead tabh"><span class="ctab"><svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><circle cx="16" cy="13.5" r="1.2"/></svg>Valuation</span></div><div class="kn vbig${cc.cash+mat.val+skuV<0?' neg':''}" data-fmt="m" data-cu="${finAnim?cc.cash+mat.val+skuV:''}">${fM(cc.cash+mat.val+skuV)}</div>${(()=>{const Y=today().slice(0,4),sumC=c=>S.purch.filter(p=>p.category===c&&String(nd(p.date)).startsWith(Y)).reduce((a,p)=>a+qn(p.total),0),z=sumC('Zakat'),d=sumC('Dividen');
    return `<div class="zd" id="zakDiv"><div><span class="fic"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></span><span class="lbl">Zakat ${Y}</span>${z?`<b>${rp(z)}</b>`:'<span class="pill warn">Not paid yet</span>'}</div><div><span class="fic"><svg viewBox="0 0 24 24"><path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg></span><span class="lbl">Dividend ${Y}</span>${d?`<b>${rp(d)}</b>`:'<span class="pill warn">Not taken yet</span>'}</div></div>`})()}</div>
   <div class="vchart${finAnim?' anim':''}">${(()=>{const L=[['Cash',cc.cash],['Material',mat.val],['Product',skuV]],mx=Math.max(1,...L.map(x=>Math.abs(x[1])));return L.map((x,i)=>`<div class="vcol c${i}" onclick="finSheet('${['cash','mat','sku'][i]}')" title="Tap for details"><div class="kn${x[1]<0?' neg':''}">${fM(x[1])}</div><i class="${x[1]<0?'nb':''}" style="height:${Math.max(4,Math.round(Math.abs(x[1])/mx*84))}px;--d:${i*90}ms"></i><div class="lbl">${x[0]}</div></div>`).join('')})()}</div></div>
@@ -1009,8 +1009,9 @@ function vTx(){
   if(txf!=='Income'&&txf!=='Expense')txf='Income';
   const FIC={tx:'<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',report:'<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',fin:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'};
   const fseg=`<div class="seg ico" style="margin-bottom:10px">${[['report','Report'],['fin','Financial'],['tx','Transactions']].map(x=>`<button class="${fv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="fv='${x[0]}';render()"><svg viewBox="0 0 24 24">${FIC[x[0]]}</svg></button>`).join('')}</div>`;
-  if(fv==='report')return `<h1>Finance</h1>`+fseg+vReport();
-  if(fv==='fin')return `<h1>Finance</h1>`+fseg+vFinancial();
+  // owner 2026-11-27: the view's title sits beside "Finance", smaller and lighter (it was a bold line above the filters)
+  if(fv==='report')return `<h1>Finance<span class="h1s">Monthly report</span></h1>`+fseg+vReport();
+  if(fv==='fin')return `<h1>Finance<span class="h1s">Financial</span></h1>`+fseg+vFinancial();
   // owner 2026-11-14: Income | Expense as round icons too, same size, beside the Finance tabs with a little space
   const TIC={Income:'<path d="M12 4v11M7 10l5 5 5-5M4 20h16"/>',Expense:'<path d="M12 20V9M7 14l5-5 5 5M4 4h16"/>'};
   return `<h1>Finance</h1><div class="segrow">`+fseg+`<div class="seg ico">${['Income','Expense'].map(s=>`<button class="${txf===s?'on':''}" title="${s}" aria-label="${s}" onclick="txf='${s}';render()"><svg viewBox="0 0 24 24">${TIC[s]}</svg></button>`).join('')}</div></div>`+(txf==='Expense'?vExpense():vSales());
