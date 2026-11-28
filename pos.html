@@ -180,6 +180,7 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .au-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.au-tools .seg{margin:0}
 .au-seg button{display:inline-flex;align-items:center;gap:7px}.au-seg .cnt{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px}
 .au-seg button.on .cnt{background:var(--red)}
+.au-fd svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .au-fd{display:inline-flex;gap:3px}.au-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}.au-dot.ok{background:var(--green)}.au-dot.low{background:var(--amber)}.au-dot.out{background:var(--red)}
 .au-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .au-card{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}.au-card.out{border:2px solid var(--red)}
@@ -218,16 +219,20 @@ h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
 .au-tt{display:flex;align-items:flex-start;gap:10px}.au-tt b{font-size:19px;flex:1}.au-tt small{display:block;font-size:13px;color:var(--mute);font-weight:500}
 .au-x{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:none;cursor:pointer}.au-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .au-lab{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-.au-st{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.au-st{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .au-st button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 4px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
 .au-st button.on.ok{background:var(--green);border-color:var(--green);color:#fff}.au-st button.on.low{background:var(--amber);border-color:var(--amber);color:#16181b}.au-st button.on.out{background:var(--red);border-color:var(--red);color:#fff}.au-st button.on .au-dot{background:currentColor}
 .au-szl{display:flex;flex-direction:column;gap:8px}.au-szr{display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:8px}.au-szr>b{font-size:15px;text-align:center;background:var(--sec);border-radius:10px;padding:10px 0}
 .au-szr .au-st button{padding:10px 2px;font-size:14px}
+.au-st button.rq{border:1.5px dashed var(--blue);color:var(--blue);background:var(--card)}.au-st button.rq.on{background:var(--blue);border-style:solid;color:#fff}
+.au-rc.rq{border-color:var(--blue)}.au-rc.rq .au-rh,.au-rc.rq .au-rr{grid-template-columns:44px minmax(0,1fr) 30px}.au-bdg.rqb{background:var(--blue);color:#fff}
+.au-rx{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0;cursor:pointer;color:var(--mute)}.au-rx svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.au-bst em{font-style:normal;color:var(--mute);font-weight:500;font-size:11px}
 .au-ol div{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}.au-ol div:last-child{border-bottom:0}.au-ol b{white-space:nowrap}.au-ol em{font-style:normal;color:var(--mute);font-size:12px;margin-left:auto}
 .au-done{border:0;background:var(--green);color:#fff;border-radius:14px;padding:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 @media (max-width:520px){.au-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.au-rgrid{grid-template-columns:minmax(0,1fr)}
  .au-pop{place-items:end center}.au-dlg{grid-template-columns:minmax(0,1fr);grid-template-rows:34% minmax(0,1fr);border-radius:24px 24px 0 0;width:100%;padding-bottom:env(safe-area-inset-bottom,0px)}
- .au-bd{padding:16px}.au-th{width:30px;border-radius:7px}.au-ths{bottom:8px;gap:5px}.au-st button .au-dot{display:none}.au-szr{grid-template-columns:40px minmax(0,1fr)}.au-ol em{width:100%;margin-left:0}}
+ .au-bd{padding:16px}.au-th{width:30px;border-radius:7px}.au-ths{bottom:8px;gap:5px}.au-st button .au-dot{display:none}.au-st{gap:5px}.au-st button{font-size:12.5px;padding:12px 0;min-width:0}.au-szr .au-st button{font-size:12px;padding:10px 0}.au-szr{grid-template-columns:40px minmax(0,1fr)}.au-ol em{width:100%;margin-left:0}}
 </style>
 </head>
 <body>
@@ -289,6 +294,7 @@ const IC={
  plus:'<path d="M12 5v14M5 12h14"/>',
  down:'<path d="M6 9l6 6 6-6"/>',
  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+ arrowIn:'<path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 19h14"/>',
  card:'<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/>',
  swap:'<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
@@ -1250,6 +1256,11 @@ const auSizeTxt=p=>auSz(p)[0]==='all'?(p.uk||'All size'):'Size '+auSz(p).join(' 
 const auStores=()=>S.locs&&S.locs.stores.length?S.locs.stores:['Toko A','Toko B'];
 function auStore(){const L=auStores();const c=S.cfg.store,s=SRC(c);return L.indexOf(c)>=0?c:L.indexOf(s)>=0?s:L[0]}
 const auId=(st,f)=>st+'|'+f;
+// Request (owner 2026-11-28): asks for a variation / size to be sent here. It never changes the status; it is stored in the same audit row
+// as z['q:<size>'] = time (older tablets and the dashboard only read z[<size>], so they ignore it and no new Sheet column is needed).
+const auReqT=(st,f,z)=>{const r=auRec(st,f);return (r&&r.z&&+r.z['q:'+z])||0};
+function auReqList(st){const G=[];(CAT||[]).forEach((p,i)=>{const ix=[];p.foto.forEach((f,j)=>{const zs=auSz(p).filter(z=>auReqT(st,f,z));if(zs.length)ix.push({j:j,zs:zs})});if(ix.length)G.push({p:p,i:i,ix:ix})});return G}
+const auReqN=st=>auReqList(st).reduce((n,g)=>n+g.ix.reduce((m,x)=>m+x.zs.length,0),0);
 function auRec(st,f){const id=auId(st,f);return S.audit.find(a=>a.id===id)}
 const auOf=(st,f,z)=>{const r=auRec(st,f);return (r&&r.z&&r.z[z])||'ok'};
 function auW(st,p,f){let w='ok';auSz(p).forEach(z=>{const s=auOf(st,f,z);if(AU_RANK[s]>AU_RANK[w])w=s});return w}
@@ -1264,13 +1275,14 @@ function viewAudit(){
  if(!ownerOK)return '<section class="panel" style="max-width:420px;margin:0 auto"><div class="ph"><h2>Audit</h2></div><div class="note">Audit hanya bisa dibuka di mode owner.</div><button class="btn" data-a="tab" data-t="owner">Aktifkan mode owner</button></section>';
  catLoad(false);
  const st=auStore(),L=auStores(),cats=auCats();if(cats.indexOf(auCat)<0)auCat=cats[0]||'';
- const n=CAT?auNeed(st):0;
- const fSeg='<div class="seg au-seg"><button class="'+(auF==='all'?'on':'')+'" data-a="auF" data-f="all"><span class="au-fd"><i class="au-dot ok"></i><i class="au-dot low"></i><i class="au-dot out"></i></span>Semua status</button><button class="'+(auF==='rs'?'on':'')+'" data-a="auF" data-f="rs"><span class="au-fd"><i class="au-dot low"></i><i class="au-dot out"></i></span>Perlu restock'+(n?'<span class="cnt">'+n+'</span>':'')+'</button></div>';
+ const n=CAT?auNeed(st):0,nq=CAT?auReqN(st):0;
+ const fSeg='<div class="seg sc au-seg"><button class="'+(auF==='all'?'on':'')+'" data-a="auF" data-f="all"><span class="au-fd"><i class="au-dot ok"></i><i class="au-dot low"></i><i class="au-dot out"></i></span>Semua status</button><button class="'+(auF==='rs'?'on':'')+'" data-a="auF" data-f="rs"><span class="au-fd"><i class="au-dot low"></i><i class="au-dot out"></i></span>Perlu restock'+(n?'<span class="cnt">'+n+'</span>':'')+'</button><button class="'+(auF==='rq'?'on':'')+'" data-a="auF" data-f="rq"><span class="au-fd">'+svg('arrowIn')+'</span>Request'+(nq?'<span class="cnt">'+nq+'</span>':'')+'</button></div>';
  const cSeg=auF==='all'&&cats.length?'<div class="seg sc au-seg">'+cats.map(c=>'<button class="'+(c===auCat?'on':'')+'" data-a="auCat" data-c="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div>':'';
  const notes=(catErr?'<div class="note">'+esc(catErr)+'</div>':'')+(syncOn()&&S.codeV&&S.codeV<21?'<div class="note">Status audit tersimpan di tablet ini, tapi belum bisa dikirim: Apps Script (Code.gs) di Google Sheet perlu diperbarui ke versi terbaru.</div>':'');
  let body;
  if(!CAT)body='<div class="au-empty">'+(catBusy||!catErr?'Memuat katalog wismir.id…':'Katalog belum ada di tablet ini.')+'</div>';
  else if(auF==='rs')body=auRestock(st);
+ else if(auF==='rq')body=auRequests(st);
  else{const P=CAT.map((p,i)=>({p:p,i:i})).filter(x=>x.p.kat===auCat);body=P.length?'<div class="au-grid">'+P.map(x=>auCard(st,x.p,x.i)).join('')+'</div>':'<div class="au-empty">Tidak ada produk di kategori ini.</div>'}
  return '<section class="panel"><div class="ph"><h2>Audit · '+esc(st)+'</h2><button class="lnk" data-a="auReload">'+(catBusy?'Memuat…':'Muat ulang')+'</button></div>'+
   '<div class="au-tools">'+fSeg+cSeg+'</div>'+notes+body+'</section>';
@@ -1283,13 +1295,20 @@ function auRestock(st){
  const G=CAT.map((p,i)=>({p:p,i:i,ix:p.foto.map((f,j)=>j).filter(j=>auW(st,p,p.foto[j])!=='ok')})).filter(g=>g.ix.length);
  return '<div class="au-sub">Variasi berstatus Kurang atau Habis di '+esc(st)+'. Ketuk foto untuk ubah status.</div>'+(G.length?G.map(g=>'<section class="au-grp"><div class="au-gh"><b>'+esc(g.p.nama)+'</b><span>'+esc(g.p.kat)+'</span><span>'+g.ix.length+' dari '+g.p.foto.length+' variasi</span></div><div class="au-rgrid">'+g.ix.map(j=>auRc(st,g.p,g.i,j)).join('')+'</div></section>').join(''):'<div class="au-empty">Semua variasi di '+esc(st)+' cukup.</div>');
 }
+function auRequests(st){
+ const G=auReqList(st);
+ return '<div class="au-sub">Barang yang diminta untuk dikirim ke '+esc(st)+'. Minta barang lewat tombol Request di pop up. Status tidak berubah.</div>'+(G.length?G.map(g=>'<section class="au-grp"><div class="au-gh"><b>'+esc(g.p.nama)+'</b><span>'+esc(g.p.kat)+'</span><span>'+g.ix.length+' variasi</span></div><div class="au-rgrid">'+g.ix.map(x=>auRq(st,g.p,g.i,x)).join('')+'</div></section>').join(''):'<div class="au-empty">Belum ada request untuk '+esc(st)+'.</div>');
+}
+function auRq(st,p,i,x){const f=p.foto[x.j];
+ return '<div class="au-rc rq"><button class="au-pic" data-a="auOpen" data-k="'+i+'-'+x.j+'" aria-label="Buka '+esc(p.nama)+' variasi '+(x.j+1)+'">'+auImg(f)+'<span class="au-bdg rqb">Request</span></button><div class="au-rb"><b>Foto '+(x.j+1)+'</b><div class="au-rh"><span>Size</span><span>Dari</span><span></span></div>'+
+  x.zs.map(z=>{const b=auBest(st,f,z),t=auReqT(st,f,z);return '<div class="au-rr"><span class="au-szc"><span class="'+auOf(st,f,z)+'">'+(z==='all'?'All':esc(z))+'</span></span>'+(b?'<span class="au-bst"><i class="au-dot '+b.s+'"></i>'+esc(b.x)+' <em>'+dm(t)+'</em></span>':'<span class="au-bst none">Habis di semua toko</span>')+'<button class="au-rx" data-a="auReqDel" data-k="'+i+'-'+x.j+'" data-z="'+esc(z)+'" aria-label="Batalkan request size '+esc(z)+'">'+svg('x')+'</button></div>'}).join('')+'</div></div>'}
 function auRc(st,p,i,j){const f=p.foto[j];
  return '<div class="au-rc"><button class="au-pic" data-a="auOpen" data-k="'+i+'-'+j+'" aria-label="Ubah status '+esc(p.nama)+' variasi '+(j+1)+'">'+auImg(f)+'<span class="au-bdg">Restock</span></button><div class="au-rb"><b>Foto '+(j+1)+'</b><div class="au-rh"><span>Size</span><span>Dari</span></div>'+
   auSz(p).map(z=>{const s=auOf(st,f,z),b=s==='ok'?null:auBest(st,f,z);return '<div class="au-rr"><span class="au-szc"><span class="'+s+'">'+(z==='all'?'All':esc(z))+'</span></span>'+(s==='ok'?'<span class="au-bst none">–</span>':b?'<span class="au-bst"><i class="au-dot '+b.s+'"></i>'+esc(b.x)+'</span>':'<span class="au-bst none">Habis di semua toko</span>')+'</div>'}).join('')+'</div></div>'}
 // pop up
 function auPopHtml(){
  const a=auK.split('-'),i=+a[0],j=+a[1],p=(CAT||[])[i];if(!p)return '';const f=p.foto[j],n=p.foto.length,st=auStore(),sz=auSz(p),one=sz[0]==='all';
- const btns=z=>{const cur=auOf(st,f,z);return ['ok','low','out'].map(s=>'<button class="'+s+(cur===s?' on':'')+'" data-a="auSet" data-z="'+esc(z)+'" data-s="'+s+'" aria-pressed="'+(cur===s)+'"><i class="au-dot '+s+'"></i>'+AU_LBL[s]+'</button>').join('')};
+ const btns=z=>{const cur=auOf(st,f,z);const rq=auReqT(st,f,z);return ['ok','low','out'].map(s=>'<button class="'+s+(cur===s?' on':'')+'" data-a="auSet" data-z="'+esc(z)+'" data-s="'+s+'" aria-pressed="'+(cur===s)+'"><i class="au-dot '+s+'"></i>'+AU_LBL[s]+'</button>').join('')+'<button class="rq'+(rq?' on':'')+'" data-a="auReq" data-z="'+esc(z)+'" aria-pressed="'+(!!rq)+'">Request</button>'};
  const nav=n>1?'<button class="au-nav l" data-a="auGo" data-d="-1" aria-label="Variasi sebelumnya">‹</button><button class="au-nav r" data-a="auGo" data-d="1" aria-label="Variasi berikutnya">›</button>':'';
  const ths=n>1?'<div class="au-ths">'+p.foto.map((g,k)=>'<button class="au-th '+auW(st,p,g)+(k===j?' on':'')+'" data-a="auGo" data-j="'+k+'" aria-label="Variasi '+(k+1)+'" aria-current="'+(k===j)+'">'+auImg(g)+'</button>').join('')+'</div>':'';
  const oth=auStores().filter(x=>x!==st).map(x=>{const r=auRec(x,f),w=auW(x,p,f);return '<div><b>'+esc(x)+'</b><span class="au-szc">'+(one?'<span class="one '+w+'">'+AU_LBL[w]+'</span>':sz.map(z=>{const s=auOf(x,f,z);return '<span class="'+s+'" title="Size '+esc(z)+': '+AU_LBL[s]+'">'+esc(z)+'</span>'}).join(''))+'</span><em>'+(r?esc(r.by||'')+' · '+dm(r.t)+' '+hm(r.t):'Belum diaudit')+'</em></div>'}).join('');
@@ -1313,6 +1332,14 @@ A.auSet=el=>{
  const b=$('#audlg [data-z="'+el.dataset.z+'"][data-s="'+el.dataset.s+'"]');if(b)b.focus();
  toast(p.nama+' variasi '+(+a[1]+1)+(el.dataset.z==='all'?'':' size '+el.dataset.z)+': '+AU_LBL[el.dataset.s]);
 };
+function auReqSet(k,z,on){
+ const a=k.split('-'),p=CAT[+a[0]],f=p.foto[+a[1]],st=auStore(),id=auId(st,f);
+ let r=S.audit.find(x=>x.id===id);if(!r){if(!on)return;r={id:id,store:st,prod:p.nama,foto:f,z:{}};S.audit.push(r)}
+ r.z=Object.assign({},r.z);if(on)r.z['q:'+z]=Date.now();else delete r.z['q:'+z];r.prod=p.nama;r.t=Date.now();r.by='Owner';
+ enqueue('POS Audit',r);save();kick(1500);render();auShow();
+ toast(on?'Request: '+p.nama+' variasi '+(+a[1]+1)+(z==='all'?'':' size '+z):'Request dibatalkan')}
+A.auReq=el=>{if(!auK)return;const a=auK.split('-'),f=CAT[+a[0]].foto[+a[1]];auReqSet(auK,el.dataset.z,!auReqT(auStore(),f,el.dataset.z))};
+A.auReqDel=el=>auReqSet(el.dataset.k,el.dataset.z,false);
 A.auF=el=>{auF=el.dataset.f;render()};
 A.auCat=el=>{auCat=el.dataset.c;render()};
 A.auReload=()=>{catErr='';catLoad(true);render()};

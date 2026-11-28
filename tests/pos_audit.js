@@ -71,14 +71,24 @@ const errs=[];
  ok((await P.textContent('#audlg .au-ol')).includes('Toko A')&&(await P.textContent('#audlg .au-ol .au-szc .out')).trim()==='M','Toko B pop up: Toko A has size M Habis');
  ok(await P.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'phone 360 px: fits the screen with the pop up open');
  await P.screenshot({path:'pos-audit-phone.png'});
+ // Request: a 4th button that never changes the status; listed in its own tab
+ await P.click('#audlg [data-a=auReq][data-z=M]');
+ ok(await P.$eval('#audlg [data-a=auReq][data-z=M]',e=>e.classList.contains('on'))&&await P.$eval('#audlg [data-z=M][data-s=ok]',e=>e.classList.contains('on')),'Request on size M is marked and the status (Cukup) stays');
  await P.click('#audlg .au-done');
+ ok((await P.textContent('[data-f=rq] .cnt'))==='1','Request tab: badge 1');
+ await P.click('[data-a=auF][data-f=rq]');
+ ok((await P.$$('.au-rc.rq')).length===1&&(await P.textContent('.au-rc.rq')).includes('Dari'),'Request tab: the requested item is listed');
+ ok(await P.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'phone 360 px: Request tab fits');
+ await P.screenshot({path:'/tmp/pos-audit-request.png'});
+ await P.click('[data-a=auReqDel]');ok(!!(await P.$('.au-empty')),'cancel request: list empty again');
+ await P.click('[data-a=auF][data-f=all]');
  await P.click('[data-a=auCat][data-c=Atasan]');await P.click('.au-card .au-pic');
- ok((await P.$$('#audlg .au-szr')).length===0&&(await P.$$('#audlg .au-st button')).length===3,'All size: one status row');
+ ok((await P.$$('#audlg .au-szr')).length===0&&(await P.$$('#audlg .au-st button')).length===4,'All size: one status row (Cukup, Kurang, Habis, Request)');
  await P.click('#audlg [data-z=all][data-s=low]');await P.click('#audlg .au-done');
  ok((await P.textContent('.au-card .au-bdg')).includes('Restock 1'),'All size set to Kurang: Restock 1');
- await until(async()=>rows(await dump(),'POS Audit').length===2,15000,'second row');
+ await until(async()=>rows(await dump(),'POS Audit').length===3,15000,'second row');
  // Toko A sees it after a pull; owner mode off closes Audit
- await A.evaluate(()=>window.__wismir.S.since=0);await until(()=>A.evaluate(()=>window.__wismir.S.audit.length===2),70000,'A pulls');
+ await A.evaluate(()=>window.__wismir.S.since=0);await until(()=>A.evaluate(()=>window.__wismir.S.audit.length===3),70000,'A pulls');
  await A.click('[data-a=auF][data-f=all]');await A.waitForTimeout(700);await A.screenshot({path:'pos-audit.png'});await A.click('.au-card .au-pic');await A.waitForTimeout(700);await A.screenshot({path:'pos-audit-pop.png'});await A.click('#audlg .au-done');await A.click('[data-a=auF][data-f=rs]');await A.waitForTimeout(700);await A.screenshot({path:'pos-audit-restock.png'});
  await A.click('[data-a=ownerOff]');await A.waitForTimeout(200);
  ok(!(await menu(A)).includes('audit')&&!(await A.$('.au-card')),'owner mode off: Audit gone from the menu and the page');
