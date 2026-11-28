@@ -1639,9 +1639,8 @@ function vAudit(){
  return head+kp+G.map(g=>`<div class="audg"><div class="audh"><b>${esc(g.p.nama)}</b><span class="pill">${esc(g.p.kat)}</span><span class="lbl">${g.ix.length} of ${g.p.foto.length} variations</span></div><div class="audl">${g.ix.map(j=>audCard(M,sts,AUD.indexOf(g.p),j)).join('')}</div></div>`).join('');
 }
 function audCard(M,sts,pi,j){const p=AUD[pi],f=p.foto[j];
- const last=sts.map(st=>M[st+'|'+f]).filter(Boolean).sort((a,b)=>b.t-a.t)[0];
  return `<div class="audc" onclick="audSheet(${pi},${j})"><div class="audp">${f.charAt(0)==='#'?'':`<img src="${esc(audImg(f,1))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${esc(audImg(f))}'}else this.style.visibility='hidden'">`}</div>
-  <div class="audb"><div class="t">Photo ${j+1}</div><table class="audt"><tr><th></th>${audShort(sts).map((n,i)=>`<th title="${esc(sts[i])}">${esc(n)}</th>`).join('')}</tr>${p.sz.map(z=>`<tr><td>${esc(z==='all'?'All':z)}</td>${sts.map(st=>`<td>${audCell(audOf(M,st,f,z),z)}</td>`).join('')}</tr>`).join('')}</table>${last?`<div class="lbl">Updated ${audWhen(last)}</div>`:''}</div></div>`}
+  <div class="audb"><div class="t">Photo ${j+1}</div><table class="audt"><tr><th></th>${audShort(sts).map((n,i)=>`<th title="${esc(sts[i])}">${esc(n)}</th>`).join('')}</tr>${p.sz.map(z=>`<tr><td>${esc(z==='all'?'All':z)}</td>${sts.map(st=>`<td>${audCell(audOf(M,st,f,z),z)}</td>`).join('')}</tr>`).join('')}</table></div></div>`}
 function audSheet(pi,j){
  const p=AUD[pi];if(!p)return;const f=p.foto[j],M=audMap(),sts=audStores();closePop();$('#sheet').oninput=null;
  $('#sheet').innerHTML=`<h3>${esc(p.nama)} · photo ${j+1}</h3><div class="lbl" style="margin:-8px 6px 12px">${esc(p.kat)} · ${esc(p.sz[0]==='all'?(p.uk||'All size'):'Size '+p.sz.join(', '))} · view only, change it on a tablet (POS › Audit)</div>
