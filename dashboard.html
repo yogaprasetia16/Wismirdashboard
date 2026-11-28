@@ -255,11 +255,11 @@ html[data-theme=dark]{--aok:#6db587;--alow:#e8b85a;--aout:#e2705a;--alowt:#1a151
 .audk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.audk b.audlt{font-size:17px;margin-top:4px}.audlr{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:2px 0}.audlr span:first-child{font-weight:700;white-space:nowrap}.audlr span:last-child{color:var(--mute);white-space:nowrap}.audk .card{margin:0;padding:12px 16px}.audk b{display:block;font-size:24px;line-height:1.2}
 .audg{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin-bottom:12px}
 .audh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}.audh b{font-size:16px}.audh .lbl{margin-left:auto}
-.audl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
-.audc{display:grid;grid-template-columns:96px minmax(0,1fr);border:1.5px solid var(--aout);border-radius:16px;overflow:hidden;cursor:pointer;background:var(--card)}
-.audp{background:var(--sec);min-height:128px}.audp img{width:100%;height:100%;object-fit:cover;display:block}
-.audb{padding:10px 12px;min-width:0;display:flex;flex-direction:column;gap:6px}.audb .t{font-weight:700;font-size:13.5px}
-.audt{border-collapse:collapse;width:100%;table-layout:fixed}.audt th{font-size:10.5px;font-weight:700;color:var(--mute);text-align:center;padding:0 2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.audt th:first-child,.audt td:first-child{width:38px;text-align:left;font-size:12px;font-weight:700;color:var(--mute)}.audt td{text-align:center;padding:2px}
+.audl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media (max-width:1180px){.audl{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (max-width:860px){.audl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.audc{display:grid;grid-template-columns:100px minmax(0,1fr);border:1.5px solid var(--aout);border-radius:16px;overflow:hidden;cursor:pointer;background:var(--card)}
+.audp{background:var(--sec);min-height:96px}.audp img{width:100%;height:100%;object-fit:cover;display:block}
+.audb{padding:8px 10px;min-width:0;display:flex;flex-direction:column;gap:6px}.audb .t{font-weight:700;font-size:13.5px}
+.audt{border-collapse:collapse;width:100%;table-layout:fixed}.audt th{font-size:10.5px;font-weight:700;color:var(--mute);text-align:center;padding:0 2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.audt th:first-child,.audt td:first-child{width:26px;text-align:left;font-size:12px;font-weight:700;color:var(--mute)}.audt td{text-align:center;padding:2px}.audt .aus{min-width:24px;height:24px;font-size:10.5px;padding:0 4px}
 .audbig{aspect-ratio:3/4;max-height:52vh;margin:0 auto 12px;border-radius:16px;overflow:hidden;background:var(--sec)}.audbig img{width:100%;height:100%;object-fit:contain;display:block}
 .audz{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
 @media (max-width:600px){.audl{grid-template-columns:minmax(0,1fr)}.audk{grid-template-columns:repeat(3,minmax(0,1fr))}.audk b{font-size:20px}.audk .audlu{grid-column:1/-1}}
@@ -1597,7 +1597,7 @@ function vOps(){
   const eico=ops==='exp'?`<button class="impb lg" id="recBtn" onclick="recSheet()" title="Recurring" aria-label="Recurring"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></svg>${bdg(nRec)}</button><button class="impb lg" id="annBtn" onclick="annSheet()" title="Annually" aria-label="Annually"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${bdg(nAnn)}</button>`:'';
   const sseg=ops==='stock'?`<div class="seg ico">${[['list','Products'],['hist','History']].map(x=>`<button class="${stv===x[0]?'on':''}" title="${x[1]}" aria-label="${x[1]}" onclick="stv='${x[0]}';render()"><svg viewBox="0 0 24 24">${SIC[x[0]]}</svg></button>`).join('')}</div>`:'';
   const oT={stock:'Stock · '+(stv==='hist'?'History':'Products'),staff:'Staff',att:'Attendance',store:'Store',exp:'Expense',audit:'Audit'}[ops]||'Stock';
-  return `<h1>Operational<span class="h1s">${oT}</span></h1><div class="segrow"><div class="seg ico">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense'],['audit','Audit']].map(s=>`<button class="${ops===s[0]?'on':''}" title="${s[1]}" aria-label="${s[1]}" onclick="ops='${s[0]}';render()"><svg viewBox="0 0 24 24">${OIC[s[0]]}</svg></button>`).join('')}</div>${sseg}<div class="bha" style="margin-left:auto">${ops==='audit'?audPick():''}${simp}${eico}${oadd}</div></div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp,audit:vAudit}[ops]||vStock)();
+  return `<h1>Operational<span class="h1s">${oT}</span></h1><div class="segrow"><div class="seg ico">${[['stock','Stock'],['staff','Staff'],['att','Attendance'],['store','Store'],['exp','Expense'],['audit','Audit']].map(s=>`<button class="${ops===s[0]?'on':''}" title="${s[1]}" aria-label="${s[1]}" onclick="ops='${s[0]}';render()"><svg viewBox="0 0 24 24">${OIC[s[0]]}</svg></button>`).join('')}</div>${sseg}<div class="bha" style="margin-left:auto">${ops==='audit'?audPick():ops==='att'?attPick():''}${simp}${eico}${oadd}</div></div>`+({stock:vStock,staff:vStaff,att:vAtt,store:vStore,exp:vOpsExp,audit:vAudit}[ops]||vStock)();
 }
 const posEmpty=what=>`<div class="card">${empty(S.cfg.url?'No '+what+' yet. It appears here once the store tablet (POS) is connected to the same Google Sheet.':'Connect Google Sheets in Settings to see '+what+' from the store tablet (POS).')}</div>`;
 // ---- Operational › Audit (owner 2026-11-27): read-only recap of the cashier tablets' Audit (POS › Audit, owner mode) ----
@@ -1639,22 +1639,27 @@ function vAudit(){
  return head+kp+G.map(g=>`<div class="audg"><div class="audh"><b>${esc(g.p.nama)}</b><span class="pill">${esc(g.p.kat)}</span><span class="lbl">${g.ix.length} of ${g.p.foto.length} variations</span></div><div class="audl">${g.ix.map(j=>audCard(M,sts,AUD.indexOf(g.p),j)).join('')}</div></div>`).join('');
 }
 function audCard(M,sts,pi,j){const p=AUD[pi],f=p.foto[j];
- const last=sts.map(st=>M[st+'|'+f]).filter(Boolean).sort((a,b)=>b.t-a.t)[0];
  return `<div class="audc" onclick="audSheet(${pi},${j})"><div class="audp">${f.charAt(0)==='#'?'':`<img src="${esc(audImg(f,1))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${esc(audImg(f))}'}else this.style.visibility='hidden'">`}</div>
-  <div class="audb"><div class="t">Photo ${j+1}</div><table class="audt"><tr><th></th>${audShort(sts).map((n,i)=>`<th title="${esc(sts[i])}">${esc(n)}</th>`).join('')}</tr>${p.sz.map(z=>`<tr><td>${esc(z==='all'?'All':z)}</td>${sts.map(st=>`<td>${audCell(audOf(M,st,f,z),z)}</td>`).join('')}</tr>`).join('')}</table>${last?`<div class="lbl">Updated ${audWhen(last)}</div>`:''}</div></div>`}
+  <div class="audb"><div class="t">Photo ${j+1}</div><table class="audt"><tr><th></th>${audShort(sts).map((n,i)=>`<th title="${esc(sts[i])}">${esc(n)}</th>`).join('')}</tr>${p.sz.map(z=>`<tr><td>${esc(z==='all'?'All':z)}</td>${sts.map(st=>`<td>${audCell(audOf(M,st,f,z),z)}</td>`).join('')}</tr>`).join('')}</table></div></div>`}
 function audSheet(pi,j){
  const p=AUD[pi];if(!p)return;const f=p.foto[j],M=audMap(),sts=audStores();closePop();$('#sheet').oninput=null;
  $('#sheet').innerHTML=`<h3>${esc(p.nama)} · photo ${j+1}</h3><div class="lbl" style="margin:-8px 6px 12px">${esc(p.kat)} · ${esc(p.sz[0]==='all'?(p.uk||'All size'):'Size '+p.sz.join(', '))} · view only, change it on a tablet (POS › Audit)</div>
  <div class="audbig">${f.charAt(0)==='#'?'':`<img src="${esc(audImg(f))}" alt="" referrerpolicy="no-referrer">`}</div>
  <div class="card">${sts.map(st=>{const r=M[st+'|'+f];return `<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(st)}</div><div class="lbl">${r?esc(r.by||'')+' · '+audWhen(r):'Not audited yet (counts as enough)'}</div></div><span class="audz">${p.sz.map(z=>audCell(audOf(M,st,f,z),z)).join('')}</span></div>`}).join('')}</div>
  <button class="btn sec" id="no">Close</button>`;$('#no').onclick=close;$('#bg').classList.add('open')}
+// Attendance period (owner 2026-11-28): "This week" = Monday to today, or one month (dropdown at the right of the tab row)
+let APer='week';
+function weekStart(){const d=new Date(),k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return ymd(d)}
+function attIn(d){return APer==='week'?(d>=weekStart()&&d<=today()):String(d).startsWith(APer)}
+function attPick(){const ms=new Set([today().slice(0,7)]);P('absen').forEach(a=>{const d=nd(a.tanggal);if(/^\d{4}-\d{2}/.test(d))ms.add(d.slice(0,7))});P('shift').forEach(x=>{const d=nd(x.tanggal);if(/^\d{4}-\d{2}/.test(d))ms.add(d.slice(0,7))});
+ return `<div class="f" style="margin:0"><select id="attPer" onchange="APer=this.value;render()" aria-label="Period"><option value="week">This week</option>${[...ms].sort().reverse().map(m=>`<option value="${m}" ${m===APer?'selected':''}>${MONL(m)}</option>`).join('')}</select></div>`}
 function vAtt(){
-  const m=today().slice(0,7),by={};
-  P('absen').forEach(a=>{const d=nd(a.tanggal);if(!d.startsWith(m))return;const k=String(a.nama||'?'),o=by[k]||(by[k]={n:0,last:''});o.n++;if(d>o.last)o.last=d});
-  const names=Object.keys(by).sort(),sh=[...P('shift')].sort((a,b)=>(+b.tTutup||0)-(+a.tTutup||0)).slice(0,10);
-  if(!names.length&&!sh.length)return posEmpty('attendance');
-  return `<div class="lbl" style="margin:0 4px 14px">This month · from the store tablet (POS)</div>`+(names.length?`<div class="sg">${names.map(n=>`<div class="sc2" style="cursor:default"><div class="sav">${esc(n[0].toUpperCase())}</div><div class="t">${esc(n)}</div><div class="lbl">Last ${fmtD(by[n].last)}</div><span class="pill">${by[n].n} ${by[n].n===1?'shift':'shifts'}</span></div>`).join('')}</div>`:`<div class="card">${empty('No attendance this month yet.')}</div>`)+
-  `<div class="sub">Recent store shifts</div><div class="card">${sh.length?sh.map(s=>`<div class="row" onclick="posShift('${esc(s.id)}')"><div class="grow"><div class="t">${esc(s.toko)} · ${fmtD(nd(s.tanggal))}</div><div class="lbl">${esc(s.buka)}–${esc(s.tutup)} · ${esc(s.karyawan||'Owner')}</div></div><b>${rp(s.totalPenjualan)}</b></div>`).join(''):empty('No closed shifts yet.')}</div>`;
+  const by={},wk=weekStart(),pl=APer==='week'?`This week · ${fmtD(wk)} – ${fmtD(today())}`:MONL(APer);
+  P('absen').forEach(a=>{const d=nd(a.tanggal);if(!attIn(d))return;const k=String(a.nama||'?'),o=by[k]||(by[k]={n:0,last:''});o.n++;if(d>o.last)o.last=d});
+  const names=Object.keys(by).sort(),sh=[...P('shift')].filter(x=>attIn(nd(x.tanggal))).sort((a,b)=>(+b.tTutup||0)-(+a.tTutup||0)).slice(0,10);
+  if(!P('absen').length&&!P('shift').length)return posEmpty('attendance');
+  return `<div class="lbl" style="margin:0 4px 14px">${pl} · from the store tablet (POS)</div>`+(names.length?`<div class="sg">${names.map(n=>`<div class="sc2" style="cursor:default"><div class="sav">${esc(n[0].toUpperCase())}</div><div class="t">${esc(n)}</div><div class="lbl">Last ${fmtD(by[n].last)}</div><span class="pill">${by[n].n} ${by[n].n===1?'shift':'shifts'}</span></div>`).join('')}</div>`:`<div class="card">${empty('No attendance in this period.')}</div>`)+
+  `<div class="sub">Store shifts in this period</div><div class="card">${sh.length?sh.map(s=>`<div class="row" onclick="posShift('${esc(s.id)}')"><div class="grow"><div class="t">${esc(s.toko)} · ${fmtD(nd(s.tanggal))}</div><div class="lbl">${esc(s.buka)}–${esc(s.tutup)} · ${esc(s.karyawan||'Owner')}</div></div><b>${rp(s.totalPenjualan)}</b></div>`).join(''):empty('No closed shifts in this period.')}</div>`;
 }
 function posShift(id){
   const s=P('shift').find(x=>String(x.id)===id);if(!s)return;closePop();
