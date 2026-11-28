@@ -14,6 +14,9 @@ fs.writeFileSync(path.join(out,'dashboard-preview.html'),d);
 // POS starts empty in real use; the preview gets sample products, staff, stock and stores (owner PIN 1234)
 let pos=fs.readFileSync(path.join(root,'pos.html'),'utf8');const ph='let S=load()||blank();';
 if(pos.split(ph).length!==2)throw new Error('pos.html changed: hook "'+ph+'" not found once');
-pos=pos.replace(ph,'let S=load()||'+JSON.stringify(require('./pos-sample')())+';').replace('<title>WISMIR POS</title>','<title>WISMIR POS (preview)</title>');
+pos=pos.replace(ph,'let S=load()||'+JSON.stringify(require('./pos-sample')())+';\n'+fs.readFileSync(path.join(__dirname,'pos-audit-demo.js'),'utf8')).replace('<title>WISMIR POS</title>','<title>WISMIR POS (preview)</title>');
+// Audit photos: placeholder pictures instead of https://wismir.id/foto/ (preview only)
+const ah='function auPhoto(v){';if(pos.split(ah).length!==2)throw new Error('pos.html changed: auPhoto not found once');
+pos=pos.replace(ah,ah+'if(window.__auImgDemo){const d=window.__auImgDemo(v);return {u:d,t:d}}');
 fs.writeFileSync(path.join(out,'pos-preview.html'),pos);
 console.log('written to',out);
