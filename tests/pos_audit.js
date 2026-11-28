@@ -63,8 +63,9 @@ const errs=[];
  // second tablet (Toko B) sees Toko A's status; an "All size" product has one status
  const P=await tablet(br,{width:360,height:780},'Toko B');
  await P.click('#menuBtn');await P.click('#menu [data-t=audit]');await P.waitForSelector('.au-card',{timeout:10000});
- await P.click('[data-a=auSt][data-s="Toko B"]');
- ok((await P.textContent('#app h2')).includes('Toko B'),'store picker: auditing Toko B');
+ ok(!(await P.$('[data-a=auSt]')),'no store picker inside Audit');
+ await P.click('[data-a=storeSwitch]');await P.click('[data-a=setStore][data-s="Toko B"]');await P.waitForTimeout(200);
+ ok((await P.textContent('#app h2')).includes('Toko B'),'Audit follows the store chosen at the top right: Toko B');
  await until(()=>P.evaluate(()=>window.__wismir.S.audit.length===1),15000,'pulled');
  await P.click('.au-card .au-pic');await P.waitForSelector('#aupop:not([hidden])');
  ok((await P.textContent('#audlg .au-ol')).includes('Toko A')&&(await P.textContent('#audlg .au-ol .au-szc .out')).trim()==='M','Toko B pop up: Toko A has size M Habis');

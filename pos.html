@@ -1228,7 +1228,7 @@ A.reset=el=>twoTap(el,'Ketuk lagi: HAPUS SEMUA riwayat',async()=>{
 const AU_CAT='https://wismir.id/katalog.json',AU_CK='wismir_pos_cat';
 const AU_LBL={ok:'Cukup',low:'Kurang',out:'Habis'},AU_RANK={ok:0,low:1,out:2};
 const AU_YES=/^(ya|y|yes|true|1|v|x)$/i,AU_IMG=/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i;
-let CAT=null,catAt=0,catBusy=false,catErr='',auF='all',auCat='',auSt='',auK=null,auOpener=null,auX=null;
+let CAT=null,catAt=0,catBusy=false,catErr='',auF='all',auCat='',auK=null,auOpener=null,auX=null;
 const auUrl=()=>window.__catUrl||AU_CAT;
 // photo value in the catalog -> full URL / small card picture (foto/x.jpeg -> foto/t/x.jpg, as on the website)
 function auPhoto(v){const base=new URL('.',new URL(auUrl(),location.href)).href;if(/^https?:/i.test(v))return {u:v,t:v};const p=v.indexOf('/')>=0?v:'foto/'+v;return {u:base+p,t:/^foto\/[^/?]+$/.test(p)?base+'foto/t/'+p.slice(5).replace(/\.[^./]+$/,'')+'.jpg':base+p}}
@@ -1248,7 +1248,7 @@ function catLoad(force){
 const auSz=p=>p.uk.indexOf(',')>=0?p.uk.split(',').map(x=>x.trim()).filter(Boolean):['all'];
 const auSizeTxt=p=>auSz(p)[0]==='all'?(p.uk||'All size'):'Size '+auSz(p).join(' ');
 const auStores=()=>S.locs&&S.locs.stores.length?S.locs.stores:['Toko A','Toko B'];
-function auStore(){const L=auStores();if(L.indexOf(auSt)>=0)return auSt;const c=S.cfg.store,s=SRC(c);return L.indexOf(c)>=0?c:L.indexOf(s)>=0?s:L[0]}
+function auStore(){const L=auStores();const c=S.cfg.store,s=SRC(c);return L.indexOf(c)>=0?c:L.indexOf(s)>=0?s:L[0]}
 const auId=(st,f)=>st+'|'+f;
 function auRec(st,f){const id=auId(st,f);return S.audit.find(a=>a.id===id)}
 const auOf=(st,f,z)=>{const r=auRec(st,f);return (r&&r.z&&r.z[z])||'ok'};
@@ -1265,7 +1265,6 @@ function viewAudit(){
  catLoad(false);
  const st=auStore(),L=auStores(),cats=auCats();if(cats.indexOf(auCat)<0)auCat=cats[0]||'';
  const n=CAT?auNeed(st):0;
- const stSeg=L.length>1?'<div class="seg sc au-seg">'+L.map(x=>'<button class="'+(x===st?'on':'')+'" data-a="auSt" data-s="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>':'';
  const fSeg='<div class="seg au-seg"><button class="'+(auF==='all'?'on':'')+'" data-a="auF" data-f="all"><span class="au-fd"><i class="au-dot ok"></i><i class="au-dot low"></i><i class="au-dot out"></i></span>Semua status</button><button class="'+(auF==='rs'?'on':'')+'" data-a="auF" data-f="rs"><span class="au-fd"><i class="au-dot low"></i><i class="au-dot out"></i></span>Perlu restock'+(n?'<span class="cnt">'+n+'</span>':'')+'</button></div>';
  const cSeg=auF==='all'&&cats.length?'<div class="seg sc au-seg">'+cats.map(c=>'<button class="'+(c===auCat?'on':'')+'" data-a="auCat" data-c="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div>':'';
  const notes=(catErr?'<div class="note">'+esc(catErr)+'</div>':'')+(syncOn()&&S.codeV&&S.codeV<21?'<div class="note">Status audit tersimpan di tablet ini, tapi belum bisa dikirim: Apps Script (Code.gs) di Google Sheet perlu diperbarui ke versi terbaru.</div>':'');
@@ -1274,7 +1273,7 @@ function viewAudit(){
  else if(auF==='rs')body=auRestock(st);
  else{const P=CAT.map((p,i)=>({p:p,i:i})).filter(x=>x.p.kat===auCat);body=P.length?'<div class="au-grid">'+P.map(x=>auCard(st,x.p,x.i)).join('')+'</div>':'<div class="au-empty">Tidak ada produk di kategori ini.</div>'}
  return '<section class="panel"><div class="ph"><h2>Audit · '+esc(st)+'</h2><button class="lnk" data-a="auReload">'+(catBusy?'Memuat…':'Muat ulang')+'</button></div>'+
-  (stSeg?'<div class="au-tools">'+stSeg+'</div>':'')+'<div class="au-tools">'+fSeg+cSeg+'</div>'+notes+body+'</section>';
+  '<div class="au-tools">'+fSeg+cSeg+'</div>'+notes+body+'</section>';
 }
 function auCard(st,p,i){const n=p.foto.filter(f=>auW(st,p,f)!=='ok').length;
  return '<div class="au-card'+(n?' out':'')+'"><button class="au-pic" data-a="auOpen" data-k="'+i+'-0" aria-label="'+esc(p.nama)+': '+(n?n+' variasi perlu restock':'semua cukup')+'">'+auImg(p.foto[0])+
@@ -1316,7 +1315,6 @@ A.auSet=el=>{
 };
 A.auF=el=>{auF=el.dataset.f;render()};
 A.auCat=el=>{auCat=el.dataset.c;render()};
-A.auSt=el=>{auSt=el.dataset.s;render()};
 A.auReload=()=>{catErr='';catLoad(true);render()};
 // swipe left / right on the big photo = next / previous variation; arrow keys too
 let auSx=null;
